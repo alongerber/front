@@ -2,8 +2,11 @@
 /* מייצר את sample-data.json — נתוני דוגמה, 3-4 פריטים מכל סוג.
    הזמנים נשמרים יחסית ל-sampleBaseTime, והמערכת מזיזה אותם ל"עכשיו" בטעינה. */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const BASE = Date.parse('2026-01-15T10:00:00+02:00');
 const MIN = 60000, HOUR = 3600000, DAY = 86400000;
@@ -166,6 +169,75 @@ const routines = [
   { id: id('r'), type: 'routine', title: 'גיבוי המערכת', freq: 'weekly', lastDone: t(6), missCount: 0, nextDue: t(1), note: 'ייצוא JSON', ...base(40) }
 ];
 
+/* ---------- נושאים ופתקים ---------- */
+const noteTags = [
+  { id: 'nt_biz', name: 'העסק', color: '#ffd400' },
+  { id: 'nt_video', name: 'סרטונים', color: '#5aa9ff' },
+  { id: 'nt_agent', name: 'סוכנת קולית', color: '#e879f9' },
+  { id: 'nt_market', name: 'שיווק', color: '#3ddc84' },
+  { id: 'nt_admin', name: 'ניירת', color: '#94a3b8' },
+  { id: 'nt_personal', name: 'אישי', color: '#ff9f43' }
+];
+
+const chk = (...rows) => rows.map(r => {
+  const done = r.startsWith('*');
+  return { id: id('c'), text: done ? r.slice(1) : r, done };
+});
+
+/* שים לב לסדר: noteBase ראשון, כדי שהשדות הספציפיים יגברו עליו */
+const noteBase = (i, extra = {}) => Object.assign({
+  id: id('n'), type: 'note', kind: 'note', body: '', checklist: [], noteTags: [],
+  attachments: [], color: 'default', pinned: false, reminderAt: null, reminderDone: false,
+  tags: [], note: '', archived: false, createdAt: t(i), updatedAt: t(i)
+}, extra);
+
+const notes = [
+  noteBase(20, {
+    title: 'מבנה תסריט שעובד',
+    body: 'שנייה 0-3: הבעיה, בלי מבוא.\nשנייה 3-8: הפתרון, מראים ולא מספרים.\nשנייה 8-12: מחיר או הצעה.\nסוף: קריאה לפעולה אחת בלבד, לא שתיים.\n\nכל מה שארוך מ-15 שניות נופל באמצע.',
+    noteTags: ['nt_video'], color: 'yellow', pinned: true
+  }),
+  noteBase(24, {
+    title: 'מה לשאול לקוח בשיחת אפיון', kind: 'list',
+    checklist: chk('מי הלקוח שלך, בגיל ובאזור', 'מה השאלה שהכי חוזרת אצלך',
+      'יש לך צילומים קיימים?', 'מה המתחרים עושים שמעצבן אותך',
+      'איפה הסרטון ירוץ — אינסטגרם, טיקטוק, אתר'),
+    noteTags: ['nt_video', 'nt_market'], color: 'green', pinned: true
+  }),
+  noteBase(9, {
+    title: 'ציוד ותוכנות לבדוק', kind: 'list',
+    checklist: chk('Higgsfield — תנועות מצלמה', 'Runway Gen-4', '*HeyGen אווטארים',
+      'מוזיקה ברישיון — Epidemic'),
+    noteTags: ['nt_video', 'nt_biz'], color: 'blue'
+  }),
+  noteBase(6, {
+    title: 'מיטל — מה עוד חסר לפני מכירה', kind: 'list',
+    checklist: chk('העברת שיחה לאדם', 'סיכום שיחה בוואטסאפ', '*זיהוי שעות פתיחה',
+      'תמחור — עדיין לא סגור'),
+    noteTags: ['nt_agent'], color: 'purple', reminderAt: t(-3)
+  }),
+  noteBase(11, {
+    title: 'טקסטים למודעות',
+    body: '"הלקוחות שלך גוללים. אתה לא שם."\n"סרטון פרסומת ב-7 ימים. 1,290 ₪. בלי צוות צילום."\n"מוסך? קליניקה? מסעדה? יש לי סרטון בשבילך."',
+    noteTags: ['nt_market'], color: 'orange'
+  }),
+  noteBase(28, {
+    title: 'ניירת לרואה חשבון — מה שולחים', kind: 'list',
+    checklist: chk('חשבוניות שהוצאתי', 'קבלות על מנויים בדולר', 'דוח מהבנק', 'הוצאות פרסום ממטא'),
+    noteTags: ['nt_admin'], reminderAt: t(-5)
+  }),
+  noteBase(35, {
+    title: 'סיסמאות ומקומות',
+    body: 'הכל ב-1Password. כאן רק תזכורת מה קיים:\n· Netlify — הדפים\n· ElevenLabs — הקולות\n· מטא — הקמפיינים\n· Vercel — הפונקציה של העוזר\n\nלא לכתוב כאן סיסמאות אמיתיות.',
+    noteTags: ['nt_admin', 'nt_biz'], color: 'gray'
+  }),
+  noteBase(16, {
+    title: 'התנגדויות ששמעתי, ומה עונים',
+    body: '"יקר לי" → כמה עולה לך יום בלי לקוחות חדשים?\n"אין לי צילומים" → לא צריך, הכל נוצר.\n"אני לא יודע מה להגיד" → אני כותב את התסריט.\n"אנסה לבד עם AI" → קח, זה קישור לכלי. תחזור אליי בעוד שבוע.',
+    noteTags: ['nt_market', 'nt_biz'], color: 'pink'
+  })
+];
+
 /* ---------- רשומות זמן ---------- */
 const entries = [];
 const E = (itemId, day, fromH, toH, kind) => entries.push({
@@ -208,7 +280,7 @@ const state = {
     longAbsenceHours: 2, timerNudgeHours: 2, decisionStaleDays: 7,
     autoBackupDays: 3, lastBackupAt: t(5), homeMode: 'list',
     avgLeadCost: 130,
-    notifications: { enabled: false, lead: true, deadline: true, routine: true, decision: true, timer: true },
+    notifications: { enabled: false, lead: true, deadline: true, routine: true, decision: true, timer: true, note: true },
     assistantEnabled: true, assistantClassify: true
   },
   productLines: [
@@ -227,9 +299,11 @@ const state = {
     { id: 'knowledge', name: 'ידע', icon: '📚', color: '#b98cff', system: true },
     { id: 'decision', name: 'החלטה', icon: '⚖️', color: '#ff9f43', system: true },
     { id: 'routine', name: 'שגרה', icon: '🔁', color: '#3ddc84', system: true },
-    { id: 'idea', name: 'רעיון', icon: '💡', color: '#ff6b9d', system: true }
+    { id: 'idea', name: 'רעיון', icon: '💡', color: '#ff6b9d', system: true },
+    { id: 'note', name: 'פתק', icon: '🗒', color: '#a3e635', system: true }
   ],
-  items: [...clients, ...tasks, ...knowledge, ...decisions, ...ideas, ...routines],
+  noteTags,
+  items: [...clients, ...tasks, ...knowledge, ...decisions, ...ideas, ...routines, ...notes],
   timeEntries: entries,
   subscriptions: [
     { id: id('s'), name: 'Claude', cost: 200, currency: 'USD' },

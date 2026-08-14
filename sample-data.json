@@ -24,7 +24,8 @@
       "deadline": true,
       "routine": true,
       "decision": true,
-      "timer": true
+      "timer": true,
+      "note": true
     },
     "assistantEnabled": true,
     "assistantClassify": true
@@ -185,6 +186,45 @@
       "icon": "💡",
       "color": "#ff6b9d",
       "system": true
+    },
+    {
+      "id": "note",
+      "name": "פתק",
+      "icon": "🗒",
+      "color": "#a3e635",
+      "system": true
+    }
+  ],
+  "noteTags": [
+    {
+      "id": "nt_biz",
+      "name": "העסק",
+      "color": "#ffd400"
+    },
+    {
+      "id": "nt_video",
+      "name": "סרטונים",
+      "color": "#5aa9ff"
+    },
+    {
+      "id": "nt_agent",
+      "name": "סוכנת קולית",
+      "color": "#e879f9"
+    },
+    {
+      "id": "nt_market",
+      "name": "שיווק",
+      "color": "#3ddc84"
+    },
+    {
+      "id": "nt_admin",
+      "name": "ניירת",
+      "color": "#94a3b8"
+    },
+    {
+      "id": "nt_personal",
+      "name": "אישי",
+      "color": "#ff9f43"
     }
   ],
   "items": [
@@ -700,11 +740,272 @@
       "createdAt": 1765008000000,
       "updatedAt": 1765008000000,
       "archived": false
+    },
+    {
+      "id": "n_sample43",
+      "type": "note",
+      "kind": "note",
+      "body": "שנייה 0-3: הבעיה, בלי מבוא.\nשנייה 3-8: הפתרון, מראים ולא מספרים.\nשנייה 8-12: מחיר או הצעה.\nסוף: קריאה לפעולה אחת בלבד, לא שתיים.\n\nכל מה שארוך מ-15 שניות נופל באמצע.",
+      "checklist": [],
+      "noteTags": [
+        "nt_video"
+      ],
+      "attachments": [],
+      "color": "yellow",
+      "pinned": true,
+      "reminderAt": null,
+      "reminderDone": false,
+      "tags": [],
+      "note": "",
+      "archived": false,
+      "createdAt": 1766736000000,
+      "updatedAt": 1766736000000,
+      "title": "מבנה תסריט שעובד"
+    },
+    {
+      "id": "n_sample49",
+      "type": "note",
+      "kind": "list",
+      "body": "",
+      "checklist": [
+        {
+          "id": "c_sample44",
+          "text": "מי הלקוח שלך, בגיל ובאזור",
+          "done": false
+        },
+        {
+          "id": "c_sample45",
+          "text": "מה השאלה שהכי חוזרת אצלך",
+          "done": false
+        },
+        {
+          "id": "c_sample46",
+          "text": "יש לך צילומים קיימים?",
+          "done": false
+        },
+        {
+          "id": "c_sample47",
+          "text": "מה המתחרים עושים שמעצבן אותך",
+          "done": false
+        },
+        {
+          "id": "c_sample48",
+          "text": "איפה הסרטון ירוץ — אינסטגרם, טיקטוק, אתר",
+          "done": false
+        }
+      ],
+      "noteTags": [
+        "nt_video",
+        "nt_market"
+      ],
+      "attachments": [],
+      "color": "green",
+      "pinned": true,
+      "reminderAt": null,
+      "reminderDone": false,
+      "tags": [],
+      "note": "",
+      "archived": false,
+      "createdAt": 1766390400000,
+      "updatedAt": 1766390400000,
+      "title": "מה לשאול לקוח בשיחת אפיון"
+    },
+    {
+      "id": "n_sample54",
+      "type": "note",
+      "kind": "list",
+      "body": "",
+      "checklist": [
+        {
+          "id": "c_sample50",
+          "text": "Higgsfield — תנועות מצלמה",
+          "done": false
+        },
+        {
+          "id": "c_sample51",
+          "text": "Runway Gen-4",
+          "done": false
+        },
+        {
+          "id": "c_sample52",
+          "text": "HeyGen אווטארים",
+          "done": true
+        },
+        {
+          "id": "c_sample53",
+          "text": "מוזיקה ברישיון — Epidemic",
+          "done": false
+        }
+      ],
+      "noteTags": [
+        "nt_video",
+        "nt_biz"
+      ],
+      "attachments": [],
+      "color": "blue",
+      "pinned": false,
+      "reminderAt": null,
+      "reminderDone": false,
+      "tags": [],
+      "note": "",
+      "archived": false,
+      "createdAt": 1767686400000,
+      "updatedAt": 1767686400000,
+      "title": "ציוד ותוכנות לבדוק"
+    },
+    {
+      "id": "n_sample59",
+      "type": "note",
+      "kind": "list",
+      "body": "",
+      "checklist": [
+        {
+          "id": "c_sample55",
+          "text": "העברת שיחה לאדם",
+          "done": false
+        },
+        {
+          "id": "c_sample56",
+          "text": "סיכום שיחה בוואטסאפ",
+          "done": false
+        },
+        {
+          "id": "c_sample57",
+          "text": "זיהוי שעות פתיחה",
+          "done": true
+        },
+        {
+          "id": "c_sample58",
+          "text": "תמחור — עדיין לא סגור",
+          "done": false
+        }
+      ],
+      "noteTags": [
+        "nt_agent"
+      ],
+      "attachments": [],
+      "color": "purple",
+      "pinned": false,
+      "reminderAt": 1768723200000,
+      "reminderDone": false,
+      "tags": [],
+      "note": "",
+      "archived": false,
+      "createdAt": 1767945600000,
+      "updatedAt": 1767945600000,
+      "title": "מיטל — מה עוד חסר לפני מכירה"
+    },
+    {
+      "id": "n_sample60",
+      "type": "note",
+      "kind": "note",
+      "body": "\"הלקוחות שלך גוללים. אתה לא שם.\"\n\"סרטון פרסומת ב-7 ימים. 1,290 ₪. בלי צוות צילום.\"\n\"מוסך? קליניקה? מסעדה? יש לי סרטון בשבילך.\"",
+      "checklist": [],
+      "noteTags": [
+        "nt_market"
+      ],
+      "attachments": [],
+      "color": "orange",
+      "pinned": false,
+      "reminderAt": null,
+      "reminderDone": false,
+      "tags": [],
+      "note": "",
+      "archived": false,
+      "createdAt": 1767513600000,
+      "updatedAt": 1767513600000,
+      "title": "טקסטים למודעות"
+    },
+    {
+      "id": "n_sample65",
+      "type": "note",
+      "kind": "list",
+      "body": "",
+      "checklist": [
+        {
+          "id": "c_sample61",
+          "text": "חשבוניות שהוצאתי",
+          "done": false
+        },
+        {
+          "id": "c_sample62",
+          "text": "קבלות על מנויים בדולר",
+          "done": false
+        },
+        {
+          "id": "c_sample63",
+          "text": "דוח מהבנק",
+          "done": false
+        },
+        {
+          "id": "c_sample64",
+          "text": "הוצאות פרסום ממטא",
+          "done": false
+        }
+      ],
+      "noteTags": [
+        "nt_admin"
+      ],
+      "attachments": [],
+      "color": "default",
+      "pinned": false,
+      "reminderAt": 1768896000000,
+      "reminderDone": false,
+      "tags": [],
+      "note": "",
+      "archived": false,
+      "createdAt": 1766044800000,
+      "updatedAt": 1766044800000,
+      "title": "ניירת לרואה חשבון — מה שולחים"
+    },
+    {
+      "id": "n_sample66",
+      "type": "note",
+      "kind": "note",
+      "body": "הכל ב-1Password. כאן רק תזכורת מה קיים:\n· Netlify — הדפים\n· ElevenLabs — הקולות\n· מטא — הקמפיינים\n· Vercel — הפונקציה של העוזר\n\nלא לכתוב כאן סיסמאות אמיתיות.",
+      "checklist": [],
+      "noteTags": [
+        "nt_admin",
+        "nt_biz"
+      ],
+      "attachments": [],
+      "color": "gray",
+      "pinned": false,
+      "reminderAt": null,
+      "reminderDone": false,
+      "tags": [],
+      "note": "",
+      "archived": false,
+      "createdAt": 1765440000000,
+      "updatedAt": 1765440000000,
+      "title": "סיסמאות ומקומות"
+    },
+    {
+      "id": "n_sample67",
+      "type": "note",
+      "kind": "note",
+      "body": "\"יקר לי\" → כמה עולה לך יום בלי לקוחות חדשים?\n\"אין לי צילומים\" → לא צריך, הכל נוצר.\n\"אני לא יודע מה להגיד\" → אני כותב את התסריט.\n\"אנסה לבד עם AI\" → קח, זה קישור לכלי. תחזור אליי בעוד שבוע.",
+      "checklist": [],
+      "noteTags": [
+        "nt_market",
+        "nt_biz"
+      ],
+      "attachments": [],
+      "color": "pink",
+      "pinned": false,
+      "reminderAt": null,
+      "reminderDone": false,
+      "tags": [],
+      "note": "",
+      "archived": false,
+      "createdAt": 1767081600000,
+      "updatedAt": 1767081600000,
+      "title": "התנגדויות ששמעתי, ומה עונים"
     }
   ],
   "timeEntries": [
     {
-      "id": "te_sample43",
+      "id": "te_sample68",
       "itemId": "c_sample12",
       "start": 1766905200000,
       "end": 1766910600000,
@@ -712,7 +1013,7 @@
       "note": ""
     },
     {
-      "id": "te_sample44",
+      "id": "te_sample69",
       "itemId": "c_sample12",
       "start": 1766998800000,
       "end": 1767006000000,
@@ -720,7 +1021,7 @@
       "note": ""
     },
     {
-      "id": "te_sample45",
+      "id": "te_sample70",
       "itemId": "c_sample12",
       "start": 1767006000000,
       "end": 1767011400000,
@@ -728,7 +1029,7 @@
       "note": ""
     },
     {
-      "id": "te_sample46",
+      "id": "te_sample71",
       "itemId": "c_sample12",
       "start": 1767079800000,
       "end": 1767085200000,
@@ -736,7 +1037,7 @@
       "note": ""
     },
     {
-      "id": "te_sample47",
+      "id": "te_sample72",
       "itemId": "c_sample12",
       "start": 1767618000000,
       "end": 1767621600000,
@@ -744,7 +1045,7 @@
       "note": ""
     },
     {
-      "id": "te_sample48",
+      "id": "te_sample73",
       "itemId": "c_sample1",
       "start": 1768201200000,
       "end": 1768208400000,
@@ -752,7 +1053,7 @@
       "note": ""
     },
     {
-      "id": "te_sample49",
+      "id": "te_sample74",
       "itemId": "c_sample1",
       "start": 1768208400000,
       "end": 1768213800000,
@@ -760,7 +1061,7 @@
       "note": ""
     },
     {
-      "id": "te_sample50",
+      "id": "te_sample75",
       "itemId": "c_sample1",
       "start": 1768305600000,
       "end": 1768311000000,
@@ -768,7 +1069,7 @@
       "note": ""
     },
     {
-      "id": "te_sample51",
+      "id": "te_sample76",
       "itemId": "c_sample1",
       "start": 1768377600000,
       "end": 1768382100000,
@@ -776,7 +1077,7 @@
       "note": ""
     },
     {
-      "id": "te_sample52",
+      "id": "te_sample77",
       "itemId": "c_sample8",
       "start": 1768226400000,
       "end": 1768229100000,
@@ -784,7 +1085,7 @@
       "note": ""
     },
     {
-      "id": "te_sample53",
+      "id": "te_sample78",
       "itemId": "c_sample18",
       "start": 1768298400000,
       "end": 1768302000000,
@@ -792,7 +1093,7 @@
       "note": ""
     },
     {
-      "id": "te_sample54",
+      "id": "te_sample79",
       "itemId": "k_sample25",
       "start": 1768197600000,
       "end": 1768200300000,
@@ -800,7 +1101,7 @@
       "note": ""
     },
     {
-      "id": "te_sample55",
+      "id": "te_sample80",
       "itemId": "k_sample28",
       "start": 1767549600000,
       "end": 1767551400000,
@@ -808,7 +1109,7 @@
       "note": ""
     },
     {
-      "id": "te_sample56",
+      "id": "te_sample81",
       "itemId": "t_sample21",
       "start": 1768384800000,
       "end": 1768388400000,
@@ -816,7 +1117,7 @@
       "note": ""
     },
     {
-      "id": "te_sample57",
+      "id": "te_sample82",
       "itemId": null,
       "start": 1768388400000,
       "end": 1768392000000,
@@ -826,37 +1127,37 @@
   ],
   "subscriptions": [
     {
-      "id": "s_sample58",
+      "id": "s_sample83",
       "name": "Claude",
       "cost": 200,
       "currency": "USD"
     },
     {
-      "id": "s_sample59",
+      "id": "s_sample84",
       "name": "ElevenLabs",
       "cost": 99,
       "currency": "USD"
     },
     {
-      "id": "s_sample60",
+      "id": "s_sample85",
       "name": "Higgsfield / וידאו",
       "cost": 149,
       "currency": "USD"
     },
     {
-      "id": "s_sample61",
+      "id": "s_sample86",
       "name": "HeyGen",
       "cost": 89,
       "currency": "USD"
     },
     {
-      "id": "s_sample62",
+      "id": "s_sample87",
       "name": "Netlify + דומיינים",
       "cost": 21,
       "currency": "USD"
     },
     {
-      "id": "s_sample63",
+      "id": "s_sample88",
       "name": "כלים נלווים",
       "cost": 20,
       "currency": "USD"
@@ -864,13 +1165,13 @@
   ],
   "ledger": [
     {
-      "id": "lg_sample64",
+      "id": "lg_sample89",
       "title": "קמפיין ממומן — מטא",
       "amount": -560,
       "date": 1767772800000
     },
     {
-      "id": "lg_sample65",
+      "id": "lg_sample90",
       "title": "מוזיקה בליווי רישיון",
       "amount": -95,
       "date": 1767427200000
@@ -878,37 +1179,37 @@
   ],
   "links": [
     {
-      "id": "l_sample66",
+      "id": "l_sample91",
       "title": "הדף של מיטל",
       "url": "https://agentfront.netlify.app",
       "desc": "הסוכנת הקולית — הדף הציבורי"
     },
     {
-      "id": "l_sample67",
+      "id": "l_sample92",
       "title": "לוח השיחות",
       "url": "https://agentfront.netlify.app/dash.html",
       "desc": "כל השיחות שמיטל ניהלה"
     },
     {
-      "id": "l_sample68",
+      "id": "l_sample93",
       "title": "דף הנחיתה",
       "url": "https://frontvid.netlify.app",
       "desc": "הדף שאליו מגיעים מהמודעות"
     },
     {
-      "id": "l_sample69",
+      "id": "l_sample94",
       "title": "ElevenLabs",
       "url": "https://elevenlabs.io/app",
       "desc": "קולות וסוכנות קוליות"
     },
     {
-      "id": "l_sample70",
+      "id": "l_sample95",
       "title": "Meta Ads",
       "url": "https://adsmanager.facebook.com",
       "desc": "ניהול הקמפיינים"
     },
     {
-      "id": "l_sample71",
+      "id": "l_sample96",
       "title": "Netlify",
       "url": "https://app.netlify.com",
       "desc": "האחסון של כל הדפים"

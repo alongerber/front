@@ -35,6 +35,7 @@ const CATEGORY = id =>
   : id.startsWith('routines') ? 'routine'
   : id.startsWith('decisions') ? 'decision'
   : id.startsWith('timer') ? 'timer'
+  : id.startsWith('noteRem') ? 'note'
   : null;
 
 function fire(title, body, tag) {

@@ -2,8 +2,9 @@
    settings.js — הגדרות, גיבוי, התראות, סוגי פריטים
    ============================================================ */
 
-import { S, update, uid, downloadBackup, importJSON, exportJSON, resetAll, loadSample } from '../store.js';
+import { S, update, uid, downloadBackup, importJSON, exportJSON, resetAll, loadSample, liveAttachmentIds } from '../store.js';
 import { el, ago, toast, modal, input, select, field, confirmBox, dur, num, DAY } from '../util.js';
+import * as A from '../attachments.js';
 import * as notify from '../notify.js';
 import { lineEditor } from './pipeline.js';
 import { refresh } from '../app.js';
@@ -47,15 +48,53 @@ function backupCard() {
     const f = e.target.files[0];
     if (!f) return;
     const text = await f.text();
-    confirmBox(`לייבא את "${f.name}"? כל מה שיש עכשיו במערכת יוחלף.`, () => {
-      try { importJSON(text); toast('יובא בהצלחה', 'ok'); refresh(); }
+    confirmBox(`לייבא את "${f.name}"? כל מה שיש עכשיו במערכת יוחלף.`, async () => {
+      try {
+        const parsed = JSON.parse(text);
+        const files = parsed._files;
+        delete parsed._files;
+        if (files) {
+          const n = await A.importAll(files);
+          if (n) toast(`שוחזרו ${n} קבצים`, 'ok');
+        }
+        importJSON(JSON.stringify(parsed));
+        toast('יובא בהצלחה', 'ok');
+        refresh();
+      }
       catch (err) { toast('ייבוא נכשל: ' + err.message, 'err'); }
     }, 'כן, החלף הכל');
     file.value = '';
   });
 
+  /* קבצים מצורפים — נכנסים לגיבוי רק אם מסמנים, כי הם מנפחים אותו */
+  const attIds = liveAttachmentIds();
+  const withFiles = el('input', {
+    type: 'checkbox', checked: attIds.length > 0,
+    style: { width: '15px', height: '15px', accentColor: '#ffd400', cursor: 'pointer' }
+  });
+
+  const exportNow = async () => {
+    if (!withFiles.checked || !attIds.length) {
+      const n = downloadBackup(); toast('ירד ' + n, 'ok'); refresh(); return;
+    }
+    toast('אורז גם את הקבצים…');
+    try {
+      const obj = JSON.parse(exportJSON());
+      obj._files = await A.exportAll(attIds);
+      const d = new Date();
+      const name = `front-backup-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}-full.json`;
+      const blob = new Blob([JSON.stringify(obj)], { type: 'application/json' });
+      const a = el('a', { href: URL.createObjectURL(blob), download: name });
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      update(st => { st.settings.lastBackupAt = Date.now(); });
+      toast(`ירד ${name} · ${A.fmtSize(blob.size)}`, 'ok');
+      refresh();
+    } catch (err) { toast('הייצוא נכשל: ' + err.message, 'err'); }
+  };
+
   card.append(el('div', { style: { display: 'flex', gap: '7px', flexWrap: 'wrap' } },
-    el('button', { class: 'btn btn-y', onclick: () => { const n = downloadBackup(); toast('ירד ' + n, 'ok'); refresh(); } }, '⬇ ייצוא גיבוי JSON'),
+    el('button', { class: 'btn btn-y', onclick: exportNow }, '⬇ ייצוא גיבוי JSON'),
     el('button', { class: 'btn', onclick: () => file.click() }, '⬆ ייבוא מקובץ'),
     el('button', {
       class: 'btn', onclick: () => {
@@ -66,6 +105,14 @@ function backupCard() {
     }, 'העתק ללוח'),
     file
   ));
+
+  card.append(el('label', {
+    class: 'chk', style: { marginTop: '11px' },
+    'data-tip': 'תמונות ומסמכים מהפנקס יושבים במקום נפרד בדפדפן ולא נכנסים לגיבוי הרגיל. סימון כאן אורז אותם לתוך אותו קובץ — הוא יוצא גדול בהרבה.'
+  }, withFiles,
+    el('span', {}, attIds.length
+      ? `כלול גם את הקבצים מהפנקס (${attIds.length})`
+      : 'כלול גם את הקבצים מהפנקס — אין קבצים כרגע')));
 
   const days = input({ type: 'number', min: 1, max: 30, value: s.settings.autoBackupDays || 3 });
   days.addEventListener('change', () => { update(st => { st.settings.autoBackupDays = Number(days.value) || 3; }); refresh(); });
@@ -126,7 +173,8 @@ function notifyCard() {
     ['deadline', 'דדליין מתקרב'],
     ['routine', 'שגרה שהגיע זמנה'],
     ['decision', 'החלטה פתוחה שיושבת יותר מדי'],
-    ['timer', 'טיימר רץ יותר מדי בלי מגע']
+    ['timer', 'טיימר רץ יותר מדי בלי מגע'],
+    ['note', 'תזכורת שקבעת על פתק בפנקס']
   ];
   opts.forEach(([k, label]) => {
     const cb = el('input', {
@@ -241,10 +289,27 @@ function dangerCard() {
   const size = new Blob([exportJSON()]).size;
   const card = el('div', { class: 'card' });
   card.append(el('div', { class: 'card-h' }, el('h3', {}, 'נתונים')));
-  card.append(el('div', { class: 'small muted', style: { marginBottom: '11px' } },
-    `${s.items.length} פריטים · ${s.timeEntries.length} רשומות זמן · ${num(size / 1024, 0)} KB`));
+  const line = el('div', { class: 'small muted', style: { marginBottom: '11px' } },
+    `${s.items.length} פריטים · ${s.timeEntries.length} רשומות זמן · ${num(size / 1024, 0)} KB`);
+  card.append(line);
+
+  // הקבצים יושבים ב-IndexedDB ולא נספרים בשורה שלמעלה
+  A.usage().then(u => {
+    const ids = liveAttachmentIds();
+    if (!ids.length && !u.used) return;
+    line.append(el('span', {}, ` · ${ids.length} קבצים בפנקס`),
+      u.used ? el('span', {}, ` · ${A.fmtSize(u.used)} מתוך ${A.fmtSize(u.quota)}`) : null);
+  });
 
   card.append(el('div', { style: { display: 'flex', gap: '7px', flexWrap: 'wrap' } },
+    el('button', {
+      class: 'btn', 'data-tip': 'מוחק קבצים שנשארו בדפדפן אחרי שהפתק שהחזיק אותם נמחק. לא נוגע בקבצים שעדיין מוצגים.',
+      onclick: async () => {
+        const n = await A.pruneOrphans(liveAttachmentIds());
+        toast(n ? `נמחקו ${n} קבצים יתומים` : 'אין קבצים יתומים', 'ok');
+        refresh();
+      }
+    }, 'נקה קבצים יתומים'),
     el('button', {
       class: 'btn', onclick: () => confirmBox(
         'למחוק את כל רשומות הזמן? הפריטים יישארו.',
@@ -252,8 +317,8 @@ function dangerCard() {
     }, 'מחק רשומות זמן'),
     el('button', {
       class: 'btn btn-danger', onclick: () => confirmBox(
-        'לאפס הכל לברירת מחדל? כל הלקוחות, הזמנים והידע יימחקו. ייצא גיבוי קודם!',
-        () => { resetAll(); toast('אופס'); location.hash = '#/'; refresh(); }, 'כן, אפס הכל')
+        'לאפס הכל לברירת מחדל? כל הלקוחות, הזמנים, הידע והקבצים בפנקס יימחקו. ייצא גיבוי קודם!',
+        async () => { resetAll(); await A.pruneOrphans([]); toast('אופס'); location.hash = '#/'; refresh(); }, 'כן, אפס הכל')
     }, 'אפס הכל')
   ));
   return card;

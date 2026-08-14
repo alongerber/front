@@ -60,7 +60,7 @@ export function defaultState() {
       homeMode: 'list',           // 'list' | 'day'
       notifications: {
         enabled: false,
-        lead: true, deadline: true, routine: true, decision: true, timer: true
+        lead: true, deadline: true, routine: true, decision: true, timer: true, note: true
       },
       assistantEnabled: true,
       assistantClassify: true     // להשתמש בעוזר לסיווג הקלט החופשי
@@ -74,7 +74,8 @@ export function defaultState() {
       { id: 'knowledge', name: 'ידע',    icon: '📚', color: '#b98cff', system: true },
       { id: 'decision',  name: 'החלטה',  icon: '⚖️', color: '#ff9f43', system: true },
       { id: 'routine',   name: 'שגרה',   icon: '🔁', color: '#3ddc84', system: true },
-      { id: 'idea',      name: 'רעיון',  icon: '💡', color: '#ff6b9d', system: true }
+      { id: 'idea',      name: 'רעיון',  icon: '💡', color: '#ff6b9d', system: true },
+      { id: 'note',      name: 'פתק',    icon: '🗒', color: '#a3e635', system: true }
     ],
 
     items: defaultItems(),
@@ -91,6 +92,16 @@ export function defaultState() {
 
     // תנועות כסף שנרשמות ידנית (הכנסה נרשמת אוטומטית כשלקוח מגיע לשלב תשלום)
     ledger: [],
+
+    // תגיות הפנקס — נושאים ופרויקטים. ניתנות לעריכה, שינוי צבע ומחיקה.
+    noteTags: [
+      { id: 'nt_biz',     name: 'העסק',      color: '#ffd400' },
+      { id: 'nt_video',   name: 'סרטונים',   color: '#5aa9ff' },
+      { id: 'nt_agent',   name: 'סוכנת קולית', color: '#e879f9' },
+      { id: 'nt_market',  name: 'שיווק',     color: '#3ddc84' },
+      { id: 'nt_admin',   name: 'ניירת',     color: '#94a3b8' },
+      { id: 'nt_personal',name: 'אישי',      color: '#ff9f43' }
+    ],
 
     links: [
       { id: uid('l'), title: 'הדף של מיטל',  url: 'https://agentfront.netlify.app',          desc: 'הסוכנת הקולית — הדף הציבורי' },
@@ -156,7 +167,7 @@ function migrate(s) {
   const out = Object.assign({}, d, s);
   out.settings = Object.assign({}, d.settings, s.settings || {});
   out.settings.notifications = Object.assign({}, d.settings.notifications, (s.settings || {}).notifications || {});
-  for (const k of ['productLines', 'itemTypes', 'items', 'timeEntries', 'subscriptions', 'ledger', 'links', 'waiting', 'chat']) {
+  for (const k of ['productLines', 'itemTypes', 'items', 'timeEntries', 'subscriptions', 'ledger', 'links', 'waiting', 'chat', 'noteTags']) {
     if (!Array.isArray(out[k])) out[k] = d[k];
   }
   if (!out.productLines.length) out.productLines = d.productLines;
@@ -247,6 +258,17 @@ export function addItem(partial) {
     item.nextDue = item.nextDue || t;
   }
   if (item.type === 'task') item.done = !!item.done;
+  if (item.type === 'note') {
+    item.body = item.body || '';
+    item.kind = item.kind || 'note';          // 'note' טקסט חופשי | 'list' צ'קליסט
+    if (!Array.isArray(item.checklist)) item.checklist = [];
+    if (!Array.isArray(item.attachments)) item.attachments = [];
+    if (!Array.isArray(item.noteTags)) item.noteTags = [];
+    item.color = item.color || 'default';
+    item.pinned = !!item.pinned;
+    item.reminderAt = item.reminderAt || null;
+    item.reminderDone = !!item.reminderDone;
+  }
 
   update(s => { s.items.unshift(item); });
   return item;
@@ -276,6 +298,42 @@ export const itemsOf = type => state.items.filter(x => x.type === type && !x.arc
 export function typeMeta(type) {
   return state.itemTypes.find(t => t.id === type) ||
     { id: type, name: type, icon: '•', color: '#888' };
+}
+
+/* ---------- הפנקס ---------- */
+
+export const notes = () => state.items.filter(i => i.type === 'note');
+
+export const noteTag = id => state.noteTags.find(t => t.id === id);
+
+export function addNoteTag(name, color) {
+  const t = { id: uid('nt'), name: name || 'נושא חדש', color: color || '#94a3b8' };
+  update(s => { s.noteTags.push(t); });
+  return t;
+}
+
+export function patchNoteTag(id, patch) {
+  update(s => {
+    const t = s.noteTags.find(x => x.id === id);
+    if (t) Object.assign(t, patch);
+  });
+}
+
+/** מוחק תגית ומנקה אותה מכל הפתקים */
+export function removeNoteTag(id) {
+  update(s => {
+    s.noteTags = s.noteTags.filter(t => t.id !== id);
+    s.items.forEach(i => {
+      if (Array.isArray(i.noteTags)) i.noteTags = i.noteTags.filter(x => x !== id);
+    });
+  });
+}
+
+/** כל מזהי הקבצים שעדיין בשימוש — לניקוי יתומים ב-IndexedDB */
+export function liveAttachmentIds() {
+  const ids = [];
+  state.items.forEach(i => (i.attachments || []).forEach(a => ids.push(a.id)));
+  return ids;
 }
 
 /* ---------- קווי מוצר ושלבים ---------- */

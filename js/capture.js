@@ -68,6 +68,30 @@ export function classify(raw) {
   if (!text) return null;
   const t = text.toLowerCase();
 
+  // 0. סימון מפורש לפנקס — גובר על כל שאר החוקים
+  const noteHit = text.match(/^\s*(?:\/|פתק\s*[:־-]?\s*|note\s*:\s*)(.*)$/i);
+  const listHit = text.match(/^\s*(?:רשימה\s*[:־-]?\s*|רשימת\s+|list\s*:\s*)(.*)$/i);
+  if (listHit) {
+    const rest = listHit[1].trim();
+    // "רשימת קניות: חלב, ביצים, לחם" → כותרת + שורות
+    const [head, tail] = splitHead(rest);
+    return {
+      type: 'note', label: 'נוצרה רשימה בפנקס',
+      data: {
+        title: head, kind: 'list', body: '',
+        checklist: (tail.length ? tail : ['']).map(t => ({ id: cid(), text: t, done: false }))
+      }
+    };
+  }
+  if (noteHit) {
+    const rest = noteHit[1].trim();
+    const [head, tail] = splitHead(rest);
+    return {
+      type: 'note', label: 'נשמר בפנקס',
+      data: { title: head, kind: 'note', body: tail.join('\n'), checklist: [] }
+    };
+  }
+
   const urlMatch = text.match(URL_RE);
   const isPureUrl = urlMatch && text.replace(urlMatch[0], '').trim().length < 12;
 
@@ -148,6 +172,16 @@ export function classify(raw) {
   };
 }
 
+const cid = () => 'c_' + Math.random().toString(36).slice(2, 8);
+
+/** "קניות: חלב, ביצים" → ['קניות', ['חלב','ביצים']]. בלי נקודתיים — הכל כותרת. */
+function splitHead(rest) {
+  const m = rest.match(/^([^:\n]{1,40}):\s*(.+)$/s);
+  if (!m) return [rest, []];
+  const parts = m[2].split(/\n|,|·|;/).map(x => x.trim()).filter(Boolean);
+  return [m[1].trim(), parts];
+}
+
 function normalizeUrl(u) { return /^https?:\/\//i.test(u) ? u : 'https://' + u; }
 
 function titleFromUrl(u) {
@@ -192,6 +226,15 @@ export function retype(item, newType) {
   if (newType === 'decision') patch.status = 'open';
   if (newType === 'routine') { patch.freq = 'weekly'; patch.nextDue = Date.now(); patch.missCount = 0; }
   if (newType === 'task') patch.done = false;
+  if (newType === 'note') {
+    patch.kind = item.kind || 'note';
+    patch.body = item.body || item.note || '';
+    patch.checklist = Array.isArray(item.checklist) ? item.checklist : [];
+    patch.attachments = item.attachments || [];
+    patch.noteTags = item.noteTags || [];
+    patch.color = item.color || 'default';
+    patch.pinned = !!item.pinned;
+  }
   if (newType === 'client') {
     const line = S().productLines[0];
     patch.productLineId = line.id;

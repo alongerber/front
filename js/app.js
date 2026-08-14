@@ -9,6 +9,7 @@ import { classify, commit, retype, classifyWithAssistant } from './capture.js';
 import { navCounts } from './rules.js';
 import { initHelp } from './help.js';
 import { rollRoutines } from './brain.js';
+import { initPalette, openPalette } from './palette.js';
 import * as notify from './notify.js';
 
 import home from './pages/home.js';
@@ -18,6 +19,7 @@ import money from './pages/money.js';
 import knowledge from './pages/knowledge.js';
 import routines from './pages/routines.js';
 import tasks from './pages/tasks.js';
+import notes from './pages/notes.js';
 import tools from './pages/tools.js';
 import assistant from './pages/assistant.js';
 import settings from './pages/settings.js';
@@ -32,6 +34,7 @@ const PAGES = {
   'knowledge': { title: 'ידע',     icon: '❐',  color: '#ff9f43', mod: knowledge, badge: 'knowledge' },
   'routines':  { title: 'שגרה',    icon: '↻',  color: '#2dd4bf', mod: routines, badge: 'routines' },
   'tasks':     { title: 'משימות',  icon: '✓',  color: '#ff6b9d', mod: tasks, badge: 'tasks' },
+  'notes':     { title: 'פנקס',    icon: '🗒', color: '#a3e635', mod: notes, badge: 'notes' },
   'tools':     { title: 'כלים',    icon: '⚙',  color: '#94a3b8', mod: tools },
   'assistant': { title: 'עוזר',    icon: '✦',  color: '#e879f9', mod: assistant },
   'settings':  { title: 'הגדרות',  icon: '⚙︎', color: '#94a3b8', mod: settings }
@@ -327,7 +330,8 @@ async function doCapture() {
   refresh();
 
   // דיוק ברקע דרך העוזר — רק אם מופעל, ורק אם זה לא עדכון ללקוח
-  if (S().settings.assistantEnabled && S().settings.assistantClassify && guess.type !== 'client-update' && item) {
+  if (S().settings.assistantEnabled && S().settings.assistantClassify &&
+      guess.type !== 'client-update' && guess.type !== 'note' && item) {
     const better = await classifyWithAssistant(text, guess);
     if (better && better.type !== guess.type) {
       retype(item, better.type);
@@ -337,8 +341,10 @@ async function doCapture() {
   }
 }
 
-/** נפתח מכל מקום — כרטיס הפריט */
+/** נפתח מכל מקום — כרטיס הפריט. פתק נפתח בעורך הפנקס. */
 export function openItem(id) {
+  const it = getItem(id);
+  if (it && it.type === 'note') { import('./pages/notes.js').then(m => m.openNote(id)); return; }
   import('./pages/item.js').then(m => m.openItem(id));
 }
 
@@ -376,6 +382,10 @@ function init() {
   initHelp();
   $('#capture').setAttribute('data-tip', 'gen.capture');
   $('#nav-export').setAttribute('data-tip', 'gen.export');
+
+  $('#search-open').setAttribute('data-tip', 'notes.globalSearch');
+  $('#search-open').addEventListener('click', () => openPalette());
+  initPalette();
 
   T.initPresence(askAbsence);
   rollRoutines();

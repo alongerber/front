@@ -54,6 +54,18 @@ export function runRules() {
       else if (left < DAY) push('due_' + i.id, 'warn', `${i.title} — יעד בעוד ${dur(left)}`);
     });
 
+  /* --- תזכורות מהפנקס --- */
+  const dueNotes = s.items.filter(i =>
+    i.type === 'note' && !i.archived && i.reminderAt && !i.reminderDone && i.reminderAt <= now());
+  if (dueNotes.length) {
+    const first = dueNotes[0];
+    push('noteRem', 'warn',
+      dueNotes.length === 1
+        ? `תזכורת מהפנקס: ${first.title || 'פתק בלי כותרת'}`
+        : `${dueNotes.length} תזכורות מהפנקס — ${dueNotes.slice(0, 2).map(n => n.title || 'פתק').join(', ')}`,
+      { type: 'goto', href: '#/notes' });
+  }
+
   /* --- שגרות --- */
   const routines = dueRoutines().filter(r => r.missCount < 2);
   if (routines.length)
@@ -121,6 +133,8 @@ export function navCounts() {
     routines: dueRoutines().filter(r => r.missCount < 2).length,
     knowledge: s.items.filter(i => i.type === 'knowledge' && !i.archived && i.status === 'new').length,
     decisions: s.items.filter(i => i.type === 'decision' && !i.archived && i.status === 'open').length,
-    tasks: s.items.filter(i => i.type === 'task' && !i.archived && !i.done).length
+    tasks: s.items.filter(i => i.type === 'task' && !i.archived && !i.done).length,
+    notes: s.items.filter(i =>
+      i.type === 'note' && !i.archived && i.reminderAt && !i.reminderDone && i.reminderAt <= now()).length
   };
 }

@@ -1,0 +1,930 @@
+{
+  "version": 1,
+  "sampleBaseTime": 1768464000000,
+  "createdAt": 1764576000000,
+  "settings": {
+    "ownerName": "אלון",
+    "businessName": "פרונט",
+    "hourlyTarget": 250,
+    "workHoursPerDay": 6,
+    "dayStartHour": 9,
+    "usdRate": 3.65,
+    "leadSlaMinutes": 120,
+    "idleAskMinutes": 3,
+    "longAbsenceHours": 2,
+    "timerNudgeHours": 2,
+    "decisionStaleDays": 7,
+    "autoBackupDays": 3,
+    "lastBackupAt": 1768032000000,
+    "homeMode": "list",
+    "avgLeadCost": 130,
+    "notifications": {
+      "enabled": false,
+      "lead": true,
+      "deadline": true,
+      "routine": true,
+      "decision": true,
+      "timer": true
+    },
+    "assistantEnabled": true,
+    "assistantClassify": true
+  },
+  "productLines": [
+    {
+      "id": "pl_video",
+      "name": "סרטונים",
+      "color": "#ffd400",
+      "stages": [
+        {
+          "id": "st_פרסום",
+          "name": "פרסום",
+          "priority": 4,
+          "sla": 4320
+        },
+        {
+          "id": "st_ליד",
+          "name": "ליד",
+          "priority": 10,
+          "sla": 120
+        },
+        {
+          "id": "st_שיחתמכירה",
+          "name": "שיחת מכירה",
+          "priority": 9,
+          "sla": 1440
+        },
+        {
+          "id": "st_תשלום",
+          "name": "תשלום",
+          "priority": 8,
+          "sla": 2880
+        },
+        {
+          "id": "st_אפיון",
+          "name": "אפיון",
+          "priority": 7,
+          "sla": 1440
+        },
+        {
+          "id": "st_יצירה",
+          "name": "יצירה",
+          "priority": 6,
+          "sla": 4320
+        },
+        {
+          "id": "st_סבבתיקונים",
+          "name": "סבב תיקונים",
+          "priority": 7,
+          "sla": 1440
+        },
+        {
+          "id": "st_אישור",
+          "name": "אישור",
+          "priority": 8,
+          "sla": 1440
+        },
+        {
+          "id": "st_מסירה",
+          "name": "מסירה",
+          "priority": 9,
+          "sla": 240
+        }
+      ],
+      "pricing": {
+        "unit": 1290,
+        "bundle": 4200,
+        "bundleQty": 4,
+        "deliveryDays": 7
+      },
+      "estHours": 4
+    },
+    {
+      "id": "pl_voice",
+      "name": "סוכנת קולית",
+      "color": "#5aa9ff",
+      "stages": [
+        {
+          "id": "vst_lead",
+          "name": "ליד",
+          "priority": 10,
+          "sla": 120
+        },
+        {
+          "id": "vst_demo",
+          "name": "דמו",
+          "priority": 9,
+          "sla": 1440
+        },
+        {
+          "id": "vst_pay",
+          "name": "תשלום",
+          "priority": 8,
+          "sla": 2880
+        },
+        {
+          "id": "vst_build",
+          "name": "הקמת סוכנת",
+          "priority": 6,
+          "sla": 4320
+        },
+        {
+          "id": "vst_live",
+          "name": "עלייה לאוויר",
+          "priority": 9,
+          "sla": 240
+        }
+      ],
+      "pricing": {
+        "unit": 900,
+        "bundle": 0,
+        "bundleQty": 1,
+        "deliveryDays": 5
+      },
+      "estHours": 3
+    }
+  ],
+  "itemTypes": [
+    {
+      "id": "client",
+      "name": "לקוח",
+      "icon": "👤",
+      "color": "#ffd400",
+      "system": true
+    },
+    {
+      "id": "task",
+      "name": "משימה",
+      "icon": "✓",
+      "color": "#5aa9ff",
+      "system": true
+    },
+    {
+      "id": "knowledge",
+      "name": "ידע",
+      "icon": "📚",
+      "color": "#b98cff",
+      "system": true
+    },
+    {
+      "id": "decision",
+      "name": "החלטה",
+      "icon": "⚖️",
+      "color": "#ff9f43",
+      "system": true
+    },
+    {
+      "id": "routine",
+      "name": "שגרה",
+      "icon": "🔁",
+      "color": "#3ddc84",
+      "system": true
+    },
+    {
+      "id": "idea",
+      "name": "רעיון",
+      "icon": "💡",
+      "color": "#ff6b9d",
+      "system": true
+    }
+  ],
+  "items": [
+    {
+      "id": "c_sample1",
+      "type": "client",
+      "title": "דני",
+      "business": "מוסך דני חיפה",
+      "productLineId": "pl_video",
+      "stageId": "st_יצירה",
+      "stageSince": 1768291200000,
+      "amount": 1290,
+      "mediaCost": 60,
+      "phone": "0521234567",
+      "dueDate": 1768723200000,
+      "paidAt": 1768118400000,
+      "deliveredAt": null,
+      "manualProgress": 60,
+      "checklist": [
+        {
+          "id": "ck_sample2",
+          "text": "אפיון",
+          "done": true
+        },
+        {
+          "id": "ck_sample3",
+          "text": "יצירה",
+          "done": false
+        },
+        {
+          "id": "ck_sample4",
+          "text": "סבב תיקונים",
+          "done": false
+        },
+        {
+          "id": "ck_sample5",
+          "text": "אישור",
+          "done": false
+        },
+        {
+          "id": "ck_sample6",
+          "text": "מסירה",
+          "done": false
+        }
+      ],
+      "tags": [],
+      "createdAt": 1767945600000,
+      "updatedAt": 1767945600000,
+      "archived": false,
+      "note": "רוצה דגש על טסט טורים ועל זה שלא צריך תור."
+    },
+    {
+      "id": "c_sample7",
+      "type": "client",
+      "title": "שירלי",
+      "business": "סטודיו לציפורניים",
+      "productLineId": "pl_video",
+      "stageId": "st_ליד",
+      "stageSince": 1768452000000,
+      "amount": 1290,
+      "mediaCost": 0,
+      "phone": "0549876543",
+      "dueDate": null,
+      "paidAt": null,
+      "deliveredAt": null,
+      "manualProgress": 0,
+      "checklist": [],
+      "tags": [],
+      "createdAt": 1768464000000,
+      "updatedAt": 1768464000000,
+      "archived": false,
+      "note": "הגיעה מהמודעה. לא חזרתי אליה עדיין."
+    },
+    {
+      "id": "c_sample8",
+      "type": "client",
+      "title": "משה",
+      "business": "פיצה מרקש",
+      "productLineId": "pl_video",
+      "stageId": "st_תשלום",
+      "stageSince": 1768363200000,
+      "amount": 4200,
+      "mediaCost": 120,
+      "phone": "0501112233",
+      "dueDate": 1769241600000,
+      "paidAt": null,
+      "deliveredAt": null,
+      "manualProgress": 10,
+      "checklist": [
+        {
+          "id": "ck_sample9",
+          "text": "תשלום",
+          "done": false
+        },
+        {
+          "id": "ck_sample10",
+          "text": "אפיון",
+          "done": false
+        },
+        {
+          "id": "ck_sample11",
+          "text": "יצירה",
+          "done": false
+        }
+      ],
+      "tags": [],
+      "createdAt": 1768204800000,
+      "updatedAt": 1768204800000,
+      "archived": false,
+      "note": "חבילה של ארבעה סרטונים לחודש. סיכמנו, מחכה להעברה."
+    },
+    {
+      "id": "c_sample12",
+      "type": "client",
+      "title": "רונית",
+      "business": "קליניקה לפיזיותרפיה",
+      "productLineId": "pl_video",
+      "stageId": "st_מסירה",
+      "stageSince": 1767686400000,
+      "amount": 1290,
+      "mediaCost": 45,
+      "phone": "0533334444",
+      "dueDate": 1767600000000,
+      "paidAt": 1767081600000,
+      "deliveredAt": 1767686400000,
+      "manualProgress": 100,
+      "checklist": [
+        {
+          "id": "ck_sample13",
+          "text": "אפיון",
+          "done": true
+        },
+        {
+          "id": "ck_sample14",
+          "text": "יצירה",
+          "done": true
+        },
+        {
+          "id": "ck_sample15",
+          "text": "סבב תיקונים",
+          "done": true
+        },
+        {
+          "id": "ck_sample16",
+          "text": "אישור",
+          "done": true
+        },
+        {
+          "id": "ck_sample17",
+          "text": "מסירה",
+          "done": true
+        }
+      ],
+      "tags": [],
+      "createdAt": 1766736000000,
+      "updatedAt": 1766736000000,
+      "archived": false,
+      "note": "עברה חלק. ביקשה הצעת מחיר לעוד שניים."
+    },
+    {
+      "id": "c_sample18",
+      "type": "client",
+      "title": "עמית",
+      "business": "מכון כושר בקריות",
+      "productLineId": "pl_voice",
+      "stageId": "vst_demo",
+      "stageSince": 1768356000000,
+      "amount": 900,
+      "mediaCost": 0,
+      "phone": "0526667777",
+      "dueDate": null,
+      "paidAt": null,
+      "deliveredAt": null,
+      "manualProgress": 25,
+      "checklist": [],
+      "tags": [],
+      "createdAt": 1768118400000,
+      "updatedAt": 1768118400000,
+      "archived": false,
+      "note": "רוצה שמיטל תענה לשיחות בערב. שלחתי דמו, מחכה לתשובה."
+    },
+    {
+      "id": "t_sample19",
+      "type": "task",
+      "title": "לתקן את המחירים בדף הנחיתה",
+      "done": false,
+      "priority": "high",
+      "dueDate": 1768550400000,
+      "clientId": null,
+      "tags": [],
+      "createdAt": 1768291200000,
+      "updatedAt": 1768291200000,
+      "archived": false,
+      "note": ""
+    },
+    {
+      "id": "t_sample20",
+      "type": "task",
+      "title": "לשלוח לדני גרסה ראשונה לאישור",
+      "done": false,
+      "priority": "normal",
+      "dueDate": 1768636800000,
+      "clientId": "c_sample1",
+      "tags": [],
+      "createdAt": 1768377600000,
+      "updatedAt": 1768377600000,
+      "archived": false,
+      "note": ""
+    },
+    {
+      "id": "t_sample21",
+      "type": "task",
+      "title": "להעלות שלושה רילים לאינסטגרם",
+      "done": false,
+      "priority": "normal",
+      "dueDate": null,
+      "clientId": null,
+      "tags": [],
+      "createdAt": 1768032000000,
+      "updatedAt": 1768032000000,
+      "archived": false,
+      "note": ""
+    },
+    {
+      "id": "t_sample22",
+      "type": "task",
+      "title": "לבנות דף מחירים לסוכנת הקולית",
+      "done": false,
+      "priority": "normal",
+      "dueDate": null,
+      "clientId": null,
+      "tags": [],
+      "createdAt": 1767772800000,
+      "updatedAt": 1767772800000,
+      "archived": false,
+      "note": ""
+    },
+    {
+      "id": "t_sample23",
+      "type": "task",
+      "title": "לשלוח חשבונית לרונית",
+      "done": true,
+      "doneAt": 1767168000000,
+      "priority": "normal",
+      "dueDate": null,
+      "clientId": "c_sample12",
+      "tags": [],
+      "createdAt": 1767081600000,
+      "updatedAt": 1767081600000,
+      "archived": false,
+      "note": ""
+    },
+    {
+      "id": "k_sample24",
+      "type": "knowledge",
+      "title": "Higgsfield — שליטה בתנועת מצלמה",
+      "url": "https://higgsfield.ai",
+      "estMinutes": 25,
+      "urgent": false,
+      "status": "new",
+      "lastTouched": 1767427200000,
+      "relatedItemId": "c_sample1",
+      "tags": [
+        "סרטונים",
+        "וידאו"
+      ],
+      "createdAt": 1767427200000,
+      "updatedAt": 1767427200000,
+      "archived": false,
+      "note": "יכול לחסוך סבבי תיקונים על תנועות מצלמה."
+    },
+    {
+      "id": "k_sample25",
+      "type": "knowledge",
+      "title": "ElevenLabs Agents — העברת שיחה לאדם",
+      "url": "https://elevenlabs.io/docs/agents-platform/overview",
+      "estMinutes": 40,
+      "urgent": true,
+      "status": "doing",
+      "lastTouched": 1768204800000,
+      "relatedItemId": "c_sample18",
+      "tags": [
+        "סוכנת",
+        "מיטל"
+      ],
+      "createdAt": 1767686400000,
+      "updatedAt": 1767686400000,
+      "archived": false,
+      "note": "בלי זה אי אפשר למכור את מיטל לעסקים עם תורים."
+    },
+    {
+      "id": "k_sample26",
+      "type": "knowledge",
+      "title": "איך לתמחר שירות שהעלות השולית שלו אפסית",
+      "url": "",
+      "estMinutes": 15,
+      "urgent": false,
+      "status": "new",
+      "lastTouched": 1766649600000,
+      "relatedItemId": null,
+      "tags": [
+        "תמחור"
+      ],
+      "createdAt": 1766649600000,
+      "updatedAt": 1766649600000,
+      "archived": false,
+      "note": "פודקאסט ששמעתי חצי ממנו. רלוונטי לדילמה על הסוכנת."
+    },
+    {
+      "id": "k_sample27",
+      "type": "knowledge",
+      "title": "Meta Ads — קמפיין לידים לעסקים מקומיים",
+      "url": "https://www.facebook.com/business/ads",
+      "estMinutes": 30,
+      "urgent": false,
+      "status": "new",
+      "lastTouched": 1767945600000,
+      "relatedItemId": null,
+      "tags": [
+        "פרסום",
+        "לידים"
+      ],
+      "createdAt": 1767945600000,
+      "updatedAt": 1767945600000,
+      "archived": false,
+      "note": ""
+    },
+    {
+      "id": "k_sample28",
+      "type": "knowledge",
+      "title": "שימוש ב-Claude לעריכת וידאו אוטומטית",
+      "url": "",
+      "estMinutes": 20,
+      "urgent": false,
+      "status": "done",
+      "lastTouched": 1767513600000,
+      "relatedItemId": null,
+      "tags": [
+        "קלוד"
+      ],
+      "createdAt": 1767254400000,
+      "updatedAt": 1767254400000,
+      "archived": false,
+      "note": "ראיתי. שווה לנסות בסרטון הבא."
+    },
+    {
+      "id": "d_sample29",
+      "type": "decision",
+      "title": "האם למכור את הסוכנת הקולית בנפרד או ביחד עם הסרטונים?",
+      "status": "open",
+      "tags": [],
+      "createdAt": 1767254400000,
+      "updatedAt": 1767254400000,
+      "archived": false,
+      "note": "ביחד = עסקה גדולה יותר. בנפרד = קהל רחב יותר."
+    },
+    {
+      "id": "d_sample30",
+      "type": "decision",
+      "title": "האם להעלות את המחיר ל-1,490 ₪ לסרטון?",
+      "status": "open",
+      "tags": [],
+      "createdAt": 1768032000000,
+      "updatedAt": 1768032000000,
+      "archived": false,
+      "note": "אף אחד לא התלונן על המחיר עד היום. זה בדרך כלל סימן."
+    },
+    {
+      "id": "d_sample31",
+      "type": "decision",
+      "title": "להתמקד בענף אחד או להישאר רוחבי?",
+      "status": "open",
+      "tags": [],
+      "createdAt": 1766822400000,
+      "updatedAt": 1766822400000,
+      "archived": false,
+      "note": "מוסכים עבד טוב. אולי לרדוף אחרי זה."
+    },
+    {
+      "id": "d_sample32",
+      "type": "decision",
+      "title": "לשים קמפיין ממומן או להמשיך אורגני עוד חודש?",
+      "status": "resolved",
+      "resolution": "קמפיין קטן של 40 ₪ ליום לשבועיים, ואז להחליט לפי עלות לליד.",
+      "resolvedAt": 1767859200000,
+      "tags": [],
+      "createdAt": 1766390400000,
+      "updatedAt": 1766390400000,
+      "archived": false,
+      "note": ""
+    },
+    {
+      "id": "i_sample33",
+      "type": "idea",
+      "title": "סדרת סרטונים \"לפני ואחרי\" למוסכים",
+      "tags": [],
+      "createdAt": 1768118400000,
+      "updatedAt": 1768118400000,
+      "archived": false,
+      "note": ""
+    },
+    {
+      "id": "i_sample34",
+      "type": "idea",
+      "title": "להציע חבילה שנתית עם הנחה של חודשיים",
+      "tags": [],
+      "createdAt": 1767600000000,
+      "updatedAt": 1767600000000,
+      "archived": false,
+      "note": ""
+    },
+    {
+      "id": "i_sample35",
+      "type": "idea",
+      "title": "לתת למיטל לענות גם בוואטסאפ ולא רק בטלפון",
+      "tags": [],
+      "createdAt": 1768291200000,
+      "updatedAt": 1768291200000,
+      "archived": false,
+      "note": ""
+    },
+    {
+      "id": "i_sample36",
+      "type": "idea",
+      "title": "דף נחיתה נפרד לכל ענף — מוסכים, קליניקות, מסעדות",
+      "tags": [],
+      "createdAt": 1767340800000,
+      "updatedAt": 1767340800000,
+      "archived": false,
+      "note": ""
+    },
+    {
+      "id": "r_sample37",
+      "type": "routine",
+      "title": "תוכן אורגני",
+      "freq": "custom",
+      "customDays": 2,
+      "lastDone": 1768204800000,
+      "missCount": 0,
+      "nextDue": 1768377600000,
+      "note": "",
+      "tags": [],
+      "createdAt": 1765872000000,
+      "updatedAt": 1765872000000,
+      "archived": false
+    },
+    {
+      "id": "r_sample38",
+      "type": "routine",
+      "title": "בדיקת קמפיין",
+      "freq": "daily",
+      "lastDone": 1768377600000,
+      "missCount": 0,
+      "nextDue": 1768456800000,
+      "note": "",
+      "tags": [],
+      "createdAt": 1765872000000,
+      "updatedAt": 1765872000000,
+      "archived": false
+    },
+    {
+      "id": "r_sample39",
+      "type": "routine",
+      "title": "ניירת לרואה חשבון",
+      "freq": "monthly",
+      "lastDone": 1766044800000,
+      "missCount": 0,
+      "nextDue": 1768636800000,
+      "note": "",
+      "tags": [],
+      "createdAt": 1763280000000,
+      "updatedAt": 1763280000000,
+      "archived": false
+    },
+    {
+      "id": "r_sample40",
+      "type": "routine",
+      "title": "סקירת שיחות של הסוכנת",
+      "freq": "weekly",
+      "lastDone": 1767686400000,
+      "missCount": 1,
+      "nextDue": 1768291200000,
+      "note": "",
+      "tags": [],
+      "createdAt": 1765008000000,
+      "updatedAt": 1765008000000,
+      "archived": false
+    },
+    {
+      "id": "r_sample41",
+      "type": "routine",
+      "title": "מבט על מספרים",
+      "freq": "weekly",
+      "lastDone": 1768118400000,
+      "missCount": 0,
+      "nextDue": 1768723200000,
+      "note": "",
+      "tags": [],
+      "createdAt": 1765008000000,
+      "updatedAt": 1765008000000,
+      "archived": false
+    },
+    {
+      "id": "r_sample42",
+      "type": "routine",
+      "title": "גיבוי המערכת",
+      "freq": "weekly",
+      "lastDone": 1767945600000,
+      "missCount": 0,
+      "nextDue": 1768377600000,
+      "note": "",
+      "tags": [],
+      "createdAt": 1765008000000,
+      "updatedAt": 1765008000000,
+      "archived": false
+    }
+  ],
+  "timeEntries": [
+    {
+      "id": "te_sample43",
+      "itemId": "c_sample12",
+      "start": 1766905200000,
+      "end": 1766910600000,
+      "kind": "work",
+      "note": ""
+    },
+    {
+      "id": "te_sample44",
+      "itemId": "c_sample12",
+      "start": 1766998800000,
+      "end": 1767006000000,
+      "kind": "work",
+      "note": ""
+    },
+    {
+      "id": "te_sample45",
+      "itemId": "c_sample12",
+      "start": 1767006000000,
+      "end": 1767011400000,
+      "kind": "wait",
+      "note": ""
+    },
+    {
+      "id": "te_sample46",
+      "itemId": "c_sample12",
+      "start": 1767079800000,
+      "end": 1767085200000,
+      "kind": "work",
+      "note": ""
+    },
+    {
+      "id": "te_sample47",
+      "itemId": "c_sample12",
+      "start": 1767618000000,
+      "end": 1767621600000,
+      "kind": "work",
+      "note": ""
+    },
+    {
+      "id": "te_sample48",
+      "itemId": "c_sample1",
+      "start": 1768201200000,
+      "end": 1768208400000,
+      "kind": "work",
+      "note": ""
+    },
+    {
+      "id": "te_sample49",
+      "itemId": "c_sample1",
+      "start": 1768208400000,
+      "end": 1768213800000,
+      "kind": "wait",
+      "note": ""
+    },
+    {
+      "id": "te_sample50",
+      "itemId": "c_sample1",
+      "start": 1768305600000,
+      "end": 1768311000000,
+      "kind": "work",
+      "note": ""
+    },
+    {
+      "id": "te_sample51",
+      "itemId": "c_sample1",
+      "start": 1768377600000,
+      "end": 1768382100000,
+      "kind": "work",
+      "note": ""
+    },
+    {
+      "id": "te_sample52",
+      "itemId": "c_sample8",
+      "start": 1768226400000,
+      "end": 1768229100000,
+      "kind": "work",
+      "note": ""
+    },
+    {
+      "id": "te_sample53",
+      "itemId": "c_sample18",
+      "start": 1768298400000,
+      "end": 1768302000000,
+      "kind": "work",
+      "note": ""
+    },
+    {
+      "id": "te_sample54",
+      "itemId": "k_sample25",
+      "start": 1768197600000,
+      "end": 1768200300000,
+      "kind": "learn",
+      "note": ""
+    },
+    {
+      "id": "te_sample55",
+      "itemId": "k_sample28",
+      "start": 1767549600000,
+      "end": 1767551400000,
+      "kind": "learn",
+      "note": ""
+    },
+    {
+      "id": "te_sample56",
+      "itemId": "t_sample21",
+      "start": 1768384800000,
+      "end": 1768388400000,
+      "kind": "work",
+      "note": ""
+    },
+    {
+      "id": "te_sample57",
+      "itemId": null,
+      "start": 1768388400000,
+      "end": 1768392000000,
+      "kind": "off",
+      "note": ""
+    }
+  ],
+  "subscriptions": [
+    {
+      "id": "s_sample58",
+      "name": "Claude",
+      "cost": 200,
+      "currency": "USD"
+    },
+    {
+      "id": "s_sample59",
+      "name": "ElevenLabs",
+      "cost": 99,
+      "currency": "USD"
+    },
+    {
+      "id": "s_sample60",
+      "name": "Higgsfield / וידאו",
+      "cost": 149,
+      "currency": "USD"
+    },
+    {
+      "id": "s_sample61",
+      "name": "HeyGen",
+      "cost": 89,
+      "currency": "USD"
+    },
+    {
+      "id": "s_sample62",
+      "name": "Netlify + דומיינים",
+      "cost": 21,
+      "currency": "USD"
+    },
+    {
+      "id": "s_sample63",
+      "name": "כלים נלווים",
+      "cost": 20,
+      "currency": "USD"
+    }
+  ],
+  "ledger": [
+    {
+      "id": "lg_sample64",
+      "title": "קמפיין ממומן — מטא",
+      "amount": -560,
+      "date": 1767772800000
+    },
+    {
+      "id": "lg_sample65",
+      "title": "מוזיקה בליווי רישיון",
+      "amount": -95,
+      "date": 1767427200000
+    }
+  ],
+  "links": [
+    {
+      "id": "l_sample66",
+      "title": "הדף של מיטל",
+      "url": "https://agentfront.netlify.app",
+      "desc": "הסוכנת הקולית — הדף הציבורי"
+    },
+    {
+      "id": "l_sample67",
+      "title": "לוח השיחות",
+      "url": "https://agentfront.netlify.app/dash.html",
+      "desc": "כל השיחות שמיטל ניהלה"
+    },
+    {
+      "id": "l_sample68",
+      "title": "דף הנחיתה",
+      "url": "https://frontvid.netlify.app",
+      "desc": "הדף שאליו מגיעים מהמודעות"
+    },
+    {
+      "id": "l_sample69",
+      "title": "ElevenLabs",
+      "url": "https://elevenlabs.io/app",
+      "desc": "קולות וסוכנות קוליות"
+    },
+    {
+      "id": "l_sample70",
+      "title": "Meta Ads",
+      "url": "https://adsmanager.facebook.com",
+      "desc": "ניהול הקמפיינים"
+    },
+    {
+      "id": "l_sample71",
+      "title": "Netlify",
+      "url": "https://app.netlify.com",
+      "desc": "האחסון של כל הדפים"
+    }
+  ],
+  "timer": null,
+  "waiting": [
+    {
+      "itemId": "c_sample1",
+      "since": 1768461720000,
+      "note": "קלוד מרנדר גרסה שנייה"
+    }
+  ],
+  "lastSeenAt": 1768464000000,
+  "pendingAbsence": null,
+  "dismissedAlerts": {},
+  "chat": [],
+  "dayPlan": null
+}

@@ -1,0 +1,13 @@
+{
+  "name": "front-management",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "מערכת הניהול הפנימית של פרונט — HTML/CSS/JS + Netlify Function לעוזר",
+  "scripts": {
+    "sample": "node tools/make-sample.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.0"
+  }
+}

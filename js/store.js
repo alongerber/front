@@ -1,0 +1,411 @@
+/* ============================================================
+   store.js — מודל הנתונים, localStorage, ייצוא/ייבוא
+   הכל נשען על ארבעה מושגים: קווי מוצר · שלבים · פריטים · רשומות זמן
+   ============================================================ */
+
+const KEY = 'front.v1';
+const MIN = 60000, HOUR = 3600000, DAY = 86400000;
+
+export const uid = (p = 'i') =>
+  p + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+const now = () => Date.now();
+
+/* ---------- ברירות מחדל ---------- */
+
+function defaultStages() {
+  // priority: כמה השלב "צועק". ליד תמיד מנצח הפקה — גם אם ההפקה ממתינה ימים.
+  // sla: אחרי כמה דקות בשלב זה נחשב תקוע.
+  return [
+    { id: uid('st'), name: 'פרסום',       priority: 4,  sla: 3 * 24 * 60 },
+    { id: uid('st'), name: 'ליד',          priority: 10, sla: 120 },
+    { id: uid('st'), name: 'שיחת מכירה',  priority: 9,  sla: 24 * 60 },
+    { id: uid('st'), name: 'תשלום',        priority: 8,  sla: 2 * 24 * 60 },
+    { id: uid('st'), name: 'אפיון',        priority: 7,  sla: 24 * 60 },
+    { id: uid('st'), name: 'יצירה',        priority: 6,  sla: 3 * 24 * 60 },
+    { id: uid('st'), name: 'סבב תיקונים',  priority: 7,  sla: 24 * 60 },
+    { id: uid('st'), name: 'אישור',        priority: 8,  sla: 24 * 60 },
+    { id: uid('st'), name: 'מסירה',        priority: 9,  sla: 4 * 60 }
+  ];
+}
+
+export function defaultState() {
+  const videoLine = {
+    id: 'pl_video',
+    name: 'סרטונים',
+    color: '#ffd400',
+    stages: defaultStages(),
+    pricing: { unit: 1290, bundle: 4200, bundleQty: 4, deliveryDays: 7 },
+    estHours: 4 // הערכה התחלתית לשעות קשב לפריט; מתעדכן מהמדידה בפועל
+  };
+
+  return {
+    version: 1,
+    createdAt: now(),
+
+    settings: {
+      ownerName: 'אלון',
+      businessName: 'פרונט',
+      hourlyTarget: 250,          // תעריף שעתי יעד ₪
+      workHoursPerDay: 6,         // זמן זמין ליום
+      dayStartHour: 9,
+      usdRate: 3.65,
+      leadSlaMinutes: 120,        // ליד ללא מענה מעל X דקות
+      idleAskMinutes: 3,          // מעל כמה דקות היעדרות שואלים "איפה היית"
+      longAbsenceHours: 2,        // מעל כמה שעות הטיימר נעצר לבד
+      timerNudgeHours: 2,         // טיימר רץ מעל X שעות בלי מגע
+      decisionStaleDays: 7,       // החלטה פתוחה שיושבת יותר מדי
+      autoBackupDays: 3,
+      lastBackupAt: null,
+      homeMode: 'list',           // 'list' | 'day'
+      notifications: {
+        enabled: false,
+        lead: true, deadline: true, routine: true, decision: true, timer: true
+      },
+      assistantEnabled: true,
+      assistantClassify: true     // להשתמש בעוזר לסיווג הקלט החופשי
+    },
+
+    productLines: [videoLine],
+
+    itemTypes: [
+      { id: 'client',    name: 'לקוח',   icon: '👤', color: '#ffd400', system: true },
+      { id: 'task',      name: 'משימה',  icon: '✓',  color: '#5aa9ff', system: true },
+      { id: 'knowledge', name: 'ידע',    icon: '📚', color: '#b98cff', system: true },
+      { id: 'decision',  name: 'החלטה',  icon: '⚖️', color: '#ff9f43', system: true },
+      { id: 'routine',   name: 'שגרה',   icon: '🔁', color: '#3ddc84', system: true },
+      { id: 'idea',      name: 'רעיון',  icon: '💡', color: '#ff6b9d', system: true }
+    ],
+
+    items: defaultItems(),
+    timeEntries: [],
+
+    subscriptions: [
+      { id: uid('s'), name: 'Claude',            cost: 200, currency: 'USD' },
+      { id: uid('s'), name: 'ElevenLabs',        cost: 99,  currency: 'USD' },
+      { id: uid('s'), name: 'Higgsfield / וידאו', cost: 149, currency: 'USD' },
+      { id: uid('s'), name: 'HeyGen',            cost: 89,  currency: 'USD' },
+      { id: uid('s'), name: 'Netlify + דומיינים', cost: 21,  currency: 'USD' },
+      { id: uid('s'), name: 'כלים נלווים',        cost: 20,  currency: 'USD' }
+    ],
+
+    // תנועות כסף שנרשמות ידנית (הכנסה נרשמת אוטומטית כשלקוח מגיע לשלב תשלום)
+    ledger: [],
+
+    links: [
+      { id: uid('l'), title: 'הדף של מיטל',  url: 'https://agentfront.netlify.app',          desc: 'הסוכנת הקולית — הדף הציבורי' },
+      { id: uid('l'), title: 'לוח השיחות',   url: 'https://agentfront.netlify.app/dash.html', desc: 'כל השיחות שמיטל ניהלה' },
+      { id: uid('l'), title: 'דף הנחיתה',    url: 'https://frontvid.netlify.app',            desc: 'הדף שאליו מגיעים מהמודעות' },
+      { id: uid('l'), title: 'ElevenLabs',   url: 'https://elevenlabs.io/app',               desc: 'קולות וסוכנות קוליות' },
+      { id: uid('l'), title: 'Meta Ads',     url: 'https://adsmanager.facebook.com',         desc: 'ניהול הקמפיינים' },
+      { id: uid('l'), title: 'Netlify',      url: 'https://app.netlify.com',                 desc: 'האחסון של כל הדפים' }
+    ],
+
+    // מצב ריצה
+    timer: null,                 // {itemId,startedAt,kind}
+    waiting: [],                 // [{itemId,since,note}]
+    lastSeenAt: now(),
+    pendingAbsence: null,        // {from,to}
+    dismissedAlerts: {},
+    chat: [],
+    dayPlan: null                // {date, blocks:[...]}
+  };
+}
+
+function defaultItems() {
+  const t = now();
+  const routine = (title, freq, note) => ({
+    id: uid('r'), type: 'routine', title, note: note || '', freq,
+    tags: [], createdAt: t, updatedAt: t, archived: false,
+    lastDone: null, missCount: 0, nextDue: t
+  });
+
+  return [
+    routine('תוכן אורגני', 'custom', 'שלוש פעמים בשבוע — ריל או פוסט'),
+    routine('בדיקת קמפיין', 'daily', 'עלות לליד, מה עובד, מה לכבות'),
+    routine('ניירת לרואה חשבון', 'monthly', 'חשבוניות והוצאות של החודש'),
+    routine('סקירת שיחות של הסוכנת', 'weekly', 'לעבור על ההקלטות ולתקן פרומפט'),
+    routine('מבט על מספרים', 'weekly', 'רווח, זמן קשב, עלות לסרטון'),
+    routine('גיבוי המערכת', 'weekly', 'ייצוא JSON ושמירה בענן')
+  ].map(r => {
+    if (r.title === 'תוכן אורגני') r.customDays = 2;
+    return r;
+  });
+}
+
+/* ---------- טעינה ושמירה ---------- */
+
+let state = load();
+const subs = new Set();
+
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return defaultState();
+    const parsed = JSON.parse(raw);
+    return migrate(parsed);
+  } catch (e) {
+    console.warn('טעינה נכשלה, מתחילים מברירת מחדל', e);
+    return defaultState();
+  }
+}
+
+function migrate(s) {
+  const d = defaultState();
+  // מיזוג רדוד + עמוק להגדרות, כדי שגרסאות ישנות לא ישברו
+  const out = Object.assign({}, d, s);
+  out.settings = Object.assign({}, d.settings, s.settings || {});
+  out.settings.notifications = Object.assign({}, d.settings.notifications, (s.settings || {}).notifications || {});
+  for (const k of ['productLines', 'itemTypes', 'items', 'timeEntries', 'subscriptions', 'ledger', 'links', 'waiting', 'chat']) {
+    if (!Array.isArray(out[k])) out[k] = d[k];
+  }
+  if (!out.productLines.length) out.productLines = d.productLines;
+  out.productLines.forEach(p => { if (!Array.isArray(p.stages) || !p.stages.length) p.stages = defaultStages(); });
+  return out;
+}
+
+let saveTimer = null;
+
+function writeNow() {
+  clearTimeout(saveTimer);
+  saveTimer = null;
+  try {
+    localStorage.setItem(KEY, JSON.stringify(state));
+  } catch (e) {
+    console.error('שמירה נכשלה', e);
+    window.dispatchEvent(new CustomEvent('front:storage-full'));
+  }
+}
+
+function persist() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(writeNow, 120);
+}
+
+/** שמירה מיידית — לפני סגירת הטאב או מעבר לרקע, שלא תיפול כתיבה באוויר */
+export const flush = () => { if (saveTimer) writeNow(); };
+window.addEventListener('beforeunload', flush);
+window.addEventListener('pagehide', flush);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
+
+/* ---------- API ---------- */
+
+export const S = () => state;
+
+export function subscribe(fn) { subs.add(fn); return () => subs.delete(fn); }
+
+/** update(fn) — משנה את המצב, שומר, ומודיע לכולם */
+export function update(fn, opts = {}) {
+  const r = fn(state);
+  if (r && typeof r === 'object') state = r;
+  persist();
+  if (!opts.silent) subs.forEach(f => { try { f(state); } catch (e) { console.error(e); } });
+  return state;
+}
+
+export function replaceState(next) {
+  state = migrate(next);
+  persist();
+  subs.forEach(f => f(state));
+}
+
+export function resetAll() {
+  state = defaultState();
+  persist();
+  subs.forEach(f => f(state));
+}
+
+/* ---------- עזרי פריטים ---------- */
+
+export function addItem(partial) {
+  const t = now();
+  const item = Object.assign({
+    id: uid(partial.type ? partial.type[0] : 'i'),
+    type: 'task', title: '', note: '', tags: [],
+    createdAt: t, updatedAt: t, archived: false
+  }, partial);
+
+  if (item.type === 'client') {
+    const line = state.productLines.find(p => p.id === item.productLineId) || state.productLines[0];
+    item.productLineId = line.id;
+    if (!item.stageId) item.stageId = line.stages[0].id;
+    if (!item.stageSince) item.stageSince = t;
+    if (!Array.isArray(item.checklist)) item.checklist = checklistFromLine(line, item.stageId);
+    if (typeof item.manualProgress !== 'number') item.manualProgress = 0;
+  }
+  if (item.type === 'knowledge') {
+    item.status = item.status || 'new';
+    item.lastTouched = item.lastTouched || t;
+    if (typeof item.estMinutes !== 'number') item.estMinutes = 20;
+    item.urgent = !!item.urgent;
+  }
+  if (item.type === 'decision') item.status = item.status || 'open';
+  if (item.type === 'routine') {
+    item.freq = item.freq || 'weekly';
+    item.lastDone = item.lastDone || null;
+    item.missCount = item.missCount || 0;
+    item.nextDue = item.nextDue || t;
+  }
+  if (item.type === 'task') item.done = !!item.done;
+
+  update(s => { s.items.unshift(item); });
+  return item;
+}
+
+export function patchItem(id, patch) {
+  update(s => {
+    const it = s.items.find(x => x.id === id);
+    if (!it) return;
+    Object.assign(it, patch, { updatedAt: now() });
+  });
+  return state.items.find(x => x.id === id);
+}
+
+export function removeItem(id) {
+  update(s => {
+    s.items = s.items.filter(x => x.id !== id);
+    s.timeEntries = s.timeEntries.filter(e => e.itemId !== id);
+    s.waiting = s.waiting.filter(w => w.itemId !== id);
+    if (s.timer && s.timer.itemId === id) s.timer = null;
+  });
+}
+
+export const getItem = id => state.items.find(x => x.id === id);
+export const itemsOf = type => state.items.filter(x => x.type === type && !x.archived);
+
+export function typeMeta(type) {
+  return state.itemTypes.find(t => t.id === type) ||
+    { id: type, name: type, icon: '•', color: '#888' };
+}
+
+/* ---------- קווי מוצר ושלבים ---------- */
+
+export const lineOf = id => state.productLines.find(p => p.id === id) || state.productLines[0];
+export function stageOf(item) {
+  const line = lineOf(item.productLineId);
+  return line.stages.find(s => s.id === item.stageId) || line.stages[0];
+}
+export function stageIndex(item) {
+  const line = lineOf(item.productLineId);
+  const i = line.stages.findIndex(s => s.id === item.stageId);
+  return i < 0 ? 0 : i;
+}
+
+export function checklistFromLine(line, fromStageId) {
+  const i = Math.max(0, line.stages.findIndex(s => s.id === fromStageId));
+  return line.stages.slice(i).map(s => ({ id: uid('c'), text: s.name, done: false }));
+}
+
+export function moveToStage(itemId, stageId) {
+  update(s => {
+    const it = s.items.find(x => x.id === itemId);
+    if (!it) return;
+    it.stageId = stageId;
+    it.stageSince = now();
+    it.updatedAt = now();
+    // סימון אוטומטי בצ'קליסט של כל מה שלפני השלב החדש
+    const line = s.productLines.find(p => p.id === it.productLineId);
+    if (line && Array.isArray(it.checklist)) {
+      const idx = line.stages.findIndex(x => x.id === stageId);
+      line.stages.forEach((st, i) => {
+        const c = it.checklist.find(c => c.text === st.name);
+        if (c && i < idx) c.done = true;
+      });
+    }
+  });
+}
+
+/* ---------- כסף ---------- */
+
+export function monthlySubsILS() {
+  const r = state.settings.usdRate || 3.65;
+  return state.subscriptions.reduce((a, s) =>
+    a + (s.currency === 'USD' ? s.cost * r : s.cost), 0);
+}
+
+export function monthKey(ts = now()) {
+  const d = new Date(ts);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
+/** הכנסות החודש: לקוחות שעברו את שלב התשלום + רשומות ידניות */
+export function monthMoney(mk = monthKey()) {
+  let income = 0, delivered = 0;
+  state.items.filter(i => i.type === 'client').forEach(c => {
+    if (!c.paidAt) return;
+    if (monthKey(c.paidAt) !== mk) return;
+    income += Number(c.amount) || 0;
+    delivered++;
+  });
+  let extraIn = 0, extraOut = 0;
+  state.ledger.forEach(l => {
+    if (monthKey(l.date) !== mk) return;
+    if (l.amount >= 0) extraIn += l.amount; else extraOut += -l.amount;
+  });
+  const subs = monthlySubsILS();
+  const media = state.items.filter(i => i.type === 'client' && monthKey(i.paidAt || i.createdAt) === mk)
+    .reduce((a, c) => a + (Number(c.mediaCost) || 0), 0);
+  return {
+    income: income + extraIn,
+    expenses: subs + media + extraOut,
+    subs, media, extraOut, delivered,
+    profit: income + extraIn - (subs + media + extraOut)
+  };
+}
+
+/* ---------- ייצוא / ייבוא ---------- */
+
+export function exportJSON() {
+  return JSON.stringify(state, null, 2);
+}
+
+export function downloadBackup() {
+  const d = new Date();
+  const name = `front-backup-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.json`;
+  const blob = new Blob([exportJSON()], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  update(s => { s.settings.lastBackupAt = now(); });
+  return name;
+}
+
+export function importJSON(text) {
+  const parsed = JSON.parse(text);
+  if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.items))
+    throw new Error('הקובץ לא נראה כמו גיבוי של פרונט');
+  replaceState(parsed);
+}
+
+/**
+ * טעינת נתוני הדוגמה: כל חותמות הזמן בקובץ נשמרות יחסית ל-sampleBaseTime,
+ * וכאן מזיזים אותן כך שהדוגמה תמיד נראית "טרייה" ביום שבו טוענים אותה.
+ */
+export function loadSample(json) {
+  const baseline = json.sampleBaseTime;
+  if (baseline) {
+    const shift = now() - baseline;
+    const walk = node => {
+      if (Array.isArray(node)) { node.forEach(walk); return; }
+      if (!node || typeof node !== 'object') return;
+      for (const [k, v] of Object.entries(node)) {
+        if (typeof v === 'number' && v > 1e12 && v < 4e12 && k !== 'sampleBaseTime') node[k] = v + shift;
+        else if (v && typeof v === 'object') walk(v);
+      }
+    };
+    walk(json);
+    delete json.sampleBaseTime;
+  }
+  replaceState(json);
+}
+
+export function backupOverdue() {
+  const s = state.settings;
+  if (!s.autoBackupDays) return false;
+  const last = s.lastBackupAt || state.createdAt;
+  return now() - last > s.autoBackupDays * DAY;
+}
+
+export const CONST = { MIN, HOUR, DAY };

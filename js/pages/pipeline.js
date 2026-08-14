@@ -1,0 +1,367 @@
+/* ============================================================
+   pipeline.js — התמונה המלאה: קווי מוצר, שלבים, ומי איפה
+   עמודות עם גרירה בין שלבים
+   ============================================================ */
+
+import { S, update, uid, addItem, patchItem, getItem, lineOf, stageOf, moveToStage, checklistFromLine, removeItem } from '../store.js';
+import { el, nis, ago, dur, dmy, dateInput, toast, modal, closeModal, input, select, field, textarea, confirmBox, MIN, DAY } from '../util.js';
+import * as T from '../timer.js';
+import { progressOf, scoreClient } from '../brain.js';
+import { refresh, openItem } from '../app.js';
+
+export default { render };
+
+function render(root, params) {
+  const s = S();
+  const lineId = params.line || s.settings.lastLine || s.productLines[0].id;
+  const line = lineOf(lineId);
+
+  root.append(el('div', { class: 'page-h' },
+    el('h1', {}, 'צינור'),
+    el('div', { class: 'desc' }, 'מי איפה, וכמה זמן הוא כבר שם'),
+    el('div', { class: 'right' },
+      ...s.productLines.map(p => el('button', {
+        class: 'btn btn-sm ' + (p.id === line.id ? 'btn-y' : ''),
+        onclick: () => { update(st => { st.settings.lastLine = p.id; }); location.hash = '#/pipeline?line=' + p.id; refresh(); }
+      }, p.name)),
+      el('button', { class: 'btn btn-sm', onclick: lineEditor, title: 'קווי מוצר ושלבים' }, '⚙ שלבים'),
+      el('button', { class: 'btn btn-sm btn-y', onclick: () => clientForm(null, line.id) }, '+ לקוח')
+    )
+  ));
+
+  const clients = s.items.filter(i => i.type === 'client' && !i.archived && i.productLineId === line.id);
+  const active = clients.filter(c => !c.deliveredAt);
+
+  // סיכום
+  root.append(el('div', { class: 'grid g4', style: { marginBottom: '14px' } },
+    stat('בצינור', String(active.length), ''),
+    stat('שווי פתוח', nis(active.reduce((a, c) => a + (Number(c.amount) || 0), 0)), 'y'),
+    stat('תקועים', String(active.filter(c => scoreClient(c).stuck).length), active.some(c => scoreClient(c).stuck) ? 'r' : ''),
+    stat('נמסרו', String(clients.filter(c => c.deliveredAt).length), 'g')
+  ));
+
+  const pipe = el('div', { class: 'pipe' });
+  line.stages.forEach(stage => {
+    const inStage = clients.filter(c => c.stageId === stage.id && !c.deliveredAt);
+    const col = el('div', {
+      class: 'col',
+      ondragover: e => { e.preventDefault(); col.classList.add('over'); },
+      ondragleave: () => col.classList.remove('over'),
+      ondrop: e => {
+        e.preventDefault(); col.classList.remove('over');
+        const id = e.dataTransfer.getData('text/plain');
+        if (!id) return;
+        const c = getItem(id);
+        if (!c || c.stageId === stage.id) return;
+        moveToStage(id, stage.id);
+        if (stage.name.includes('תשלום') && !c.paidAt)
+          patchItem(id, { paidAt: Date.now(), amount: c.amount || line.pricing?.unit || 0 });
+        if (stage.name.includes('מסירה')) patchItem(id, { deliveredAt: Date.now() });
+        toast(`${c.title} → ${stage.name}`, 'ok');
+        refresh();
+      }
+    });
+
+    col.append(el('div', { class: 'col-h' },
+      el('span', { class: 'dot', style: { background: stage.priority >= 8 ? '#ffd400' : 'rgba(255,255,255,.25)' } }),
+      el('span', { class: 'nm' }, stage.name),
+      el('span', { class: 'ct' }, String(inStage.length))
+    ));
+
+    inStage
+      .sort((a, b) => (a.stageSince || 0) - (b.stageSince || 0))
+      .forEach(c => col.append(clientCard(c, stage, line)));
+
+    if (!inStage.length) col.append(el('div', { class: 'small muted', style: { textAlign: 'center', padding: '10px 0' } }, '—'));
+    pipe.append(col);
+  });
+  root.append(pipe);
+
+  // נמסרו
+  const done = clients.filter(c => c.deliveredAt).sort((a, b) => b.deliveredAt - a.deliveredAt);
+  if (done.length) {
+    const card = el('div', { class: 'card', style: { marginTop: '16px' } });
+    card.append(el('div', { class: 'card-h' }, el('h3', {}, 'נמסרו'), el('span', { class: 'sub' }, done.length + ' פריטים')));
+    const tb = el('table', { class: 'tb' },
+      el('tr', {}, el('th', {}, 'לקוח'), el('th', {}, 'עסק'), el('th', {}, 'סכום'), el('th', {}, 'זמן קשב'), el('th', {}, 'זמן קיר'), el('th', {}, 'נמסר'), el('th', {}))
+    );
+    done.slice(0, 25).forEach(c => {
+      tb.append(el('tr', {},
+        el('td', { style: { cursor: 'pointer', fontWeight: '600' }, onclick: () => openItem(c.id) }, c.title),
+        el('td', { class: 'muted' }, c.business || '—'),
+        el('td', { class: 'num' }, nis(c.amount)),
+        el('td', { class: 'num' }, dur(T.focusMs(c.id), true)),
+        el('td', { class: 'num muted' }, dur(T.wallMs(c.id), true)),
+        el('td', { class: 'muted small' }, dmy(c.deliveredAt)),
+        el('td', {}, el('button', { class: 'btn btn-xs', onclick: () => openItem(c.id) }, 'פתח'))
+      ));
+    });
+    card.append(tb);
+    root.append(card);
+  }
+}
+
+function stat(lbl, val, cls) {
+  return el('div', { class: 'stat ' + cls }, el('div', { class: 'lbl' }, lbl), el('div', { class: 'val' }, val));
+}
+
+function clientCard(c, stage, line) {
+  const r = scoreClient(c);
+  const p = progressOf(c);
+  const running = T.activeTimer() && T.activeTimer().itemId === c.id;
+  const waiting = T.isWaiting(c.id);
+
+  const card = el('div', {
+    class: 'ccard' + (r.stuck ? ' stuck' : ''), draggable: true,
+    ondragstart: e => { e.dataTransfer.setData('text/plain', c.id); card.classList.add('dragging'); },
+    ondragend: () => card.classList.remove('dragging')
+  });
+
+  card.append(el('div', { class: 'cn', style: { cursor: 'pointer' }, onclick: () => openItem(c.id) }, c.title));
+  if (c.business) card.append(el('div', { class: 'cb' }, c.business));
+
+  if (p.total) card.append(el('div', { class: 'bar', style: { marginTop: '7px' } }, el('i', { style: { width: (p.value * 100) + '%' } })));
+
+  const meta = el('div', { class: 'cm' });
+  meta.append(el('span', { class: 'pill ' + (r.stuck ? 'pill-r' : '') }, ago(c.stageSince || c.createdAt)));
+  if (c.amount) meta.append(el('span', { class: 'pill pill-y' }, nis(c.amount)));
+  if (c.dueDate) {
+    const left = c.dueDate - Date.now();
+    meta.append(el('span', { class: 'pill ' + (left < 0 ? 'pill-r' : left < 2 * DAY ? 'pill-y' : '') },
+      left < 0 ? 'איחור' : dmy(c.dueDate)));
+  }
+  if (waiting) meta.append(el('span', { class: 'pill pill-b' }, 'ממתין'));
+  card.append(meta);
+
+  const acts = el('div', { style: { display: 'flex', gap: '5px', marginTop: '8px' } },
+    el('button', {
+      class: 'btn btn-xs ' + (running ? 'btn-y' : ''), style: { flex: 1 },
+      onclick: () => { T.startTimer(c.id); refresh(); }
+    }, running ? '● רץ' : '▶'),
+    el('button', {
+      class: 'btn btn-xs', title: 'לשלב הבא',
+      onclick: () => {
+        const i = line.stages.findIndex(s => s.id === c.stageId);
+        const next = line.stages[i + 1];
+        if (!next) { toast('שלב אחרון'); return; }
+        moveToStage(c.id, next.id);
+        if (next.name.includes('תשלום') && !c.paidAt) patchItem(c.id, { paidAt: Date.now(), amount: c.amount || line.pricing?.unit });
+        if (next.name.includes('מסירה')) patchItem(c.id, { deliveredAt: Date.now() });
+        refresh();
+      }
+    }, '←')
+  );
+  card.append(acts);
+  return card;
+}
+
+/* ================= טופס לקוח ================= */
+
+export function clientForm(existing, lineId) {
+  const s = S();
+  const line = lineOf(lineId || (existing && existing.productLineId));
+  const c = existing || {};
+
+  const fTitle = input({ value: c.title || '', placeholder: 'דני' });
+  const fBiz = input({ value: c.business || '', placeholder: 'מוסך דני' });
+  const fLine = select(s.productLines.map(p => ({ value: p.id, label: p.name })), c.productLineId || line.id);
+  const fStage = select(line.stages.map(st => ({ value: st.id, label: st.name })), c.stageId || line.stages[0].id);
+  fLine.addEventListener('change', () => {
+    const l = lineOf(fLine.value);
+    fStage.innerHTML = '';
+    l.stages.forEach(st => fStage.append(el('option', { value: st.id }, st.name)));
+  });
+  const fAmount = input({ type: 'number', value: c.amount ?? (line.pricing?.unit || 1290) });
+  const fDue = input({ type: 'date', value: c.dueDate ? dateInput(c.dueDate) : dateInput(Date.now() + (line.pricing?.deliveryDays || 7) * DAY) });
+  const fPhone = input({ value: c.phone || '', placeholder: '050…' });
+  const fMedia = input({ type: 'number', value: c.mediaCost ?? 0 });
+  const fNote = textarea({ placeholder: 'מה הוא רוצה, מה סיכמתם' }, c.note || '');
+  fNote.value = c.note || '';
+
+  const body = el('div', {},
+    el('div', { class: 'row' }, field('שם', fTitle), field('עסק', fBiz)),
+    el('div', { class: 'row' }, field('קו מוצר', fLine), field('שלב', fStage)),
+    el('div', { class: 'row' }, field('סכום ₪', fAmount), field('תאריך יעד', fDue)),
+    el('div', { class: 'row' }, field('טלפון', fPhone), field('עלות מדיה ₪', fMedia, 'נזקף ללקוח הזה')),
+    field('הערה', fNote)
+  );
+
+  modal({
+    title: existing ? 'עריכת לקוח' : 'לקוח חדש',
+    body,
+    actions: [
+      existing ? {
+        label: 'מחק', cls: 'btn-danger',
+        onClick: () => { confirmBox(`למחוק את ${existing.title}? גם רשומות הזמן שלו יימחקו.`, () => { removeItem(existing.id); refresh(); }); return false; }
+      } : null,
+      { label: 'ביטול' },
+      {
+        label: 'שמור', cls: 'btn-y', onClick: () => {
+          const data = {
+            title: fTitle.value.trim() || 'ללא שם',
+            business: fBiz.value.trim(),
+            productLineId: fLine.value,
+            stageId: fStage.value,
+            amount: Number(fAmount.value) || 0,
+            dueDate: fDue.value ? new Date(fDue.value).getTime() : null,
+            phone: fPhone.value.trim(),
+            mediaCost: Number(fMedia.value) || 0,
+            note: fNote.value
+          };
+          if (existing) {
+            if (existing.stageId !== data.stageId) data.stageSince = Date.now();
+            patchItem(existing.id, data);
+          } else {
+            addItem(Object.assign({ type: 'client' }, data));
+          }
+          toast('נשמר', 'ok');
+          refresh();
+        }
+      }
+    ].filter(Boolean)
+  });
+}
+
+/* ================= עורך קווי מוצר ושלבים ================= */
+
+export function lineEditor() {
+  const box = el('div', {});
+  const draw = () => {
+    box.innerHTML = '';
+    S().productLines.forEach(line => {
+      const card = el('div', { class: 'card', style: { marginBottom: '12px' } });
+      const nameInp = input({ value: line.name, style: { fontWeight: '700' } });
+      nameInp.addEventListener('change', () => { update(s => { s.productLines.find(p => p.id === line.id).name = nameInp.value; }); refresh(); });
+
+      const color = el('input', {
+        type: 'color', value: line.color || '#ffd400',
+        style: { width: '38px', height: '34px', border: 0, background: 'transparent', cursor: 'pointer' },
+        onchange: e => update(s => { s.productLines.find(p => p.id === line.id).color = e.target.value; })
+      });
+
+      card.append(el('div', { class: 'card-h' }, nameInp, color,
+        el('div', { class: 'right' },
+          S().productLines.length > 1 ? el('button', {
+            class: 'btn btn-xs btn-danger',
+            onclick: () => confirmBox(`למחוק את קו המוצר "${line.name}"? הלקוחות שבו יעברו לקו הראשון.`, () => {
+              update(s => {
+                const other = s.productLines.find(p => p.id !== line.id);
+                s.items.filter(i => i.productLineId === line.id).forEach(i => {
+                  i.productLineId = other.id; i.stageId = other.stages[0].id;
+                });
+                s.productLines = s.productLines.filter(p => p.id !== line.id);
+              });
+              draw(); refresh();
+            })
+          }, 'מחק קו') : null
+        )));
+
+      // תמחור
+      const p = line.pricing || {};
+      const pu = input({ type: 'number', value: p.unit ?? 1290 });
+      const pb = input({ type: 'number', value: p.bundle ?? 4200 });
+      const pq = input({ type: 'number', value: p.bundleQty ?? 4 });
+      const pd = input({ type: 'number', value: p.deliveryDays ?? 7 });
+      const pe = input({ type: 'number', step: '0.5', value: line.estHours ?? 4 });
+      [pu, pb, pq, pd, pe].forEach((inp, i) => inp.addEventListener('change', () => {
+        update(s => {
+          const l = s.productLines.find(x => x.id === line.id);
+          l.pricing = l.pricing || {};
+          if (i === 0) l.pricing.unit = Number(pu.value);
+          if (i === 1) l.pricing.bundle = Number(pb.value);
+          if (i === 2) l.pricing.bundleQty = Number(pq.value);
+          if (i === 3) l.pricing.deliveryDays = Number(pd.value);
+          if (i === 4) l.estHours = Number(pe.value);
+        });
+      }));
+      card.append(el('div', { class: 'row' },
+        field('מחיר יחיד ₪', pu), field('חבילה ₪', pb), field('כמות בחבילה', pq),
+        field('ימי אספקה', pd), field('שעות משוערות', pe)));
+
+      // שלבים
+      card.append(el('div', { class: 'small muted', style: { margin: '4px 0 8px' } },
+        'שלבים — גרור לסדר מחדש. עדיפות = כמה השלב צועק (10 = ליד). SLA = אחרי כמה דקות נחשב תקוע.'));
+
+      const list = el('div', {});
+      line.stages.forEach((st, idx) => {
+        const row = el('div', {
+          draggable: true,
+          style: { display: 'flex', gap: '6px', alignItems: 'center', padding: '5px', borderRadius: '8px', background: '#0f0f0e', marginBottom: '5px', cursor: 'grab' },
+          ondragstart: e => e.dataTransfer.setData('text/plain', String(idx)),
+          ondragover: e => e.preventDefault(),
+          ondrop: e => {
+            e.preventDefault();
+            const from = Number(e.dataTransfer.getData('text/plain'));
+            if (Number.isNaN(from) || from === idx) return;
+            update(s => {
+              const l = s.productLines.find(x => x.id === line.id);
+              const [m] = l.stages.splice(from, 1);
+              l.stages.splice(idx, 0, m);
+            });
+            draw(); refresh();
+          }
+        });
+        row.append(el('span', { class: 'muted', style: { cursor: 'grab' } }, '⠿'));
+        const nm = input({ value: st.name, style: { flex: '2' } });
+        nm.addEventListener('change', () => update(s => {
+          s.productLines.find(x => x.id === line.id).stages.find(y => y.id === st.id).name = nm.value;
+        }));
+        const pr = input({ type: 'number', min: 1, max: 10, value: st.priority ?? 5, style: { width: '62px', flex: '0 0 62px' }, title: 'עדיפות' });
+        pr.addEventListener('change', () => update(s => {
+          s.productLines.find(x => x.id === line.id).stages.find(y => y.id === st.id).priority = Number(pr.value);
+        }));
+        const sla = input({ type: 'number', value: st.sla ?? 1440, style: { width: '82px', flex: '0 0 82px' }, title: 'SLA בדקות' });
+        sla.addEventListener('change', () => update(s => {
+          s.productLines.find(x => x.id === line.id).stages.find(y => y.id === st.id).sla = Number(sla.value);
+        }));
+        row.append(nm, pr, sla, el('button', {
+          class: 'btn btn-xs btn-danger',
+          onclick: () => {
+            if (line.stages.length <= 1) { toast('צריך לפחות שלב אחד', 'err'); return; }
+            update(s => {
+              const l = s.productLines.find(x => x.id === line.id);
+              l.stages = l.stages.filter(y => y.id !== st.id);
+              s.items.filter(i => i.productLineId === line.id && i.stageId === st.id)
+                .forEach(i => { i.stageId = l.stages[0].id; i.stageSince = Date.now(); });
+            });
+            draw(); refresh();
+          }
+        }, '×'));
+        list.append(row);
+      });
+      card.append(list);
+      card.append(el('button', {
+        class: 'btn btn-xs', style: { marginTop: '6px' },
+        onclick: () => {
+          update(s => {
+            s.productLines.find(x => x.id === line.id).stages.push({ id: uid('st'), name: 'שלב חדש', priority: 5, sla: 1440 });
+          });
+          draw(); refresh();
+        }
+      }, '+ שלב'));
+      box.append(card);
+    });
+
+    box.append(el('button', {
+      class: 'btn btn-y',
+      onclick: () => {
+        update(s => {
+          s.productLines.push({
+            id: uid('pl'), name: 'קו מוצר חדש', color: '#5aa9ff',
+            stages: [
+              { id: uid('st'), name: 'ליד', priority: 10, sla: 120 },
+              { id: uid('st'), name: 'שיחה', priority: 9, sla: 1440 },
+              { id: uid('st'), name: 'תשלום', priority: 8, sla: 2880 },
+              { id: uid('st'), name: 'עבודה', priority: 6, sla: 4320 },
+              { id: uid('st'), name: 'מסירה', priority: 9, sla: 240 }
+            ],
+            pricing: { unit: 0, bundle: 0, bundleQty: 1, deliveryDays: 7 }, estHours: 3
+          });
+        });
+        draw(); refresh();
+      }
+    }, '+ קו מוצר (למשל: סוכנת קולית)'));
+  };
+  draw();
+  modal({ title: 'קווי מוצר ושלבים', body: box, wide: true, actions: [{ label: 'סגור', cls: 'btn-y' }] });
+}

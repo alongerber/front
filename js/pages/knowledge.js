@@ -8,6 +8,7 @@ import { el, ago, dur, toast, modal, input, select, textarea, field, confirmBox,
 import * as T from '../timer.js';
 import { rankedKnowledge, knowledgeScore } from '../brain.js';
 import { refresh, openItem } from '../app.js';
+import { hintBadge } from '../help.js';
 
 export default { render };
 
@@ -103,7 +104,7 @@ function row(x, isTop) {
   ));
 
   head.append(el('div', { style: { display: 'flex', gap: '5px', alignItems: 'center', flexWrap: 'wrap' } },
-    el('span', { class: 'kscore', title: 'ציון רלוונטיות — ותק, קשר לעבודה הנוכחית, זמן פנוי ודחיפות' }, Math.round(x.score)),
+    el('span', { class: 'kscore', 'data-tip': 'know.score' }, Math.round(x.score)),
     el('span', { class: 'pill ' + st.cls }, st.label),
     el('span', { class: 'pill' }, (k.estMinutes || 20) + ' דק\'')
   ));
@@ -126,7 +127,7 @@ function row(x, isTop) {
 
   acts.append(el('span', { style: { flex: 1 } }));
   acts.append(el('button', {
-    class: 'btn btn-xs', title: k.archived ? 'החזר' : 'לארכיון (לא מוחק)',
+    class: 'btn btn-xs', 'data-tip': 'know.archive',
     onclick: () => { patchItem(k.id, { archived: !k.archived }); toast(k.archived ? 'הוחזר' : 'לארכיון'); refresh(); }
   }, k.archived ? '↩' : '🗄'));
   node.append(acts);
@@ -157,9 +158,9 @@ export function form(existing) {
       field('הערה', fN),
       field('תגיות', fTags, 'מופרדות בפסיק — משמשות לקשר לפריטים פעילים'),
       el('div', { class: 'row' },
-        field('זמן משוער (דקות)', fEst),
+        field(el('span', { style: { display: 'inline-flex', alignItems: 'center' } }, 'זמן משוער (דקות)', hintBadge('know.est')), fEst),
         field('דחיפות', fUrg),
-        field('קשור ל', fRel, 'מקפיץ את הציון כשאתה עובד על הפריט הזה'))
+        field(el('span', { style: { display: 'inline-flex', alignItems: 'center' } }, 'קשור ל', hintBadge('know.related')), fRel))
     ),
     actions: [
       existing ? { label: 'מחק', cls: 'btn-danger', onClick: () => { confirmBox('למחוק לגמרי? אפשר במקום זה לשלוח לארכיון.', () => { removeItem(existing.id); refresh(); }); return false; } } : null,

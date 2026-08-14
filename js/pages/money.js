@@ -2,13 +2,35 @@
    money.js — מנויים, עלות לסרטון, רווח, וסימולטור ההחלטות
    ============================================================ */
 
-import { S, update, uid, monthlySubsILS, monthMoney, monthKey, lineOf, patchItem } from '../store.js';
-import { el, nis, num, dur, dmy, toast, modal, input, select, field, confirmBox, clamp, HOUR, DAY } from '../util.js';
+import { S, update, uid, monthlySubsILS, monthMoney, lineOf } from '../store.js';
+import { el, nis, num, dmy, toast, modal, input, select, field, HOUR } from '../util.js';
 import * as T from '../timer.js';
-import { unitEconomics, measuredHoursPerVideo, deliveredThisMonth } from '../brain.js';
+import { unitEconomics, measuredHoursPerVideo } from '../brain.js';
+import { hintBadge } from '../help.js';
 import { refresh, openItem } from '../app.js';
 
 export default { render };
+
+/* עוזרים קטנים לבניית כותרות נושא ומספרים עם הסבר */
+function section(title, sub) {
+  return el('div', { class: 'section' },
+    el('span', { class: 'bar' }),
+    el('h2', {}, title),
+    sub ? el('span', { class: 'sub' }, sub) : null,
+    el('span', { class: 'line' })
+  );
+}
+
+function statBox(label, value, opts = {}) {
+  return el('div', { class: 'stat ' + (opts.cls || '') },
+    el('div', { class: 'lbl', style: { display: 'flex', alignItems: 'center' } },
+      label, opts.tip ? hintBadge(opts.tip) : null),
+    el('div', { class: 'val', style: opts.color ? { color: opts.color } : {} }, value),
+    opts.sub ? el('div', { class: 'sub' }, opts.sub) : null
+  );
+}
+
+/* ============================================================ */
 
 function render(root) {
   const s = S();
@@ -17,59 +39,176 @@ function render(root) {
     el('h1', {}, 'כסף'),
     el('div', { class: 'desc' }, 'מה נכנס, מה יוצא, ומה זה אומר על השעה שלך'),
     el('div', { class: 'right' },
-      el('button', { class: 'btn btn-sm', onclick: () => ledgerModal() }, '+ תנועה'))
+      el('button', { class: 'btn btn-sm', 'data-tip': 'money.ledger', onclick: () => ledgerModal() }, '+ תנועה'))
   ));
 
+  root.append(section('החודש בפועל', 'מה שקרה, לא מה שאולי יקרה'));
   root.append(headline());
-  root.append(el('div', { class: 'grid g-2-1', style: { marginTop: '14px' } },
-    el('div', {}, simulator(), unitCard()),
-    el('div', {}, subsCard(), ledgerCard())
-  ));
+
+  root.append(section('סרטון בודד', 'כמה מרוויחים על סרטון אחד — בשתי דרכי מדידה'));
+  root.append(perVideo());
+
+  root.append(section('מה קורה אם אשנה משהו', 'הזז סליידר וראה מיד'));
+  root.append(simulator());
+
+  root.append(section('הוצאות קבועות', 'מה שיוצא כל חודש בלי קשר לכמות'));
+  root.append(el('div', { class: 'grid g2' }, subsCard(), ledgerCard()));
 }
 
-/* ================= כותרת: רווח בשלושה חתכים ================= */
+/* ================= החודש בפועל ================= */
 
 function headline() {
   const s = S();
   const m = monthMoney();
-  const e = unitEconomics();
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
   const focus = T.focusMs(null, monthStart, Date.now());
   const realHourly = focus ? m.profit / (focus / HOUR) : null;
+  const target = s.settings.hourlyTarget || 250;
 
   return el('div', { class: 'grid g4' },
-    el('div', { class: 'stat g' },
-      el('div', { class: 'lbl' }, 'הכנסות החודש'),
-      el('div', { class: 'val' }, nis(m.income)),
-      el('div', { class: 'sub' }, `${m.delivered} נמסרו`)),
-    el('div', { class: 'stat r' },
-      el('div', { class: 'lbl' }, 'הוצאות החודש'),
-      el('div', { class: 'val' }, nis(m.expenses)),
-      el('div', { class: 'sub' }, `מנויים ${nis(m.subs)}${m.media ? ' · מדיה ' + nis(m.media) : ''}`)),
-    el('div', { class: 'stat ' + (m.profit >= 0 ? 'y' : 'r') },
-      el('div', { class: 'lbl' }, 'נטו החודש'),
-      el('div', { class: 'val' }, nis(m.profit)),
-      el('div', { class: 'sub' }, m.profit >= 0 ? 'נשאר בכיס' : 'חור שצריך לסגור')),
-    el('div', { class: 'stat' },
-      el('div', { class: 'lbl' }, 'רווח לשעת עבודה בפועל'),
-      el('div', { class: 'val', style: { color: realHourly == null ? '' : realHourly >= (s.settings.hourlyTarget || 250) ? '#3ddc84' : '#ff5a4d' } },
-        realHourly == null ? '—' : nis(realHourly)),
-      el('div', { class: 'sub' }, realHourly == null ? 'צריך שעות רשומות' : `יעד ${nis(s.settings.hourlyTarget || 250)}`))
+    statBox('נכנס החודש', nis(m.income), {
+      cls: 'g', sub: `${m.delivered} סרטונים נמסרו`,
+      tip: 'כסף מלקוחות שסימנת אצלם "שולם" החודש. מתעדכן לבד כשאתה מעביר לקוח לשלב תשלום.'
+    }),
+    statBox('יצא החודש', nis(m.expenses), {
+      cls: 'r', sub: `מנויים ${nis(m.subs)}${m.media ? ' · מדיה ' + nis(m.media) : ''}`,
+      tip: 'מנויים חודשיים, עלויות מדיה שנזקפו ללקוחות, וכל תנועה שרשמת ידנית.'
+    }),
+    statBox('נשאר בכיס', nis(m.profit), {
+      cls: m.profit >= 0 ? 'y' : 'r',
+      sub: m.profit >= 0 ? 'זה הרווח האמיתי' : 'ההוצאות גדולות מההכנסות',
+      tip: 'money.monthlyNet'
+    }),
+    statBox('השעה שלך יוצאת', realHourly == null ? '—' : nis(realHourly), {
+      color: realHourly == null ? '' : realHourly >= target ? '#3ddc84' : '#ff9f43',
+      sub: realHourly == null ? 'צריך שעות רשומות' : `היעד שקבעת: ${nis(target)}`,
+      tip: 'money.realHourly'
+    })
   );
 }
 
-/* ================= סימולטור ההחלטות ================= */
+/* ================= סרטון בודד — שני מספרים, לא אחד ================= */
+
+function perVideo() {
+  const e = unitEconomics();
+  const card = el('div', { class: 'card' });
+
+  const covers = e.profitPerVideo >= 0;
+
+  card.append(el('div', { class: 'grid g2', style: { gap: '18px' } },
+    /* --- כסף אמיתי --- */
+    el('div', {},
+      el('div', { style: { display: 'flex', alignItems: 'center', marginBottom: '4px' } },
+        el('span', { style: { fontWeight: '700' } }, 'נשאר לך בכיס'),
+        hintBadge('money.cashPerVideo')),
+      el('div', { class: 'tabular', style: { fontSize: '30px', fontWeight: '900', color: '#3ddc84' } },
+        nis(e.cashPerVideo)),
+      el('div', { class: 'small muted', style: { lineHeight: '1.6', marginTop: '4px' } },
+        `המחיר ${nis(e.price)} פחות ${nis(e.subsPerVideo)} מנויים ופחות ${nis(e.leadCost)} פרסום. ` +
+        'זה כסף אמיתי שנכנס לחשבון.')
+    ),
+    /* --- מול התעריף --- */
+    el('div', {},
+      el('div', { style: { display: 'flex', alignItems: 'center', marginBottom: '4px' } },
+        el('span', { style: { fontWeight: '700' } }, 'מול התעריף שקבעת'),
+        hintBadge('money.vsRate')),
+      el('div', { class: 'tabular', style: { fontSize: '30px', fontWeight: '900', color: covers ? '#3ddc84' : '#ff9f43' } },
+        (covers ? '+' : '') + nis(e.profitPerVideo)),
+      el('div', { class: 'small muted', style: { lineHeight: '1.6', marginTop: '4px' } },
+        covers
+          ? `המחיר מכסה בנוחות תעריף של ${nis(e.rate)} לשעה.`
+          : `זה לא הפסד כסף. זה אומר שהמחיר לא מכסה ${nis(e.rate)} לשעה כשסרטון לוקח ${num(e.hours)} שעות.`)
+    )
+  ));
+
+  /* --- הפירוק, בשפה פשוטה --- */
+  card.append(el('div', { class: 'hr' }));
+  card.append(el('div', { class: 'small muted', style: { marginBottom: '8px' } },
+    'מאיפה המספרים באים:'));
+
+  const tb = el('table', { class: 'tb' });
+  const row = (k, sub, v, tip, strong) => tb.append(el('tr', {},
+    el('td', {},
+      el('div', { style: { display: 'flex', alignItems: 'center', fontWeight: strong ? '700' : '400' } },
+        k, tip ? hintBadge(tip) : null),
+      sub ? el('div', { class: 'small muted' }, sub) : null),
+    el('td', { class: 'num', style: { fontWeight: strong ? '700' : '400' } }, v)
+  ));
+
+  row('מה הלקוח משלם', 'המחיר שקבעת לסרטון בודד', nis(e.price), null, true);
+  row('פחות: חלק מהמנויים', `${nis(e.subsILS)} לחודש חלקי ${e.perMonth} סרטונים`, '−' + nis(e.subsPerVideo), 'money.subsPerVideo');
+  row('פחות: פרסום להביא את הלקוח', 'עלות ממוצעת לליד', '−' + nis(e.leadCost), 'money.leadCost');
+  row('= נשאר בכיס', 'כסף אמיתי', nis(e.cashPerVideo), null, true);
+  row('פחות: הזמן שלך', `${num(e.hours)} שעות × ${nis(e.rate)} לשעה — לא כסף שיוצא`, '−' + nis(e.timeCost), 'money.timeCost');
+  row('= מול התעריף שקבעת', covers ? 'המחיר מכסה את התעריף' : 'המחיר לא מכסה את התעריף', nis(e.profitPerVideo), null, true);
+  card.append(tb);
+
+  /* --- מה לעשות עם זה --- */
+  if (!covers) card.append(adviceBox(e));
+
+  card.append(el('div', { class: 'small muted', style: { marginTop: '11px' } },
+    `לפי מה שנמדד בפועל, סרטון לוקח לך ${num(measuredHoursPerVideo(e.line.id))} שעות של זמן קשב.`));
+
+  return card;
+}
+
+/**
+ * המלצות קונקרטיות לסגירת הפער.
+ * שני מצבים שונים לגמרי:
+ *  - נשאר בכיס שלילי: המחיר לא מכסה אפילו מנויים ופרסום. קיצור שעות לא יעזור.
+ *  - נשאר בכיס חיובי אבל קטן מהתעריף: שלוש דרכים אמיתיות לבחור מהן.
+ */
+function adviceBox(e) {
+  const box = el('div', { class: 'advice' });
+  const list = el('ul', { style: { margin: '0', paddingInlineStart: '18px', lineHeight: '1.9' } });
+
+  if (e.cashPerVideo <= 0) {
+    // המנויים לבדם גדולים מהמחיר — רק מחיר או כמות יעזרו
+    const priceNeeded = Math.ceil((e.subsPerVideo + e.leadCost) / 10) * 10;
+    const perMonthNeeded = (e.price - e.leadCost) > 0
+      ? Math.ceil(e.subsILS / (e.price - e.leadCost)) + 1
+      : null;
+
+    const qty = e.perMonth === 1 ? 'סרטון אחד' : e.perMonth === 2 ? 'שני סרטונים' : `${e.perMonth} סרטונים`;
+    box.append(el('div', { style: { fontWeight: '700', marginBottom: '7px' } },
+      `בקצב של ${qty} בחודש, המנויים לבדם עולים ${nis(e.subsPerVideo)} לסרטון — יותר מהמחיר.`));
+    list.append(el('li', {}, `לעשות יותר סרטונים: המנויים מתחלקים על יותר ראשים${perMonthNeeded ? `. מ-${perMonthNeeded} סרטונים בחודש זה מתחיל להיות רווחי` : ''}`));
+    list.append(el('li', {}, `או להעלות את המחיר למעל ${nis(priceNeeded)} לסרטון`));
+    list.append(el('li', {}, `או לקצץ מנויים — ${nis(e.subsILS)} לחודש זו ההוצאה הכי כבדה שלך`));
+    box.append(list);
+    box.append(el('div', { class: 'small muted', style: { marginTop: '8px' } },
+      'שים לב: כמות הסרטונים מחושבת ממה שנמסר החודש בפועל. אם החודש רק התחיל, המספר עוד יעלה.'));
+    return box;
+  }
+
+  // הכסף חיובי, פשוט לא מספיק לתעריף — שלוש דרכים אמיתיות
+  const priceNeeded = Math.ceil(e.costPerVideo / 10) * 10;
+  const hoursNeeded = e.rate > 0 ? e.cashPerVideo / e.rate : 0;
+  const rateSupported = e.hours > 0 ? e.cashPerVideo / e.hours : 0;
+
+  box.append(el('div', { style: { fontWeight: '700', marginBottom: '7px' } }, 'שלוש דרכים לסגור את הפער — בחר אחת:'));
+  list.append(el('li', {}, `להעלות את המחיר ל-${nis(priceNeeded)} לסרטון`));
+  if (hoursNeeded >= 0.25)
+    list.append(el('li', {}, `לקצר את העבודה ל-${num(hoursNeeded)} שעות לסרטון (עכשיו ${num(e.hours)})`));
+  if (rateSupported > 0)
+    list.append(el('li', {}, `להוריד את היעד ל-${nis(rateSupported)} לשעה — זה מה שהמחיר הנוכחי מממן`));
+  box.append(list);
+  box.append(el('div', { class: 'small muted', style: { marginTop: '8px' } },
+    'אפשר גם לשלב. תזיז את הסליידרים למטה כדי לראות מה מרגיש נכון.'));
+  return box;
+}
+
+/* ================= סימולטור ================= */
 
 const SLIDERS = [
-  { key: 'price', name: 'מחיר לסרטון', desc: 'כמה אתה גובה על סרטון בודד. זה המספר שהכי קל לשנות והכי מפחיד לגעת בו.', min: 400, max: 4000, step: 10, fmt: nis },
-  { key: 'perMonth', name: 'כמה סרטונים בחודש', desc: 'כמה אתה מספיק בפועל — לא כמה היית רוצה.', min: 1, max: 30, step: 1, fmt: v => v + ' סרטונים' },
-  { key: 'leadCost', name: 'עלות ממוצעת לליד', desc: 'כמה עולה לך להביא לקוח אחד — כולל פרסום.', min: 0, max: 800, step: 10, fmt: nis },
-  { key: 'hours', name: 'שעות לסרטון', desc: 'זמן קשב אמיתי לסרטון. המערכת מציעה את מה שהיא מדדה.', min: 0.5, max: 20, step: 0.5, fmt: v => num(v) + ' שעות' },
-  { key: 'rate', name: 'תעריף שעתי יעד', desc: 'כמה השעה שלך שווה בעיניך. משמש לתמחור עלות הזמן שלך.', min: 50, max: 800, step: 10, fmt: nis }
+  { key: 'price', name: 'מחיר לסרטון', desc: 'כמה אתה גובה על סרטון בודד. המספר הכי קל לשנות והכי מפחיד לגעת בו.', min: 400, max: 4000, step: 10, fmt: nis },
+  { key: 'perMonth', name: 'כמה סרטונים בחודש', desc: 'כמה אתה מספיק בפועל — לא כמה היית רוצה. ככל שיותר, המנויים מתחלקים על יותר סרטונים.', min: 1, max: 30, step: 1, fmt: v => v + ' סרטונים' },
+  { key: 'leadCost', name: 'עלות להביא לקוח אחד', desc: 'כמה פרסום עולה כדי שלקוח אחד יסגור. הוצאת 900 ₪ והגיעו 5? זה 180 ₪.', min: 0, max: 800, step: 10, fmt: nis },
+  { key: 'hours', name: 'שעות עבודה לסרטון', desc: 'זמן קשב אמיתי, לא זמן שהפרויקט פתוח. המערכת מציעה את מה שהיא מדדה אצלך.', min: 0.5, max: 20, step: 0.5, fmt: v => num(v) + ' שעות' },
+  { key: 'rate', name: 'כמה השעה שלך שווה', desc: 'היעד שאתה קובע לעצמך. לא כסף שיוצא — רק בדיקה אם המחיר הוגן כלפיך.', min: 50, max: 800, step: 10, fmt: nis }
 ];
 
 function simulator() {
-  const s = S();
   const base = unitEconomics();
   const vals = {
     price: base.price, perMonth: base.perMonth, leadCost: base.leadCost,
@@ -78,11 +217,13 @@ function simulator() {
 
   const card = el('div', { class: 'card' });
   card.append(el('div', { class: 'card-h' },
-    el('h2', {}, 'סימולטור החלטות'),
-    el('span', { class: 'sub' }, 'הזז וראה מה קורה'),
+    el('h2', { style: { display: 'flex', alignItems: 'center' } }, 'סימולטור', hintBadge('money.simulator')),
+    el('span', { class: 'sub' }, 'שום דבר לא נשמר עד שתלחץ'),
     el('div', { class: 'right' },
       el('button', {
-        class: 'btn btn-xs', onclick: () => {
+        class: 'btn btn-xs',
+        'data-tip': 'שומר את הערכים האלה כברירת המחדל של המערכת. משפיע על כל החישובים בעמוד.',
+        onclick: () => {
           update(st => {
             const l = st.productLines.find(x => x.id === base.line.id);
             l.pricing.unit = vals.price;
@@ -90,23 +231,24 @@ function simulator() {
             st.settings.hourlyTarget = vals.rate;
             st.settings.avgLeadCost = vals.leadCost;
           });
-          toast('הערכים נשמרו כברירת מחדל', 'ok'); refresh();
+          toast('נשמר כברירת מחדל', 'ok'); refresh();
         }
-      }, 'שמור כברירת מחדל'))
+      }, 'שמור את הערכים האלה'))
   ));
 
   const out = el('div', {});
-  const verdictBox = el('div', { class: 'verdict', style: { marginBottom: '16px' } });
+  const verdictBox = el('div', { class: 'verdict', style: { marginBottom: '14px' } });
 
   const paint = () => {
     const e = unitEconomics(vals);
-    verdictBox.textContent = verdict(e);
+    verdictBox.innerHTML = '';
+    verdictBox.append(...verdict(e));
     out.innerHTML = '';
     out.append(el('div', { class: 'grid g4' },
-      kpi('רווח לסרטון', nis(e.profitPerVideo), e.profitPerVideo > 0 ? '#3ddc84' : '#ff5a4d', 'אחרי מנויים, ליד, והזמן שלך'),
-      kpi('נטו לחודש', nis(e.monthlyNet), e.monthlyNet > 0 ? '#ffd400' : '#ff5a4d', 'הכנסות פחות הוצאות'),
-      kpi('₪ לשעה בפועל', nis(e.realHourly), e.realHourly >= vals.rate ? '#3ddc84' : '#ff5a4d', `יעד ${nis(vals.rate)}`),
-      kpi('שעות ביום', num(e.hoursPerDay) + ' שע\'', e.hoursPerDay > 9 ? '#ff5a4d' : '#ffffff', 'ב-22 ימי עבודה')
+      kpi('נשאר בכיס לסרטון', nis(e.cashPerVideo), '#3ddc84', 'כסף אמיתי, בלי הזמן שלך', 'money.cashPerVideo'),
+      kpi('נטו לחודש', nis(e.monthlyNet), e.monthlyNet > 0 ? '#3ddc84' : '#ff5a4d', 'הכנסות פחות הוצאות', 'money.monthlyNet'),
+      kpi('השעה שלך תצא', nis(e.realHourly), e.realHourly >= vals.rate ? '#3ddc84' : '#ff9f43', `היעד: ${nis(vals.rate)}`, 'money.realHourly'),
+      kpi('שעות עבודה ביום', num(e.hoursPerDay) + ' שע\'', e.hoursPerDay > 9 ? '#ff5a4d' : '#ffffff', 'ב-22 ימי עבודה בחודש')
     ));
   };
 
@@ -115,6 +257,7 @@ function simulator() {
     const valNode = el('span', { class: 'vv' }, sl.fmt(vals[sl.key]));
     const range = el('input', {
       type: 'range', min: sl.min, max: sl.max, step: sl.step, value: vals[sl.key],
+      'aria-label': sl.name,
       oninput: e => { vals[sl.key] = Number(e.target.value); valNode.textContent = sl.fmt(vals[sl.key]); paint(); }
     });
     wrap.append(
@@ -130,60 +273,32 @@ function simulator() {
   return card;
 }
 
-function kpi(lbl, val, color, sub) {
+function kpi(lbl, val, color, sub, tip) {
   return el('div', {},
-    el('div', { class: 'small muted' }, lbl),
+    el('div', { class: 'small muted', style: { display: 'flex', alignItems: 'center' } },
+      lbl, tip ? hintBadge(tip) : null),
     el('div', { class: 'tabular', style: { fontSize: '20px', fontWeight: '900', color } }, val),
     el('div', { class: 'small muted' }, sub)
   );
 }
 
+/** משפט אחד בעברית + שורת המלצה */
 function verdict(e) {
   const net = Math.round(e.monthlyNet);
   const hpd = e.hoursPerDay;
-  const parts = [`בקצב הזה תגיע ל-${nis(net)} נטו בחודש, ותעבוד ${num(hpd)} שעות ביום.`];
-  if (hpd > 9) parts.push('זה יותר משעות של משרה מלאה — או שמעלים מחיר או שמורידים כמות.');
-  else if (e.realHourly < e.rate) parts.push(`השעה שלך יוצאת ${nis(e.realHourly)} מול יעד של ${nis(e.rate)}.`);
-  else if (net < 0) parts.push('אתה מפסיד. המנויים לבדם אוכלים את זה.');
-  else if (hpd < 3) parts.push('נשאר לך זמן — הוא שווה יותר בשיווק מאשר בהמתנה.');
-  else parts.push('המספרים סוגרים.');
-  return parts.join(' ');
-}
+  const main = `בקצב הזה תגיע ל-${nis(net)} נטו בחודש, ותעבוד ${num(hpd)} שעות ביום.`;
 
-/* ================= עלות לסרטון ================= */
+  let advice;
+  if (net < 0) advice = 'אתה מפסיד. המנויים לבדם אוכלים את ההכנסה — צריך יותר סרטונים או מחיר גבוה יותר.';
+  else if (hpd > 9) advice = 'זה יותר משעות של משרה מלאה. או להעלות מחיר, או להוריד כמות.';
+  else if (e.realHourly < e.rate) advice = `השעה שלך יוצאת ${nis(e.realHourly)} מול יעד של ${nis(e.rate)}. הפער לא ענק — מחיר קצת גבוה יותר סוגר אותו.`;
+  else if (hpd < 3) advice = 'נשאר לך זמן. הוא שווה יותר בשיווק מאשר בהמתנה.';
+  else advice = 'המספרים סוגרים. זה קצב שאפשר לחיות איתו.';
 
-function unitCard() {
-  const e = unitEconomics();
-  const card = el('div', { class: 'card' });
-  card.append(el('div', { class: 'card-h' },
-    el('h3', {}, 'עלות לסרטון — מה באמת מרכיב אותה'),
-    el('span', { class: 'sub' }, `לפי ${e.perMonth} סרטונים בחודש`)));
-
-  const rows = [
-    ['מנויים חלקי כמות', e.subsPerVideo, 'סה"כ ' + nis(e.subsILS) + ' לחודש'],
-    ['עלות הבאת ליד', e.leadCost, 'ממוצע פרסום ללקוח'],
-    ['הזמן שלך', e.timeCost, `${num(e.hours)} שעות × ${nis(e.rate)}`],
+  return [
+    el('div', {}, main),
+    el('div', { class: 'small', style: { marginTop: '7px', opacity: '.85' } }, advice)
   ];
-  const tb = el('table', { class: 'tb' });
-  rows.forEach(([k, v, sub]) => tb.append(el('tr', {},
-    el('td', {}, el('div', {}, k), el('div', { class: 'small muted' }, sub)),
-    el('td', { class: 'num' }, nis(v))
-  )));
-  tb.append(el('tr', {},
-    el('td', { style: { fontWeight: '700' } }, 'סה"כ עלות'),
-    el('td', { class: 'num', style: { fontWeight: '700' } }, nis(e.costPerVideo))));
-  tb.append(el('tr', {},
-    el('td', { style: { fontWeight: '700' } }, 'מחיר'),
-    el('td', { class: 'num', style: { fontWeight: '700', color: '#ffd400' } }, nis(e.price))));
-  tb.append(el('tr', {},
-    el('td', { style: { fontWeight: '700' } }, 'רווח לסרטון'),
-    el('td', { class: 'num', style: { fontWeight: '700', color: e.profitPerVideo > 0 ? '#3ddc84' : '#ff5a4d' } }, nis(e.profitPerVideo))));
-  card.append(tb);
-
-  card.append(el('div', { class: 'small muted', style: { marginTop: '10px', lineHeight: '1.6' } },
-    `בלי לתמחר את הזמן שלך נשאר בכיס ${nis(e.cashPerVideo)} לסרטון. ` +
-    `זמן הקשב שנמדד בפועל: ${num(measuredHoursPerVideo(e.line.id))} שעות לסרטון.`));
-  return card;
 }
 
 /* ================= מנויים ================= */
@@ -195,23 +310,24 @@ function subsCard() {
   const usd = s.subscriptions.filter(x => x.currency === 'USD').reduce((a, x) => a + x.cost, 0);
 
   card.append(el('div', { class: 'card-h' },
-    el('h3', {}, 'מנויים'),
+    el('h3', { style: { display: 'flex', alignItems: 'center' } }, 'מנויים', hintBadge('money.subs')),
     el('span', { class: 'sub' }, `$${num(usd, 0)} · ${nis(total)} לחודש`),
     el('div', { class: 'right' },
       el('button', {
-        class: 'btn btn-xs', onclick: () => {
+        class: 'btn btn-xs', 'data-tip': 'מוסיף שורת מנוי ריקה. מלא שם וסכום.',
+        onclick: () => {
           update(st => st.subscriptions.push({ id: uid('s'), name: 'מנוי חדש', cost: 0, currency: 'USD' }));
           refresh();
         }
-      }, '+')
+      }, '+ מנוי')
     )));
 
   const rateInp = input({ type: 'number', step: '0.01', value: s.settings.usdRate, style: { width: '86px' } });
   rateInp.addEventListener('change', () => { update(st => { st.settings.usdRate = Number(rateInp.value) || 3.65; }); refresh(); });
 
   s.subscriptions.forEach(sub => {
-    const nm = input({ value: sub.name, style: { flex: '2' } });
-    const co = input({ type: 'number', value: sub.cost, style: { flex: '0 0 80px' } });
+    const nm = input({ value: sub.name, style: { flex: '2' }, 'aria-label': 'שם המנוי' });
+    const co = input({ type: 'number', value: sub.cost, style: { flex: '0 0 80px' }, 'aria-label': 'עלות' });
     const cu = select([{ value: 'USD', label: '$' }, { value: 'ILS', label: '₪' }], sub.currency, { style: { flex: '0 0 62px' } });
     const save = () => update(st => {
       const x = st.subscriptions.find(y => y.id === sub.id);
@@ -222,7 +338,7 @@ function subsCard() {
     card.append(el('div', { style: { display: 'flex', gap: '5px', marginBottom: '5px' } },
       nm, co, cu,
       el('button', {
-        class: 'btn btn-xs btn-danger',
+        class: 'btn btn-xs btn-danger', 'data-tip': 'מוחק את המנוי מהרשימה',
         onclick: () => { update(st => { st.subscriptions = st.subscriptions.filter(y => y.id !== sub.id); }); refresh(); }
       }, '×')
     ));
@@ -230,10 +346,11 @@ function subsCard() {
 
   card.append(el('div', { class: 'hr' }));
   card.append(el('div', { style: { display: 'flex', alignItems: 'center', gap: '9px' } },
-    el('span', { class: 'small muted', style: { flex: 1 } }, 'שער דולר'),
+    el('span', { class: 'small muted', style: { flex: 1, display: 'flex', alignItems: 'center' } },
+      'שער דולר', hintBadge('כמה שקלים בדולר. משמש להמרת המנויים הדולריים.')),
     rateInp));
   card.append(el('div', { style: { display: 'flex', marginTop: '9px' } },
-    el('span', { style: { flex: 1, fontWeight: '700' } }, 'סה"כ לחודש'),
+    el('span', { style: { flex: 1, fontWeight: '700' } }, 'סה"כ יוצא כל חודש'),
     el('span', { class: 'tabular', style: { fontWeight: '900', color: '#ff5a4d' } }, nis(total))));
   return card;
 }
@@ -244,24 +361,31 @@ function ledgerCard() {
   const s = S();
   const card = el('div', { class: 'card' });
   card.append(el('div', { class: 'card-h' },
-    el('h3', {}, 'תנועות'),
-    el('span', { class: 'sub' }, 'תשלומים נרשמים לבד כשלקוח עובר לשלב תשלום'),
-    el('div', { class: 'right' }, el('button', { class: 'btn btn-xs', onclick: () => ledgerModal() }, '+'))));
+    el('h3', { style: { display: 'flex', alignItems: 'center' } }, 'תנועות', hintBadge('money.ledger')),
+    el('div', { class: 'right' }, el('button', { class: 'btn btn-xs', onclick: () => ledgerModal() }, '+ תנועה'))));
 
   const paid = s.items.filter(i => i.type === 'client' && i.paidAt)
     .map(c => ({ id: c.id, date: c.paidAt, title: c.title, amount: Number(c.amount) || 0, auto: true }));
   const manual = s.ledger.map(l => ({ id: l.id, date: l.date, title: l.title, amount: l.amount, auto: false }));
   const all = paid.concat(manual).sort((a, b) => b.date - a.date).slice(0, 14);
 
-  if (!all.length) { card.append(el('div', { class: 'empty' }, 'אין תנועות עדיין')); return card; }
+  if (!all.length) {
+    card.append(el('div', { class: 'empty' },
+      'אין תנועות עדיין. תשלום מלקוח נרשם כאן לבד ברגע שתעביר אותו לשלב "תשלום" בצינור.'));
+    return card;
+  }
 
   all.forEach(r => card.append(el('div', { style: { display: 'flex', gap: '8px', padding: '6px 0', fontSize: '13px', borderBottom: '1px solid rgba(255,255,255,.05)' } },
     el('span', { class: 'muted small tabular', style: { flex: '0 0 54px' } }, dmy(r.date)),
-    el('span', { style: { flex: 1, cursor: r.auto ? 'pointer' : 'default', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }, onclick: () => r.auto && openItem(r.id) }, r.title),
+    el('span', {
+      style: { flex: 1, cursor: r.auto ? 'pointer' : 'default', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+      'data-tip': r.auto ? 'נרשם לבד כשהלקוח עבר לשלב תשלום. לחיצה פותחת את כרטיס הלקוח.' : null,
+      onclick: () => r.auto && openItem(r.id)
+    }, r.title),
     el('span', { class: 'tabular', style: { color: r.amount >= 0 ? '#3ddc84' : '#ff5a4d' } },
       (r.amount >= 0 ? '+' : '−') + nis(Math.abs(r.amount))),
     !r.auto ? el('button', {
-      class: 'btn btn-xs', style: { padding: '1px 6px' },
+      class: 'btn btn-xs', style: { padding: '1px 6px' }, 'data-tip': 'מוחק את התנועה',
       onclick: () => { update(st => { st.ledger = st.ledger.filter(x => x.id !== r.id); }); refresh(); }
     }, '×') : null
   )));
@@ -273,10 +397,14 @@ function ledgerModal() {
   const fA = input({ type: 'number', placeholder: '-350' });
   const fD = input({ type: 'date', value: new Date().toISOString().slice(0, 10) });
   modal({
-    title: 'תנועת כסף',
+    title: 'תנועת כסף ידנית',
     body: el('div', {},
-      field('תיאור', fT),
-      el('div', { class: 'row' }, field('סכום ₪', fA, 'מספר שלילי = הוצאה'), field('תאריך', fD))),
+      el('div', { class: 'muted small', style: { marginBottom: '12px' } },
+        'להוצאות ולהכנסות שלא מגיעות מלקוח בצינור — קמפיין, רישיון, החזר.'),
+      field('על מה', fT),
+      el('div', { class: 'row' },
+        field('סכום ₪', fA, 'מספר רגיל = הכנסה. מספר עם מינוס = הוצאה.'),
+        field('תאריך', fD))),
     actions: [{ label: 'ביטול' }, {
       label: 'שמור', cls: 'btn-y', onClick: () => {
         const a = Number(fA.value);

@@ -8,6 +8,7 @@ import { el, nis, ago, dur, dmy, dateInput, toast, modal, closeModal, input, sel
 import * as T from '../timer.js';
 import { progressOf, scoreClient } from '../brain.js';
 import { refresh, openItem } from '../app.js';
+import { hintBadge } from '../help.js';
 
 export default { render };
 
@@ -24,7 +25,7 @@ function render(root, params) {
         class: 'btn btn-sm ' + (p.id === line.id ? 'btn-y' : ''),
         onclick: () => { update(st => { st.settings.lastLine = p.id; }); location.hash = '#/pipeline?line=' + p.id; refresh(); }
       }, p.name)),
-      el('button', { class: 'btn btn-sm', onclick: lineEditor, title: 'קווי מוצר ושלבים' }, '⚙ שלבים'),
+      el('button', { class: 'btn btn-sm', 'data-tip': 'pipe.editor', onclick: lineEditor }, '⚙ שלבים'),
       el('button', { class: 'btn btn-sm btn-y', onclick: () => clientForm(null, line.id) }, '+ לקוח')
     )
   ));
@@ -35,8 +36,8 @@ function render(root, params) {
   // סיכום
   root.append(el('div', { class: 'grid g4', style: { marginBottom: '14px' } },
     stat('בצינור', String(active.length), ''),
-    stat('שווי פתוח', nis(active.reduce((a, c) => a + (Number(c.amount) || 0), 0)), 'y'),
-    stat('תקועים', String(active.filter(c => scoreClient(c).stuck).length), active.some(c => scoreClient(c).stuck) ? 'r' : ''),
+    stat('שווי פתוח', nis(active.reduce((a, c) => a + (Number(c.amount) || 0), 0)), 'y', 'pipe.value'),
+    stat('תקועים', String(active.filter(c => scoreClient(c).stuck).length), active.some(c => scoreClient(c).stuck) ? 'r' : '', 'pipe.stuck'),
     stat('נמסרו', String(clients.filter(c => c.deliveredAt).length), 'g')
   ));
 
@@ -101,8 +102,10 @@ function render(root, params) {
   }
 }
 
-function stat(lbl, val, cls) {
-  return el('div', { class: 'stat ' + cls }, el('div', { class: 'lbl' }, lbl), el('div', { class: 'val' }, val));
+function stat(lbl, val, cls, tip) {
+  return el('div', { class: 'stat ' + cls },
+    el('div', { class: 'lbl', style: { display: 'flex', alignItems: 'center' } }, lbl, tip ? hintBadge(tip) : null),
+    el('div', { class: 'val' }, val));
 }
 
 function clientCard(c, stage, line) {
@@ -139,7 +142,7 @@ function clientCard(c, stage, line) {
       onclick: () => { T.startTimer(c.id); refresh(); }
     }, running ? '● רץ' : '▶'),
     el('button', {
-      class: 'btn btn-xs', title: 'לשלב הבא',
+      class: 'btn btn-xs', 'data-tip': 'pipe.next',
       onclick: () => {
         const i = line.stages.findIndex(s => s.id === c.stageId);
         const next = line.stages[i + 1];
@@ -280,7 +283,7 @@ export function lineEditor() {
 
       // שלבים
       card.append(el('div', { class: 'small muted', style: { margin: '4px 0 8px' } },
-        'שלבים — גרור לסדר מחדש. עדיפות = כמה השלב צועק (10 = ליד). SLA = אחרי כמה דקות נחשב תקוע.'));
+        'שלבים — גרור לסדר מחדש.'));
 
       const list = el('div', {});
       line.stages.forEach((st, idx) => {
@@ -306,11 +309,11 @@ export function lineEditor() {
         nm.addEventListener('change', () => update(s => {
           s.productLines.find(x => x.id === line.id).stages.find(y => y.id === st.id).name = nm.value;
         }));
-        const pr = input({ type: 'number', min: 1, max: 10, value: st.priority ?? 5, style: { width: '62px', flex: '0 0 62px' }, title: 'עדיפות' });
+        const pr = input({ type: 'number', min: 1, max: 10, value: st.priority ?? 5, style: { width: '62px', flex: '0 0 62px' }, 'data-tip': 'pipe.priority', 'aria-label': 'עדיפות' });
         pr.addEventListener('change', () => update(s => {
           s.productLines.find(x => x.id === line.id).stages.find(y => y.id === st.id).priority = Number(pr.value);
         }));
-        const sla = input({ type: 'number', value: st.sla ?? 1440, style: { width: '82px', flex: '0 0 82px' }, title: 'SLA בדקות' });
+        const sla = input({ type: 'number', value: st.sla ?? 1440, style: { width: '82px', flex: '0 0 82px' }, 'data-tip': 'pipe.sla', 'aria-label': 'כמה דקות עד שנחשב תקוע' });
         sla.addEventListener('change', () => update(s => {
           s.productLines.find(x => x.id === line.id).stages.find(y => y.id === st.id).sla = Number(sla.value);
         }));

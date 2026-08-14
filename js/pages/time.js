@@ -7,6 +7,7 @@ import { S, update, getItem, monthMoney, lineOf } from '../store.js';
 import { el, dur, hms, hhmm, nis, num, dmy, dayName, toast, modal, closeModal, input, select, field, clamp, drag, startOfDay, endOfDay, MIN, HOUR, DAY } from '../util.js';
 import * as T from '../timer.js';
 import { refresh, openItem, openSwitcher } from '../app.js';
+import { hintBadge } from '../help.js';
 
 export default { render, tick };
 
@@ -26,7 +27,7 @@ function render(root) {
     el('div', { class: 'desc' }, 'התמחור מתבסס על זמן קשב — לא על זמן קיר'),
     el('div', { class: 'right' },
       el('button', { class: 'btn btn-sm', onclick: () => addEntryModal() }, '+ רשומה ידנית'),
-      el('button', { class: 'btn btn-sm btn-y', onclick: openSwitcher }, 'החלף טיימר')
+      el('button', { class: 'btn btn-sm btn-y', 'data-tip': 'time.switch', onclick: openSwitcher }, 'החלף טיימר')
     )
   ));
 
@@ -47,20 +48,23 @@ function threeNumbers() {
 
   const box = el('div', { class: 'grid g4' });
 
+  const lbl = (text, tip) => el('div', { class: 'lbl', style: { display: 'flex', alignItems: 'center' } },
+    text, hintBadge(tip));
+
   box.append(el('div', { class: 'stat y' },
-    el('div', { class: 'lbl' }, 'זמן קשב היום'),
+    lbl('זמן קשב היום', 'time.focus'),
     el('div', { class: 'val' }, focus ? dur(focus, true) : '0 שע\''),
-    el('div', { class: 'sub' }, 'כמה באמת עבדת — זה מה שמתמחרים')
+    el('div', { class: 'sub' }, 'כמה באמת ישבת על זה — רק זה נחשב לתמחור')
   ));
   box.append(el('div', { class: 'stat' },
-    el('div', { class: 'lbl' }, 'זמן קיר (המתנה)'),
+    lbl('המתנה', 'time.wait'),
     el('div', { class: 'val', style: { color: '#5aa9ff' } }, wait ? dur(wait, true) : '0 שע\''),
-    el('div', { class: 'sub' }, 'קלוד רץ, אתה בטאב אחר')
+    el('div', { class: 'sub' }, 'קלוד רץ ואתה בטאב אחר — לא נחשב כעבודה')
   ));
   box.append(el('div', { class: 'stat' },
-    el('div', { class: 'lbl' }, 'זמן זמין שנשאר'),
+    lbl('נשאר לך היום', 'time.available'),
     el('div', { class: 'val' }, dur(av.left, true)),
-    el('div', { class: 'sub' }, `מתוך ${dur(av.total, true)} ביום`)
+    el('div', { class: 'sub' }, `מתוך ${dur(av.total, true)} שקבעת בהגדרות`)
   ));
   box.append(el('div', { class: 'stat' },
     el('div', { class: 'lbl' }, t ? 'רץ עכשיו' : 'שום דבר לא רץ'),
@@ -77,7 +81,7 @@ function timelineCard() {
   const isToday = viewDay === startOfDay();
 
   card.append(el('div', { class: 'card-h' },
-    el('h3', {}, 'ציר היום'),
+    el('h3', { style: { display: 'flex', alignItems: 'center' } }, 'ציר היום', hintBadge('time.timeline')),
     el('span', { class: 'sub' }, 'גרור את הקצוות לתקן. כאן נסגרים הפערים.'),
     el('div', { class: 'right' },
       el('button', { class: 'btn btn-xs', onclick: () => { viewDay -= DAY; refresh(); } }, '→ אתמול'),
@@ -136,7 +140,8 @@ function timelineCard() {
   const gaps = findGaps(focusSegs, dayFrom, span);
   if (gaps.length) {
     const g = el('div', { style: { marginTop: '12px' } });
-    g.append(el('div', { class: 'small muted', style: { marginBottom: '6px' } }, 'פערים שלא סווגו — לחיצה אחת סוגרת אותם:'));
+    g.append(el('div', { class: 'small muted', style: { marginBottom: '6px', display: 'flex', alignItems: 'center' } },
+      'פערים שלא סווגו — לחיצה אחת סוגרת אותם:', hintBadge('time.gap')));
     const row = el('div', { style: { display: 'flex', gap: '6px', flexWrap: 'wrap' } });
     gaps.slice(0, 6).forEach(gp => row.append(el('button', {
       class: 'btn btn-xs',
@@ -260,7 +265,9 @@ function avgCard() {
   card.append(el('div', { class: 'card-h' }, el('h3', {}, 'כמה לוקח סרטון, וכמה זה שווה')));
 
   const s = S();
-  const lines = s.productLines.map(l => ({ line: l, avg: T.avgFocusPerDelivery(l.id) })).filter(x => x.avg);
+  // רק קווים שבאמת נמדד עליהם זמן — אחרת נציג "₪0 לשעה" שנראה כמו כישלון
+  const lines = s.productLines.map(l => ({ line: l, avg: T.avgFocusPerDelivery(l.id) }))
+    .filter(x => x.avg && x.avg.avgMs > 0);
 
   if (!lines.length) {
     card.append(el('div', { class: 'empty' }, 'עוד לא נמסר כלום. אחרי הסרטון הראשון שתמסור — כאן יופיע הממוצע האמיתי.'));
@@ -307,8 +314,7 @@ function mini(lbl, val, color) {
 function perItemCard() {
   const card = el('div', { class: 'card', style: { marginTop: '14px' } });
   card.append(el('div', { class: 'card-h' },
-    el('h3', {}, 'שלושת המספרים לכל לקוח'),
-    el('span', { class: 'sub' }, 'קיר · קשב · המתנה')));
+    el('h3', {}, 'שלושת המספרים לכל לקוח')));
 
   const clients = S().items.filter(i => i.type === 'client' && !i.archived)
     .map(c => ({ c, focus: T.focusMs(c.id), wall: T.wallMs(c.id), wait: T.waitMs(c.id) }))
@@ -318,9 +324,11 @@ function perItemCard() {
   if (!clients.length) { card.append(el('div', { class: 'empty' }, 'עוד לא נרשם זמן על לקוחות')); return card; }
 
   const rate = S().settings.hourlyTarget || 250;
+  const th = (t, tip) => el('th', {}, el('span', { style: { display: 'inline-flex', alignItems: 'center' } }, t, hintBadge(tip)));
   const tb = el('table', { class: 'tb' },
-    el('tr', {}, el('th', {}, 'לקוח'), el('th', {}, 'זמן קשב'), el('th', {}, 'זמן קיר'), el('th', {}, 'המתנה'),
-      el('th', {}, 'סכום'), el('th', {}, '₪/שעה'), el('th', {}))
+    el('tr', {}, el('th', {}, 'לקוח'),
+      th('זמן קשב', 'time.focus'), th('זמן קיר', 'time.wall'), th('המתנה', 'time.wait'),
+      el('th', {}, 'סכום'), th('₪/שעה', 'money.realHourly'), el('th', {}))
   );
   clients.forEach(({ c, focus, wall, wait }) => {
     const perHour = focus ? (c.amount || 0) / (focus / HOUR) : 0;

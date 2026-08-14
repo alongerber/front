@@ -7,6 +7,7 @@ import { $, el, toast, hms, dur, modal, closeModal, hhmm, ago, MIN } from './uti
 import * as T from './timer.js';
 import { classify, commit, retype, classifyWithAssistant } from './capture.js';
 import { navCounts } from './rules.js';
+import { initHelp } from './help.js';
 import { rollRoutines } from './brain.js';
 import * as notify from './notify.js';
 
@@ -24,16 +25,16 @@ import settings from './pages/settings.js';
 /* ================= עמודים ================= */
 
 const PAGES = {
-  '': { title: 'בית', icon: '◆', mod: home },
-  'pipeline': { title: 'צינור', icon: '▤', mod: pipeline, badge: 'pipeline' },
-  'time': { title: 'זמן', icon: '◷', mod: time },
-  'money': { title: 'כסף', icon: '₪', mod: money },
-  'knowledge': { title: 'ידע', icon: '❐', mod: knowledge, badge: 'knowledge' },
-  'routines': { title: 'שגרה', icon: '↻', mod: routines, badge: 'routines' },
-  'tasks': { title: 'משימות', icon: '✓', mod: tasks, badge: 'tasks' },
-  'tools': { title: 'כלים', icon: '⚙', mod: tools },
-  'assistant': { title: 'עוזר', icon: '✦', mod: assistant },
-  'settings': { title: 'הגדרות', icon: '⚙︎', mod: settings }
+  '':          { title: 'בית',     icon: '◆',  color: '#ffd400', mod: home },
+  'pipeline':  { title: 'צינור',   icon: '▤',  color: '#5aa9ff', mod: pipeline, badge: 'pipeline' },
+  'time':      { title: 'זמן',     icon: '◷',  color: '#b98cff', mod: time },
+  'money':     { title: 'כסף',     icon: '₪',  color: '#3ddc84', mod: money },
+  'knowledge': { title: 'ידע',     icon: '❐',  color: '#ff9f43', mod: knowledge, badge: 'knowledge' },
+  'routines':  { title: 'שגרה',    icon: '↻',  color: '#2dd4bf', mod: routines, badge: 'routines' },
+  'tasks':     { title: 'משימות',  icon: '✓',  color: '#ff6b9d', mod: tasks, badge: 'tasks' },
+  'tools':     { title: 'כלים',    icon: '⚙',  color: '#94a3b8', mod: tools },
+  'assistant': { title: 'עוזר',    icon: '✦',  color: '#e879f9', mod: assistant },
+  'settings':  { title: 'הגדרות',  icon: '⚙︎', color: '#94a3b8', mod: settings }
 };
 // #/decisions → עמוד המשימות עם הפילטר הנכון
 const ALIAS = { 'decisions': 'tasks?f=decision', 'ideas': 'tasks?f=idea' };
@@ -67,6 +68,7 @@ function renderPage() {
         el('button', { class: 'btn', onclick: () => location.reload() }, 'רענון'))
     ));
   }
+  document.body.dataset.mod = path;      // צובע את העמוד לפי המודול
   document.title = (path ? PAGES[path].title + ' · ' : '') + 'פרונט';
   buildNav();
   window.scrollTo(0, 0);
@@ -96,8 +98,10 @@ function buildNav() {
     const n = counts[p.badge] || 0;
     box.append(el('button', {
       class: 'nav-link' + (key === path ? ' active' : ''),
+      'data-tip': 'nav.' + key,
       onclick: () => go('#/' + key)
     },
+      el('span', { class: 'nd', style: { background: p.color } }),
       el('span', { class: 'ni' }, p.icon),
       el('span', {}, p.title),
       p.badge && n ? el('span', { class: 'badge' }, String(n)) : null
@@ -369,6 +373,10 @@ function init() {
   T.onTick(() => { renderTimerBar(); refresh(); });
 
   // נוכחות והתראות
+  initHelp();
+  $('#capture').setAttribute('data-tip', 'gen.capture');
+  $('#nav-export').setAttribute('data-tip', 'gen.export');
+
   T.initPresence(askAbsence);
   rollRoutines();
   notify.start();

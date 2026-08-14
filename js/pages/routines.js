@@ -7,6 +7,7 @@ import { S, addItem, patchItem, removeItem } from '../store.js';
 import { el, ago, dmy, toast, modal, input, select, textarea, field, confirmBox, DAY } from '../util.js';
 import { FREQ, freqLabel, routineDue, completeRoutine, freqDays } from '../brain.js';
 import { refresh } from '../app.js';
+import { hintBadge } from '../help.js';
 
 export default { render };
 
@@ -28,7 +29,7 @@ function render(root) {
   const later = list.filter(r => r.overdue < 0);
 
   root.append(section('להיום', due, 'אין מה לעשות עכשיו — הכל בזמן'));
-  if (quiet.length) root.append(section('פוספסו יותר מפעם — בלי לחץ', quiet, '', true));
+  if (quiet.length) root.append(section('פוספסו יותר מפעם — בלי לחץ', quiet, '', true, 'routine.miss'));
   root.append(section('בהמשך', later, 'אין שגרות עתידיות'));
 
   const arch = s.items.filter(i => i.type === 'routine' && i.archived);
@@ -43,9 +44,11 @@ function render(root) {
   }
 }
 
-function section(title, rows, emptyText, quiet) {
+function section(title, rows, emptyText, quiet, tip) {
   const card = el('div', { class: 'card', style: { marginTop: '14px' } });
-  card.append(el('div', { class: 'card-h' }, el('h3', {}, title), el('span', { class: 'sub' }, rows.length + '')));
+  card.append(el('div', { class: 'card-h' },
+    el('h3', { style: { display: 'flex', alignItems: 'center' } }, title, tip ? hintBadge(tip) : null),
+    el('span', { class: 'sub' }, rows.length + '')));
   if (!rows.length) { card.append(el('div', { class: 'empty' }, emptyText)); return card; }
 
   rows.forEach(r => {
@@ -103,7 +106,7 @@ export function form(existing) {
     body: el('div', {},
       field('שם', fT),
       field('הערה', fN),
-      el('div', { class: 'row' }, field('תדירות', fF), customWrap)
+      el('div', { class: 'row' }, field(el('span', { style: { display: 'inline-flex', alignItems: 'center' } }, 'תדירות', hintBadge('routine.freq')), fF), customWrap)
     ),
     actions: [
       existing ? { label: 'מחק', cls: 'btn-danger', onClick: () => { confirmBox('למחוק את השגרה?', () => { removeItem(existing.id); refresh(); }); return false; } } : null,

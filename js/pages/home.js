@@ -9,6 +9,7 @@ import * as T from '../timer.js';
 import { actionQueue, fillerSuggestions, topKnowledge, completeRoutine, currentPlan, buildDayPlan, savePlan, progressOf, estimateMinutes, deliveredThisMonth } from '../brain.js';
 import { runRules } from '../rules.js';
 import { refresh, openItem, openSwitcher, go } from '../app.js';
+import { hintBadge } from '../help.js';
 
 export default { render, tick };
 
@@ -33,6 +34,7 @@ function render(root) {
   ));
 
   root.append(statusRow());
+  root.append(guideCard());
   root.append(alertsBox());
 
   const grid = el('div', { class: 'grid g-2-1', style: { marginTop: '14px' } });
@@ -62,7 +64,10 @@ function greet() {
 
 function modeToggle(mode) {
   const set = m => { update(s => { s.settings.homeMode = m; }); refresh(); };
-  return el('div', { style: { display: 'flex', gap: '0', background: '#131312', border: '1px solid rgba(255,255,255,.14)', borderRadius: '10px', padding: '3px' } },
+  return el('div', {
+    'data-tip': 'home.mode',
+    style: { display: 'flex', gap: '0', background: '#131312', border: '1px solid rgba(255,255,255,.14)', borderRadius: '10px', padding: '3px' }
+  },
     el('button', { class: 'btn btn-xs ' + (mode === 'list' ? 'btn-y' : 'btn-ghost'), style: { border: 0 }, onclick: () => set('list') }, 'רשימה לפי דחיפות'),
     el('button', { class: 'btn btn-xs ' + (mode === 'day' ? 'btn-y' : 'btn-ghost'), style: { border: 0 }, onclick: () => set('day') }, 'יום מוצע')
   );
@@ -98,7 +103,7 @@ function statusRow() {
 
   const actions = el('div', { style: { marginInlineStart: 'auto', display: 'flex', gap: '7px', flexWrap: 'wrap' } },
     el('button', { class: 'btn btn-sm btn-y', onclick: openSwitcher }, t ? 'החלף (Ctrl+J)' : 'התחל טיימר'),
-    t && t.itemId ? el('button', { class: 'btn btn-sm', onclick: () => { T.startWaiting(t.itemId); toast('בהמתנה'); refresh(); } }, 'ממתין') : null,
+    t && t.itemId ? el('button', { class: 'btn btn-sm', 'data-tip': 'time.waitBtn', onclick: () => { T.startWaiting(t.itemId); toast('בהמתנה'); refresh(); } }, 'ממתין') : null,
     t ? el('button', { class: 'btn btn-sm', onclick: () => { T.stopTimer(); refresh(); } }, 'עצור') : null
   );
   row.append(actions);
@@ -117,6 +122,61 @@ function statusRow() {
     });
     card.append(w);
   }
+  return card;
+}
+
+
+/* ================= צעדים ראשונים =================
+   מופיע רק כשהמערכת כמעט ריקה, ונעלם לבד כשיש תוכן.
+   המטרה: לא להשאיר אותו מול מסך שהוא לא יודע מה לעשות איתו. */
+
+function guideCard() {
+  const s = S();
+  const clients = s.items.filter(i => i.type === 'client' && !i.archived).length;
+  const knowledge = s.items.filter(i => i.type === 'knowledge' && !i.archived).length;
+  const timed = s.timeEntries.length;
+  const backed = !!s.settings.lastBackupAt;
+
+  const steps = [
+    { done: clients > 0, text: 'הוסף לקוח ראשון', why: 'ככה המערכת יודעת מה דחוף', act: () => go('#/pipeline') },
+    { done: timed > 0, text: 'הפעל טיימר פעם אחת', why: 'בלי זה אי אפשר לדעת כמה באמת לוקח סרטון', act: openSwitcher },
+    { done: knowledge > 0, text: 'הדבק לינק בשורה למעלה', why: 'זה ייכנס לרשימת הידע ויחזור אליך בזמן הנכון', act: () => document.getElementById('capture').focus() },
+    { done: backed, text: 'ייצא גיבוי', why: 'הנתונים יושבים רק בדפדפן הזה', act: () => import('../store.js').then(m => { m.downloadBackup(); toast('גובה', 'ok'); refresh(); }) }
+  ];
+
+  const left = steps.filter(x => !x.done);
+  if (!left.length || (clients > 2 && timed > 3)) return el('div');   // סיים? הכרטיס נעלם
+
+  const card = el('div', { class: 'card', style: { marginTop: '14px', borderColor: 'rgba(255,212,0,.35)' } });
+  card.append(el('div', { class: 'card-h' },
+    el('h3', {}, 'בוא נסדר את ההתחלה'),
+    el('span', { class: 'sub' }, `${steps.length - left.length} מתוך ${steps.length}`)
+  ));
+  card.append(el('div', { class: 'bar', style: { marginBottom: '12px' } },
+    el('i', { style: { width: ((steps.length - left.length) / steps.length * 100) + '%' } })));
+
+  steps.forEach(st => {
+    card.append(el('div', {
+      style: {
+        display: 'flex', alignItems: 'center', gap: '10px', padding: '7px 0',
+        opacity: st.done ? '.45' : '1'
+      }
+    },
+      el('span', {
+        style: {
+          width: '18px', height: '18px', borderRadius: '50%', flex: '0 0 auto',
+          display: 'grid', placeItems: 'center', fontSize: '11px', fontWeight: '700',
+          background: st.done ? 'var(--green)' : 'rgba(255,255,255,.09)',
+          color: st.done ? '#000' : 'var(--t3)'
+        }
+      }, st.done ? '✓' : ''),
+      el('div', { style: { flex: 1, minWidth: 0 } },
+        el('div', { style: { fontWeight: st.done ? '400' : '600', textDecoration: st.done ? 'line-through' : 'none' } }, st.text),
+        el('div', { class: 'small muted' }, st.why)
+      ),
+      st.done ? null : el('button', { class: 'btn btn-xs btn-y', onclick: st.act }, 'קדימה')
+    ));
+  });
   return card;
 }
 
@@ -148,7 +208,7 @@ function nowCard() {
   const q = actionQueue(7);
   const card = el('div', { class: 'card' });
   card.append(el('div', { class: 'card-h' },
-    el('h2', {}, 'מה עכשיו'),
+    el('h2', { style: { display: 'flex', alignItems: 'center' } }, 'מה עכשיו', hintBadge('home.queue')),
     el('span', { class: 'sub' }, 'ממוין לפי דחיפות — לידים לפני הפקות'),
     el('div', { class: 'right' },
       el('button', { class: 'btn btn-xs', onclick: () => go('#/pipeline') }, 'כל הצינור'))
@@ -348,7 +408,7 @@ function todayCard() {
   const rows = T.todayByItem();
   const card = el('div', { class: 'card' });
   card.append(el('div', { class: 'card-h' },
-    el('h3', {}, 'התקדמות היום'),
+    el('h3', { style: { display: 'flex', alignItems: 'center' } }, 'התקדמות היום', hintBadge('home.today')),
     el('div', { class: 'right' }, el('button', { class: 'btn btn-xs', onclick: () => go('#/time') }, 'ציר היום'))
   ));
 
@@ -386,7 +446,7 @@ function monthCard() {
   const m = monthMoney();
   const card = el('div', { class: 'card' });
   card.append(el('div', { class: 'card-h' },
-    el('h3', {}, 'החודש'),
+    el('h3', { style: { display: 'flex', alignItems: 'center' } }, 'החודש', hintBadge('home.month')),
     el('div', { class: 'right' }, el('button', { class: 'btn btn-xs', onclick: () => go('#/money') }, 'לכסף'))
   ));
   const g = el('div', { class: 'grid g2' },
@@ -412,7 +472,7 @@ function learnCard() {
   const k = topKnowledge();
   const card = el('div', { class: 'card' });
   card.append(el('div', { class: 'card-h' },
-    el('h3', {}, 'מה כדאי ללמוד עכשיו'),
+    el('h3', { style: { display: 'flex', alignItems: 'center' } }, 'מה כדאי ללמוד עכשיו', hintBadge('home.learn')),
     el('div', { class: 'right' }, el('button', { class: 'btn btn-xs', onclick: () => go('#/knowledge') }, 'הכל'))
   ));
   if (!k) {

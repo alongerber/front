@@ -19,38 +19,52 @@
 | `js/capture.js` | הקלט החופשי והסיווג האוטומטי |
 | `js/rules.js` | מנוע הכללים שמייצר את ההתראות בבית |
 | `js/pages/` | עמוד לכל עמוד |
-| `netlify/functions/assistant.js` | העוזר — קוראת ל-API של קלוד |
+| `js/api.js` | מוצא לבד את נקודת הקצה של העוזר (Vercel או Netlify) |
+| `lib/assistant.js` | ההיגיון של העוזר — קוראת ל-API של קלוד |
+| `api/assistant.js` | עטיפה ל-Vercel |
+| `netlify/functions/assistant.js` | עטיפה ל-Netlify |
 | `sample-data.json` | נתוני דוגמה |
 
 ---
 
-## העלאה ל-Netlify
+## העלאה
 
-**דרך Git (מומלץ):**
+עובד על שניהם. הממשק זהה, רק כתובת הפונקציה שונה — הקוד מוצא אותה לבד.
 
-1. היכנס ל-[app.netlify.com](https://app.netlify.com) → **Add new site** → **Import an existing project**
-2. בחר את הריפו הזה
-3. Build command: **תשאיר ריק**. Publish directory: **`.`** (נקודה)
-4. Deploy
+### Vercel
 
-Netlify יזהה את `package.json` ויתקין לבד את החבילה שהעוזר צריך.
+1. [vercel.com/new](https://vercel.com/new) → בחר את הריפו
+2. **Application Preset: `Other`**
+3. **Root Directory:** `./` — אל תיגע
+4. **Build and Output Settings:** תשאיר את הכל ריק. אין שלב בנייה.
+5. Deploy
 
-**דרך גרירת תיקייה:** אפשר, אבל אז העוזר לא יעבוד — צריך התקנת חבילות.
-אם גררת תיקייה, כבה את העוזר בהגדרות והשאר את שאר המערכת. היא עובדת בלעדיו.
+### Netlify
+
+1. [app.netlify.com](https://app.netlify.com) → **Add new site** → **Import an existing project**
+2. Build command: **ריק**. Publish directory: **`.`** (נקודה)
+3. Deploy
+
+בשני המקרים החבילה שהעוזר צריך מותקנת לבד, כי יש `package.json`.
+
+**גרירת תיקייה:** הממשק יעבוד, העוזר לא — צריך התקנת חבילות. אם גררת תיקייה,
+כבה את העוזר בהגדרות. שאר המערכת לא תלויה בו.
 
 ---
 
 ## איפה שמים את מפתח ה-API
 
-המפתח **אף פעם לא בקוד**. הוא יושב במשתני הסביבה של Netlify:
+המפתח **אף פעם לא בקוד**. הוא יושב במשתני הסביבה של האתר.
 
 1. [console.anthropic.com](https://console.anthropic.com) → **API Keys** → צור מפתח והעתק אותו
-2. ב-Netlify: **Site configuration** → **Environment variables** → **Add a variable**
-3. Key: `ANTHROPIC_API_KEY` · Value: המפתח שהעתקת
-4. **Deploys** → **Trigger deploy** → **Deploy site** — משתני סביבה נכנסים לתוקף רק אחרי דיפלוי חדש
+2. הוסף משתנה סביבה:
+   * **Vercel:** Project → **Settings** → **Environment Variables**
+   * **Netlify:** **Site configuration** → **Environment variables**
+3. שם המשתנה: **`ANTHROPIC_API_KEY`** · הערך: המפתח שהעתקת
+4. **תעשה Redeploy.** משתני סביבה נכנסים לתוקף רק בדיפלוי חדש —
+   בלי זה תמשיך לקבל "המפתח לא מוגדר".
 
 בדיקה: היכנס לעמוד **עוזר**, שאל משהו. אם קיבלת תשובה — הכל עובד.
-אם קיבלת הודעה שהמפתח לא מוגדר, כנראה שכחת את שלב 4.
 
 ### משתנים אופציונליים
 
@@ -138,7 +152,7 @@ python3 -m http.server 8000
 
 # עם העוזר
 npm install
-npx netlify dev
+npx vercel dev      # או: npx netlify dev
 ```
 
 לייצר מחדש את קובץ הדוגמה: `npm run sample`

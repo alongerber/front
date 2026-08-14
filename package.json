@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "מערכת הניהול הפנימית של פרונט — HTML/CSS/JS + Netlify Function לעוזר",
+  "description": "מערכת הניהול הפנימית של פרונט — HTML/CSS/JS + פונקציית שרת לעוזר (Vercel או Netlify)",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "sample": "node tools/make-sample.js"
   },

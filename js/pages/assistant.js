@@ -6,6 +6,7 @@ import { S, update, monthMoney, monthlySubsILS, lineOf, stageOf } from '../store
 import { el, dur, nis, num, ago, toast, HOUR, DAY, startOfDay } from '../util.js';
 import * as T from '../timer.js';
 import { runRules } from '../rules.js';
+import { callAssistant } from '../api.js';
 import { unitEconomics, rankedKnowledge, dueRoutines, actionQueue, measuredHoursPerVideo } from '../brain.js';
 import { refresh, go } from '../app.js';
 
@@ -63,7 +64,7 @@ function render(root) {
     el('button', { class: 'btn btn-y', onclick: () => send(inp.value, inp) }, 'שלח')));
 
   card.append(el('div', { class: 'small muted', style: { marginTop: '9px' } },
-    'הצ\'אט עובד רק אחרי שהעלית את האתר ל-Netlify והגדרת ANTHROPIC_API_KEY במשתני הסביבה. ראה README.'));
+    'הצ\'אט עובד רק אחרי שהעלית את האתר (Vercel או Netlify) והגדרת ANTHROPIC_API_KEY במשתני הסביבה. ראה README.'));
   root.append(card);
   setTimeout(() => { chat.scrollTop = chat.scrollHeight; }, 30);
 }
@@ -83,14 +84,10 @@ async function send(text, inputNode) {
   if (chatEl) { chatEl.append(pending); chatEl.scrollTop = chatEl.scrollHeight; }
 
   try {
-    const r = await fetch('/.netlify/functions/assistant', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        mode: 'chat',
-        messages: S().chat.slice(-12).map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text })),
-        context: snapshot()
-      })
+    const r = await callAssistant({
+      mode: 'chat',
+      messages: S().chat.slice(-12).map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text })),
+      context: snapshot()
     });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.error || ('שגיאה ' + r.status));
@@ -100,7 +97,7 @@ async function send(text, inputNode) {
       s.chat.push({
         role: 'assistant',
         text: 'לא הצלחתי להגיע לעוזר: ' + (e.message || e) +
-          '\n\nבדוק ש-ANTHROPIC_API_KEY מוגדר ב-Netlify (Site settings → Environment variables), ושהאתר עלה מחדש אחרי ההגדרה. מקומית זה לא יעבוד בלי netlify dev.'
+          '\n\nבדוק ש-ANTHROPIC_API_KEY מוגדר במשתני הסביבה של האתר (ב-Vercel: Settings → Environment Variables · ב-Netlify: Site configuration → Environment variables), ושהאתר עלה מחדש אחרי ההגדרה. מקומית צריך vercel dev או netlify dev.'
       });
     });
   } finally {

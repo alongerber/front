@@ -6,6 +6,7 @@
 
 import { S, addItem, patchItem, getItem, lineOf, moveToStage } from './store.js';
 import { DAY } from './util.js';
+import { callAssistant } from './api.js';
 
 const URL_RE = /(https?:\/\/[^\s]+|www\.[^\s]+|[a-z0-9-]+\.(netlify\.app|com|co\.il|io|ai|org|net)(\/[^\s]*)?)/i;
 
@@ -210,16 +211,12 @@ let classifyFails = 0;
 export async function classifyWithAssistant(text, fallback) {
   if (classifyFails >= 2) return fallback;   // אין פונקציה? מפסיקים לנסות
   try {
-    const r = await fetch('/.netlify/functions/assistant', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        mode: 'classify',
-        text,
-        types: S().itemTypes.map(t => ({ id: t.id, name: t.name })),
-        clients: S().items.filter(i => i.type === 'client' && !i.archived)
-          .map(c => ({ id: c.id, name: c.title, business: c.business || '' }))
-      })
+    const r = await callAssistant({
+      mode: 'classify',
+      text,
+      types: S().itemTypes.map(t => ({ id: t.id, name: t.name })),
+      clients: S().items.filter(i => i.type === 'client' && !i.archived)
+        .map(c => ({ id: c.id, name: c.title, business: c.business || '' }))
     });
     if (!r.ok) { classifyFails++; return fallback; }
     classifyFails = 0;

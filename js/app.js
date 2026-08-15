@@ -145,16 +145,28 @@ function renderTimerBar() {
 
   if (t) {
     const it = t.itemId ? getItem(t.itemId) : null;
-    bar.className = 'timerbar running';
+    const auto = !!t.autoFrom;
+    bar.className = 'timerbar ' + (t.kind === 'wait' ? 'waiting' : 'running');
     bar.append(
       el('span', { class: 'tb-dot' }),
       el('span', { class: 'tb-title' }, it ? it.title : (t.kind === 'learn' ? 'למידה חופשית' : 'עבודה כללית')),
       el('span', { class: 'tb-time', id: 'tb-clock' }, hms(T.elapsed())),
-      el('span', { class: 'tb-kind' }, T.KINDS[t.kind]?.name || t.kind)
+      el('span', {
+        class: 'tb-kind',
+        'data-tip': auto ? 'הטיימר עבר להמתנה לבד כי לא היה מגע. יחזור לעבודה ברגע שתיגע במשהו.' : null
+      }, auto ? 'המתנה · אוטומטי' : (T.KINDS[t.kind]?.name || t.kind))
     );
     const actions = el('div', { class: 'tb-actions' },
+      auto || T.canClaimAutoWait() ? el('button', {
+        class: 'btn btn-xs btn-y', 'data-keep-wait': true,
+        'data-tip': 'מחזיר את זמן ההמתנה לזמן קשב, כאילו לא זוהתה המתנה',
+        onclick: () => {
+          if (T.claimAutoWait()) { toast('הוחזר לעבודה', 'ok'); refresh(); }
+          else toast('חלון הזמן לתיקון עבר', 'err');
+        }
+      }, 'זו הייתה עבודה') : null,
       el('button', { class: 'btn btn-xs', onclick: openSwitcher }, 'החלף'),
-      t.itemId ? el('button', {
+      t.itemId && !auto ? el('button', {
         class: 'btn btn-xs',
         onclick: () => { T.startWaiting(t.itemId); toast('הפריט בהמתנה — זמן הקיר ממשיך לרוץ'); }
       }, 'ממתין') : null,
@@ -268,10 +280,50 @@ export function openSwitcher() {
   modal({ title: 'על מה אתה עובד?', body: box });
 }
 
-/* ================= שאלת החזרה לטאב ================= */
+/* ================= פס הודעות עליון =================
+   כל מה שדורש תשובה קצרה יושב כאן, לא בחלון חוסם. אתה באמצע משהו. */
+
+function banner(cls, build) {
+  const box = $('#capture-feedback');
+  box.innerHTML = '';
+  const row = el('div', { class: 'cf ' + cls });
+  build(row, () => { if (box.firstChild === row) box.innerHTML = ''; });
+  row.append(el('button', { class: 'cf-x', onclick: () => box.innerHTML = '' }, '×'));
+  box.append(row);
+  return row;
+}
+
+/* ---------- החזרה לטאב: פס במקום חלון ---------- */
 
 function askAbsence(p) {
   const gap = p.to - p.from;
+  const s = S();
+  const hadItem = p.hadTimer && p.hadTimer.itemId ? getItem(p.hadTimer.itemId) : null;
+
+  banner(gap > 30 * MIN ? 'cf-warn' : '', (row, close) => {
+    row.append(el('span', { style: { fontWeight: '600' } },
+      `היית ${dur(gap)} בחוץ — ${hhmm(p.from)} עד ${hhmm(p.to)}.`));
+    row.append(el('span', { class: 'muted small' }, 'על מה?'));
+
+    const pick = (label, choice, cls) => row.append(el('button', {
+      class: 'btn btn-xs ' + (cls || ''),
+      onclick: () => { T.resolveAbsence(choice); close(); refresh(); }
+    }, label));
+
+    if (hadItem) pick(hadItem.title.slice(0, 18), { itemId: hadItem.id, kind: 'work' }, 'btn-y');
+    pick('המתנה', { itemId: hadItem ? hadItem.id : null, kind: 'wait', resume: false });
+    pick('למידה', { kind: 'learn' });
+    pick('לא עבדתי', { kind: 'off', resume: false });
+
+    row.append(el('button', {
+      class: 'btn btn-xs', 'data-tip': 'פותח רשימה מלאה של לקוחות ומשימות',
+      onclick: () => { close(); absenceModal(p); }
+    }, 'משהו אחר…'));
+  });
+}
+
+/** הרשימה המלאה — רק כשהפס לא הספיק */
+function absenceModal(p) {
   const s = S();
   const box = el('div', {});
   box.append(el('div', { class: 'muted', style: { marginBottom: '14px' } },
@@ -285,27 +337,51 @@ function askAbsence(p) {
     sub ? el('div', { class: 'small muted' }, sub) : null
   ));
 
-  if (p.hadTimer && p.hadTimer.itemId) {
-    const it = getItem(p.hadTimer.itemId);
-    if (it) opt(it.title, 'הטיימר רץ על זה כשיצאת', () => { T.resolveAbsence({ itemId: it.id, kind: 'work' }); closeModal(); refresh(); }, 'btn-y');
-  }
-
   const others = [
     ...s.items.filter(i => i.type === 'client' && !i.archived && !i.deliveredAt),
-    ...s.items.filter(i => i.type === 'task' && !i.archived && !i.done).slice(0, 4)
-  ].filter(i => !p.hadTimer || i.id !== p.hadTimer.itemId).slice(0, 6);
+    ...s.items.filter(i => i.type === 'task' && !i.archived && !i.done).slice(0, 6)
+  ].slice(0, 10);
 
-  others.forEach(i => opt(i.title, i.business || 'עבודה', () => { T.resolveAbsence({ itemId: i.id, kind: 'work' }); closeModal(); refresh(); }));
-
+  others.forEach(i => opt(i.title, i.business || 'עבודה',
+    () => { T.resolveAbsence({ itemId: i.id, kind: 'work' }); closeModal(); refresh(); }));
   opt('למידה', 'קראתי, צפיתי, התעדכנתי', () => { T.resolveAbsence({ kind: 'learn' }); closeModal(); refresh(); });
   opt('לא עבדתי', 'הפרק הזה לא נרשם כזמן קשב', () => { T.resolveAbsence({ kind: 'off', resume: false }); closeModal(); refresh(); });
 
   box.append(grid);
   modal({
-    title: `היית ${dur(gap)} בחוץ. על מה?`,
-    body: box,
-    actions: [{ label: 'אחר כך', onClick: () => T.dismissAbsence() }],
-    onClose: () => { }
+    title: `היית ${dur(p.to - p.from)} בחוץ. על מה?`, body: box,
+    actions: [{ label: 'אחר כך', onClick: () => T.dismissAbsence() }]
+  });
+}
+
+/* ---------- זיהוי המתנה אוטומטי ---------- */
+
+function initAutoWaitUI() {
+  window.addEventListener('front:auto-wait', e => {
+    const it = e.detail.itemId ? getItem(e.detail.itemId) : null;
+    const mins = Math.round((Date.now() - e.detail.since) / MIN);
+    banner('cf-wait', (row, close) => {
+      row.append(el('span', { style: { fontWeight: '600' } }, '⏸ עברתי להמתנה'));
+      row.append(el('span', { class: 'small muted' },
+        `${mins} דקות בלי מגע${it ? ' · ' + it.title : ''}. הזמן הזה לא נספר כזמן קשב. ` +
+        'ברגע שתיגע במשהו זה יחזור לעבודה לבד.'));
+      row.append(el('button', {
+        class: 'btn btn-xs', 'data-keep-wait': true,
+        'data-tip': 'מחזיר את הזמן הזה לזמן קשב, כאילו לא זוהתה המתנה',
+        onclick: () => {
+          if (T.claimAutoWait()) { close(); toast('הוחזר לעבודה', 'ok'); refresh(); }
+          else toast('חלון הזמן לתיקון עבר', 'err');
+        }
+      }, 'זו הייתה עבודה'));
+    });
+    renderTimerBar();
+  });
+
+  window.addEventListener('front:auto-resume', () => {
+    const box = $('#capture-feedback');
+    if (box.querySelector('.cf-wait')) box.innerHTML = '';
+    renderTimerBar();
+    refresh();
   });
 }
 
@@ -441,6 +517,7 @@ function init() {
   $('#search-open').addEventListener('click', () => openPalette());
   initPalette();
 
+  initAutoWaitUI();
   T.initPresence(askAbsence);
   rollRoutines();
   notify.start();

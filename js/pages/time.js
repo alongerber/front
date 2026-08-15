@@ -8,6 +8,7 @@ import { el, dur, hms, hhmm, nis, num, dmy, dayName, toast, modal, closeModal, i
 import * as T from '../timer.js';
 import { refresh, openItem, openSwitcher } from '../app.js';
 import { hintBadge } from '../help.js';
+import { findIssues, fixAll, inflatedMs } from '../timecheck.js';
 
 export default { render, tick };
 
@@ -26,6 +27,7 @@ function render(root) {
     el('h1', {}, 'זמן'),
     el('div', { class: 'desc' }, 'התמחור מתבסס על זמן קשב — לא על זמן קיר'),
     el('div', { class: 'right' },
+      cleanupButton(),
       el('button', { class: 'btn btn-sm', onclick: () => addEntryModal() }, '+ רשומה ידנית'),
       el('button', { class: 'btn btn-sm btn-y', 'data-tip': 'time.switch', onclick: openSwitcher }, 'החלף טיימר')
     )
@@ -35,6 +37,101 @@ function render(root) {
   root.append(timelineCard());
   root.append(el('div', { class: 'grid g2', style: { marginTop: '14px' } }, weekCard(), avgCard()));
   root.append(perItemCard());
+}
+
+/* ================= ניקוי רשומות ================= */
+
+function cleanupButton() {
+  const issues = findIssues();
+  const bad = issues.filter(i => i.level === 'bad').length;
+  return el('button', {
+    class: 'btn btn-sm ' + (bad ? 'btn-danger' : ''),
+    'data-tip': 'time.cleanup',
+    onclick: cleanupModal
+  }, issues.length ? `🧹 ${issues.length} לתיקון` : '🧹 בדוק רשומות');
+}
+
+function cleanupModal() {
+  const box = el('div', {});
+
+  const draw = () => {
+    box.innerHTML = '';
+    const issues = findIssues();
+
+    if (!issues.length) {
+      box.append(el('div', { class: 'alert good' }, 'הכל נראה תקין. אין רשומות חשודות ב-30 הימים האחרונים.'));
+      return;
+    }
+
+    const inflated = inflatedMs(issues);
+    box.append(el('div', { class: 'small muted', style: { lineHeight: '1.7', marginBottom: '12px' } },
+      'רשומות זמן נשחקות, והתמחור שלך נשען עליהן. ' +
+      (inflated > 5 * MIN
+        ? `כרגע נראה שיש כאן עד ${dur(inflated)} של זמן קשב שלא באמת עבדת. `
+        : '') +
+      'עברתי על 30 הימים האחרונים ומצאתי את אלה:'));
+
+    issues.forEach(i => {
+      box.append(el('div', { class: 'alert ' + (i.level === 'bad' ? 'bad' : 'warn'), style: { marginBottom: '7px' } },
+        el('div', { style: { flex: 1, minWidth: 0 } },
+          el('div', { style: { fontWeight: '600' } }, i.title),
+          el('div', { class: 'small muted' }, i.detail)),
+        el('button', {
+          class: 'btn btn-xs',
+          onclick: () => { i.apply(); toast('תוקן', 'ok'); draw(); refresh(); }
+        }, i.fixLabel),
+        i.kind === 'noitem' ? el('button', {
+          class: 'btn btn-xs',
+          onclick: () => { closeModal(); assignEntry(i.entryIds[0]); }
+        }, 'שייך לפריט') : null
+      ));
+    });
+
+    const safe = issues.filter(x => !x.needsChoice).length;
+    box.append(el('div', { class: 'hr' }));
+    box.append(el('div', { style: { display: 'flex', gap: '7px', flexWrap: 'wrap', alignItems: 'center' } },
+      safe ? el('button', {
+        class: 'btn btn-y',
+        onclick: () => {
+          const n = fixAll(findIssues());
+          toast(`תוקנו ${n} רשומות`, 'ok');
+          draw(); refresh();
+        }
+      }, `תקן הכל (${safe})`) : null,
+      el('span', { class: 'small muted' },
+        'כל תיקון ניתן לביטול ב-Ctrl+Z. מה שדורש החלטה שלך לא ייגע.')
+    ));
+  };
+
+  draw();
+  modal({ title: 'בדיקת רשומות זמן', body: box, wide: true, actions: [{ label: 'סגור', cls: 'btn-y' }] });
+}
+
+/** שיוך רשומה יתומה לפריט */
+function assignEntry(entryId) {
+  const e = S().timeEntries.find(x => x.id === entryId);
+  if (!e) return;
+  const cands = S().items.filter(i => !i.archived && (i.type === 'client' || i.type === 'task' || i.type === 'knowledge'));
+  const sel = select(
+    [{ value: '', label: '— בחר —' }, ...cands.map(c => ({ value: c.id, label: c.title }))],
+    '', {});
+  modal({
+    title: 'למי לשייך את הזמן?',
+    body: el('div', {},
+      el('div', { class: 'muted small', style: { marginBottom: '11px' } },
+        `${dur(e.end - e.start)} · ${dmy(e.start)} ${hhmm(e.start)}–${hhmm(e.end)}`),
+      field('פריט', sel)),
+    actions: [{ label: 'ביטול' }, {
+      label: 'שייך', cls: 'btn-y', onClick: () => {
+        if (!sel.value) { toast('בחר פריט', 'err'); return; }
+        update(st => {
+          const x = st.timeEntries.find(y => y.id === entryId);
+          if (x) x.itemId = sel.value;
+        }, { label: 'שיוך רשומת זמן' });
+        toast('שויך', 'ok'); refresh();
+      }
+    }]
+  });
 }
 
 /* ================= שלושת המספרים ================= */

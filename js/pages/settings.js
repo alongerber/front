@@ -6,6 +6,7 @@ import { S, update, uid, downloadBackup, importJSON, exportJSON, resetAll, loadS
 import { el, ago, toast, modal, input, select, field, confirmBox, dur, num, DAY } from '../util.js';
 import * as A from '../attachments.js';
 import * as AB from '../autobackup.js';
+import { labelWithHint } from '../help.js';
 import * as notify from '../notify.js';
 import { lineEditor } from './pipeline.js';
 import { refresh } from '../app.js';
@@ -282,16 +283,22 @@ function notifyCard() {
 
   card.append(el('div', { class: 'hr' }));
   const rows = [
-    ['leadSlaMinutes', 'ליד ללא מענה אחרי (דקות)', 5, 1440],
-    ['timerNudgeHours', 'טיימר רץ יותר מ (שעות)', 1, 12],
-    ['decisionStaleDays', 'החלטה נחשבת תקועה אחרי (ימים)', 1, 60],
-    ['idleAskMinutes', 'שואלים "איפה היית" אחרי (דקות)', 1, 60],
-    ['longAbsenceHours', 'עוצרים טיימר לבד אחרי (שעות)', 1, 12]
+    ['leadSlaMinutes', 'ליד ללא מענה אחרי (דקות)', 5, 1440, null],
+    ['timerNudgeHours', 'טיימר רץ יותר מ (שעות)', 1, 12, null],
+    ['decisionStaleDays', 'החלטה נחשבת תקועה אחרי (ימים)', 1, 60, null],
+    ['autoWaitMinutes', 'מעבר אוטומטי להמתנה אחרי (דקות בלי מגע)', 0, 60, 'time.autoWait'],
+    ['idleAskMinutes', 'שואלים "איפה היית" אחרי (דקות)', 1, 60, null],
+    ['longAbsenceHours', 'עוצרים טיימר לבד אחרי (שעות)', 1, 12, null]
   ];
-  rows.forEach(([key, label, min, max]) => {
+  rows.forEach(([key, label, min, max, tip]) => {
     const i = input({ type: 'number', min, max, value: s.settings[key] });
-    i.addEventListener('change', () => update(st => { st.settings[key] = Number(i.value) || st.settings[key]; }));
-    card.append(field(label, i));
+    if (tip) i.setAttribute('data-tip', tip);
+    i.addEventListener('change', () => {
+      const v = Number(i.value);
+      update(st => { st.settings[key] = Number.isFinite(v) && (v > 0 || min === 0) ? v : st.settings[key]; });
+    });
+    card.append(field(tip ? labelWithHint(label, tip) : label, i,
+      key === 'autoWaitMinutes' ? '0 = מכובה. עובד רק כשהטאב פתוח מולך.' : null));
   });
   return card;
 }

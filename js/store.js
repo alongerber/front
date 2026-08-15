@@ -52,6 +52,7 @@ export function defaultState() {
       usdRate: 3.65,
       leadSlaMinutes: 120,        // ליד ללא מענה מעל X דקות
       idleAskMinutes: 3,          // מעל כמה דקות היעדרות שואלים "איפה היית"
+      autoWaitMinutes: 8,         // הטאב פתוח ואין מגע X דקות → הטיימר עובר להמתנה לבד. 0 = מכובה
       longAbsenceHours: 2,        // מעל כמה שעות הטיימר נעצר לבד
       timerNudgeHours: 2,         // טיימר רץ מעל X שעות בלי מגע
       decisionStaleDays: 7,       // החלטה פתוחה שיושבת יותר מדי

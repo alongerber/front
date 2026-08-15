@@ -201,6 +201,146 @@ export function avgFocusPerDelivery(productLineId = null) {
   return { avgMs: tot / done.length, count: done.length };
 }
 
+/* ================= זיהוי המתנה אוטומטי =================
+   הבעיה שהמערכת נבנתה בשבילה: נותנים משימה לקלוד, עוברים לטאב אחר,
+   והטיימר ממשיך לספור את זמן ההמתנה כזמן קשב. אז התמחור יוצא שגוי.
+
+   מה שאפשר לדעת בוודאות: אם הטאב פתוח מולך ולא נגעת בכלום כמה דקות —
+   אתה לא עובד כאן. במקרה הזה הטיימר עובר להמתנה לבד, ואומר את זה.
+   ברגע שתיגע במשהו הוא חוזר לעבודה לבד. אין מה ללחוץ.
+
+   מה שאי אפשר לדעת: אם הטאב מוסתר, אולי אתה עובד בהיגספילד ואולי
+   אתה מחכה לקלוד. את זה עדיין שואלים — אבל בפס עליון, לא בחלון חוסם. */
+
+let lastActivity = Date.now();
+let autoWaitTimer = null;
+
+export const idleFor = () => Date.now() - lastActivity;
+
+function autoWaitMs() {
+  const m = S().settings.autoWaitMinutes;
+  return m > 0 ? m * MIN : 0;         // 0 = מכובה
+}
+
+/** מפצל את הטיימר הרץ: עד רגע המגע האחרון זו עבודה, ומשם זו המתנה */
+function toAutoWait(at) {
+  const t = S().timer;
+  if (!t || !KINDS[t.kind]?.focus) return;
+  const e = pushEntry(t.itemId, t.startedAt, Math.max(at, t.startedAt + 1000), t.kind, t.note);
+  update(s => {
+    s.timer = {
+      itemId: t.itemId, startedAt: at, kind: 'wait', note: 'המתנה שזוהתה לבד',
+      autoFrom: t.kind, autoSplitEntryId: e ? e.id : null
+    };
+  });
+  emit();
+  window.dispatchEvent(new CustomEvent('front:auto-wait', {
+    detail: { itemId: t.itemId, since: at, was: t.kind }
+  }));
+}
+
+/* אחרי חזרה אוטומטית — זוכרים מה בדיוק נחתך, כדי שעדיין אפשר יהיה לומר
+   "זו הייתה עבודה". בלי זה הכפתור בלתי לחיץ: עצם הלחיצה מחזירה לעבודה
+   לפני שהיא נרשמת. */
+let lastAuto = null;             // {waitEntryId, splitEntryId, itemId, kind, at}
+const CLAIM_WINDOW = 10 * MIN;
+
+/** חזרה למגע — סוגרים את ההמתנה וממשיכים בעבודה מאותו רגע */
+function autoResume() {
+  const t = S().timer;
+  if (!t || !t.autoFrom) return;
+  const w = pushEntry(t.itemId, t.startedAt, now(), 'wait', 'המתנה שזוהתה לבד');
+  const back = t.autoFrom;
+  lastAuto = {
+    waitEntryId: w ? w.id : null, splitEntryId: t.autoSplitEntryId,
+    itemId: t.itemId, kind: back, at: now()
+  };
+  update(s => { s.timer = { itemId: t.itemId, startedAt: now(), kind: back, note: '' }; });
+  emit();
+  window.dispatchEvent(new CustomEvent('front:auto-resume', { detail: { itemId: t.itemId, kind: back } }));
+}
+
+export const canClaimAutoWait = () =>
+  inAutoWait() || !!(lastAuto && now() - lastAuto.at < CLAIM_WINDOW);
+
+/** "לא, זו הייתה עבודה" — מוחק את קטע ההמתנה ומאחה את הזמן בחזרה */
+export function claimAutoWait() {
+  const t = S().timer;
+
+  // עדיין בהמתנה — פשוט מבטלים את הפיצול
+  if (t && t.autoFrom) {
+    const eid = t.autoSplitEntryId;
+    let start = t.startedAt;
+    const back = t.autoFrom;
+    update(s => {
+      if (eid) {
+        const e = s.timeEntries.find(x => x.id === eid);
+        if (e) { start = e.start; s.timeEntries = s.timeEntries.filter(x => x.id !== eid); }
+      }
+      s.timer = { itemId: t.itemId, startedAt: start, kind: back, note: '' };
+    }, { label: 'ביטול זיהוי המתנה' });
+    lastAuto = null;
+    emit();
+    return true;
+  }
+
+  // כבר חזרנו לעבודה — מאחים אחורה
+  if (!lastAuto || now() - lastAuto.at > CLAIM_WINDOW) return false;
+  const L = lastAuto;
+  lastAuto = null;
+  update(s => {
+    const w = s.timeEntries.find(x => x.id === L.waitEntryId);
+    const sp = L.splitEntryId ? s.timeEntries.find(x => x.id === L.splitEntryId) : null;
+    const cur = s.timer;
+    const sameRun = cur && cur.itemId === L.itemId && cur.kind === L.kind;
+
+    if (w && sp && sameRun) {
+      // הכל שייך לאותה רצועת עבודה: מוחקים את שתי הרשומות ומותחים את הטיימר אחורה
+      s.timeEntries = s.timeEntries.filter(x => x.id !== w.id && x.id !== sp.id);
+      cur.startedAt = sp.start;
+    } else if (w) {
+      // אי אפשר לאחות — לפחות נסמן שההמתנה הייתה עבודה
+      w.kind = L.kind;
+      w.note = 'סווג ידנית כעבודה';
+    }
+  }, { label: 'ביטול זיהוי המתנה' });
+  emit();
+  return true;
+}
+
+export const inAutoWait = () => !!(S().timer && S().timer.autoFrom);
+
+function markActive(e) {
+  lastActivity = Date.now();
+  // לחיצה על הכפתור שמבטל את ההמתנה לא אמורה קודם לחדש את העבודה
+  if (e && e.target && e.target.closest && e.target.closest('[data-keep-wait]')) return;
+  if (inAutoWait()) autoResume();
+}
+
+function initAutoWait() {
+  ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(ev =>
+    window.addEventListener(ev, markActive, { passive: true, capture: true }));
+
+  // תזוזת עכבר בלבד לא נחשבת מגע אמיתי, אבל תזוזה גדולה כן
+  let lastX = 0, lastY = 0;
+  window.addEventListener('mousemove', e => {
+    if (Math.abs(e.clientX - lastX) + Math.abs(e.clientY - lastY) > 60) {
+      lastX = e.clientX; lastY = e.clientY; markActive();
+    }
+  }, { passive: true });
+
+  clearInterval(autoWaitTimer);
+  autoWaitTimer = setInterval(() => {
+    const ms = autoWaitMs();
+    if (!ms) return;
+    if (document.visibilityState !== 'visible') return;   // טאב מוסתר — לא יודעים, שואלים אחר כך
+    const t = S().timer;
+    if (!t || !KINDS[t.kind]?.focus) return;
+    if (idleFor() < ms) return;
+    toAutoWait(lastActivity);
+  }, 15000);
+}
+
 /* ================= זיהוי חזרה לטאב ================= */
 
 let heartbeat = null;
@@ -218,6 +358,9 @@ export function initPresence(askFn) {
 
     if (gap < askMs) { beat(); return; }
 
+    // כבר בהמתנה שזוהתה לבד — הפרק הזה נספר, אין מה לשאול
+    if (inAutoWait()) { beat(); return; }
+
     const from = s.lastSeenAt, to = now();
     const t = s.timer;
 
@@ -231,7 +374,10 @@ export function initPresence(askFn) {
   };
 
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') check(); else beat();
+    if (document.visibilityState === 'visible') {
+      lastActivity = now();      // מתחילים לספור מחדש, שלא יקפוץ להמתנה ברגע החזרה
+      check();
+    } else beat();
   });
   window.addEventListener('focus', check);
   window.addEventListener('blur', beat);
@@ -240,6 +386,7 @@ export function initPresence(askFn) {
   clearInterval(heartbeat);
   heartbeat = setInterval(() => { if (document.visibilityState === 'visible') beat(); }, 20000);
   beat();
+  initAutoWait();
 }
 
 /**

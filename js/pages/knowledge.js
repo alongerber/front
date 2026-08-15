@@ -8,6 +8,7 @@ import { el, ago, dur, toast, modal, input, select, textarea, field, confirmBox,
 import * as T from '../timer.js';
 import { rankedKnowledge, knowledgeScore } from '../brain.js';
 import { refresh, openItem } from '../app.js';
+import { previewCard } from '../previewcard.js';
 import { hintBadge } from '../help.js';
 
 export default { render };
@@ -110,8 +111,10 @@ function row(x, isTop) {
   ));
   node.append(head);
 
+  // תצוגה מקדימה של הלינק — כדי שבעוד חודש תזהה על מה מדובר
+  if (k.url) node.append(previewCard(k.id, { onDone: () => refresh() }));
+
   const acts = el('div', { style: { display: 'flex', gap: '5px', marginTop: '9px', flexWrap: 'wrap', alignItems: 'center' } });
-  if (k.url) acts.append(el('a', { class: 'btn btn-xs', href: k.url, target: '_blank', rel: 'noopener' }, '↗ לינק'));
   acts.append(el('button', {
     class: 'btn btn-xs ' + (running ? 'btn-y' : ''),
     onclick: () => { T.startTimer(k.id, 'learn'); refresh(); }

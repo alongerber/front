@@ -435,6 +435,9 @@ function showFeedback(result, item) {
     });
     row.append(sel);
     row.append(el('button', { class: 'btn btn-xs', onclick: () => { openItem(item.id); } }, 'פתח'));
+    if (item.preview && item.preview.title && !item.preview.failed)
+      row.append(el('span', { class: 'small', style: { color: 'var(--accent)' } },
+        '✦ ' + item.preview.title.slice(0, 40)));
   }
 
   row.append(el('button', { class: 'cf-x', onclick: () => box.innerHTML = '' }, '×'));
@@ -452,6 +455,14 @@ async function doCapture() {
   inp.value = '';
   showFeedback(guess, item);
   refresh();
+
+  // לינק? מושכים תצוגה מקדימה ברקע ומרעננים כשהיא מגיעה
+  if (item && item.url) {
+    import('./linkpreview.js')
+      .then(LP => LP.fetchPreview(item.id))
+      .then(p => { if (p && !p.failed) { showFeedback(guess, getItem(item.id)); refresh(); } })
+      .catch(() => { });
+  }
 
   // דיוק ברקע דרך העוזר — רק אם מופעל, ורק אם זה לא עדכון ללקוח
   if (S().settings.assistantEnabled && S().settings.assistantClassify &&
@@ -572,6 +583,9 @@ function init() {
   renderTimerBar();
   renderPage();
   tickClock();
+
+  // תצוגות מקדימות לקישורים שעוד אין להם — ברקע, בלי לחסום
+  setTimeout(() => import('./linkpreview.js').then(LP => LP.backfill({ limit: 3 })).catch(() => { }), 4000);
 
   // גיבוי אוטומטי לתיקייה, ואם אין — תזכורת
   import('./autobackup.js').then(async AB => {

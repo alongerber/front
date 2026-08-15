@@ -73,6 +73,8 @@ export function defaultState() {
       },
       assistantEnabled: true,
       assistantClassify: true,    // להשתמש בעוזר לסיווג הקלט החופשי
+      linkPreview: true,          // למשוך כותרת, תיאור ותמונה לכל לינק שמדביקים
+      linkSummary: true,          // ולבקש גם משפט סיכום בעברית (עולה גרושים)
 
       /* מדידת זמן בדגימות — המערכת שואלת "מה אתה עושה עכשיו?"
          בזמנים אקראיים, ומספרת. ראה sampling.js */
@@ -458,7 +460,10 @@ export function removeNoteTag(id) {
 /** כל מזהי הקבצים שעדיין בשימוש — לניקוי יתומים ב-IndexedDB */
 export function liveAttachmentIds() {
   const ids = [];
-  state.items.forEach(i => (i.attachments || []).forEach(a => ids.push(a.id)));
+  state.items.forEach(i => {
+    (i.attachments || []).forEach(a => ids.push(a.id));
+    if (i.preview && i.preview.imageId) ids.push(i.preview.imageId);
+  });
   return ids;
 }
 

@@ -32,6 +32,54 @@ function render(root) {
   ));
 }
 
+/* ---------- תצוגה מקדימה לקישורים ---------- */
+
+function linkPreviewBlock() {
+  const s = S();
+  const box = el('div', {});
+  box.append(el('div', { style: { fontWeight: '700', marginBottom: '4px', display: 'flex', alignItems: 'center' } },
+    'קישורים', hintBadge('notes.link')));
+  box.append(el('div', { class: 'small muted', style: { lineHeight: '1.7', marginBottom: '9px' } },
+    'כשמדביקים לינק, המערכת מושכת כותרת, תיאור ותמונה מהדף ושומרת אותם מקומית — ' +
+    'כדי שבעוד חודש תזהה על מה מדובר גם אם הדף כבר לא קיים.'));
+
+  const cb1 = el('input', {
+    type: 'checkbox', checked: s.settings.linkPreview !== false,
+    style: { width: '15px', height: '15px', accentColor: '#ffd400', cursor: 'pointer' },
+    onchange: e => { update(st => { st.settings.linkPreview = e.target.checked; }); refresh(); }
+  });
+  box.append(el('label', { class: 'chk' }, cb1, el('span', {}, 'למשוך תצוגה מקדימה (חינם)')));
+
+  const cb2 = el('input', {
+    type: 'checkbox', checked: s.settings.linkSummary !== false,
+    disabled: s.settings.linkPreview === false,
+    style: { width: '15px', height: '15px', accentColor: '#ffd400', cursor: 'pointer' },
+    onchange: e => { update(st => { st.settings.linkSummary = e.target.checked; }); refresh(); }
+  });
+  box.append(el('label', { class: 'chk' }, cb2,
+    el('span', {}, 'ולבקש גם משפט סיכום בעברית (עולה גרושים, דרך העוזר)')));
+
+  const withPrev = s.items.filter(i => i.preview && i.preview.fetchedAt && !i.preview.failed).length;
+  const failed = s.items.filter(i => i.preview && i.preview.failed).length;
+  const pending = s.items.filter(i => i.url && !i.preview).length;
+  box.append(el('div', { class: 'small muted', style: { marginTop: '6px' } },
+    `${withPrev} קישורים עם תצוגה מקדימה` +
+    (pending ? ` · ${pending} ממתינים` : '') +
+    (failed ? ` · ${failed} נכשלו` : '')));
+
+  if (pending || failed) box.append(el('button', {
+    class: 'btn btn-xs', style: { marginTop: '6px' },
+    onclick: async () => {
+      const LP = await import('../linkpreview.js');
+      const n = LP.backfill({ limit: 20 });
+      toast(n ? `מושך ${n} קישורים…` : 'אין מה למשוך', 'ok');
+      setTimeout(refresh, 2500);
+    }
+  }, 'משוך את מה שחסר'));
+
+  return box;
+}
+
 /* ---------- שער דולר ---------- */
 
 function usdBlock() {
@@ -653,6 +701,9 @@ function generalCard() {
   card.append(el('div', { class: 'hr' }));
   card.append(el('div', { style: { display: 'flex', gap: '7px', flexWrap: 'wrap' } },
     el('button', { class: 'btn', onclick: lineEditor }, 'קווי מוצר ושלבים')));
+
+  card.append(el('div', { class: 'hr' }));
+  card.append(linkPreviewBlock());
 
   card.append(el('div', { class: 'hr' }));
   const a1 = el('input', {

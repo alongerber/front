@@ -10,6 +10,8 @@ import { searchNotes, suggestions } from '../search.js';
 import { hintBadge } from '../help.js';
 import { refresh } from '../app.js';
 import * as A from '../attachments.js';
+import * as LP from '../linkpreview.js';
+import { previewCard } from '../previewcard.js';
 
 export default { render };
 
@@ -279,6 +281,9 @@ function card(n) {
     body.append(el('div', { class: 'note-text' }, n.body.slice(0, 420)));
   }
 
+  /* לינק */
+  if (n.url) body.append(previewCard(n.id, { compact: !!(n.body || (n.checklist || []).length) }));
+
   /* מסמכים */
   const files = (n.attachments || []).filter(a => a.kind !== 'image');
   if (files.length) {
@@ -436,27 +441,51 @@ function editor(id, opts = {}) {
 
   const fileInput = el('input', { type: 'file', multiple: true, style: { display: 'none' } });
   fileInput.addEventListener('change', async e => {
-    const files = Array.from(e.target.files || []);
-    for (const f of files) {
-      if (f.size > 25 * 1024 * 1024) { toast(`${f.name} גדול מ-25MB — דילגתי`, 'err'); continue; }
-      try {
-        const { blob, width, height } = await A.prepareFile(f);
-        const aid = uid('att');
-        await A.putBlob(aid, blob);
-        atts.push({
-          id: aid, name: f.name, mime: blob.type || f.type, size: blob.size,
-          kind: /^image\//.test(f.type) ? 'image' : 'file', width, height
-        });
-      } catch (err) {
-        toast('שמירת ' + f.name + ' נכשלה: ' + (err.message || err), 'err');
-      }
-    }
-    drawAtts();
+    await ingest(e.target.files);
     fileInput.value = '';
   });
 
   const pickImages = () => { fileInput.accept = 'image/*'; fileInput.click(); };
   const pickFiles = () => { fileInput.accept = ''; fileInput.click(); };
+
+  /* הדבקה וגרירה — הדרך הטבעית להכניס צילום מסך */
+  async function ingest(files) {
+    let n2 = 0;
+    for (const f of Array.from(files || [])) {
+      if (f.size > 25 * 1024 * 1024) { toast(`${f.name || 'הקובץ'} גדול מ-25MB — דילגתי`, 'err'); continue; }
+      try {
+        const { blob, width, height } = await A.prepareFile(f);
+        const aid = uid('att');
+        await A.putBlob(aid, blob);
+        atts.push({
+          id: aid, name: f.name || (/^image\//.test(f.type) ? 'צילום מסך.png' : 'קובץ'),
+          mime: blob.type || f.type, size: blob.size,
+          kind: /^image\//.test(f.type) ? 'image' : 'file', width, height
+        });
+        n2++;
+      } catch (err) { toast('שמירה נכשלה: ' + (err.message || err), 'err'); }
+    }
+    if (n2) { drawAtts(); toast(`נוספו ${n2} קבצים`, 'ok'); }
+    return n2;
+  }
+
+  /* --- לינק --- */
+  const fUrl = input({ value: n.url || '', placeholder: 'https://…  (אופציונלי)', dir: 'ltr', class: 'inp' });
+  const prevBox = el('div', { style: { marginTop: '8px' } });
+  const drawPrev = () => {
+    prevBox.innerHTML = '';
+    const cur = getItem(id);
+    if (cur && cur.url) prevBox.append(previewCard(id, {}));
+  };
+  fUrl.addEventListener('change', async () => {
+    const v = fUrl.value.trim();
+    const cur = getItem(id);
+    if (v === (cur.url || '')) return;
+    patchItem(id, { url: v, preview: null });
+    await LP.dropPreviewImage(id);
+    drawPrev();
+  });
+  drawPrev();
 
   /* --- נושאים --- */
   let tags = (n.noteTags || []).slice();
@@ -515,6 +544,10 @@ function editor(id, opts = {}) {
     bodyWrap,
     attWrap,
     el('div', { class: 'hr' }),
+    el('div', { class: 'small muted', style: { marginBottom: '5px', display: 'flex', alignItems: 'center' } },
+      'לינק', hintBadge('notes.link')),
+    fUrl, prevBox,
+    el('div', { class: 'hr' }),
     el('div', { class: 'small muted', style: { marginBottom: '5px' } }, 'נושאים'),
     tagWrap,
     el('div', { class: 'hr' }),
@@ -530,6 +563,7 @@ function editor(id, opts = {}) {
   const save = () => {
     patchItem(id, {
       title: fTitle.value.trim(),
+      url: fUrl.value.trim(),
       body: kind === 'note' ? fBody.value : n.body,
       kind,
       checklist: checklist.filter(x => x.text.trim() || x.done),
@@ -542,10 +576,57 @@ function editor(id, opts = {}) {
     refresh();
   };
 
+  /* הדבקה: צילום מסך מהלוח נכנס כקובץ; כתובת לבד נכנסת לשדה הלינק */
+  const onPaste = async e => {
+    const dt = e.clipboardData;
+    if (!dt) return;
+    const files = Array.from(dt.files || []);
+    if (files.length) { e.preventDefault(); await ingest(files); return; }
+    const items = Array.from(dt.items || []).filter(i => i.kind === 'file');
+    if (items.length) {
+      e.preventDefault();
+      await ingest(items.map(i => i.getAsFile()).filter(Boolean));
+      return;
+    }
+    const txt = (dt.getData('text/plain') || '').trim();
+    if (/^https?:\/\/\S+$/i.test(txt) && !fUrl.value.trim() && e.target !== fUrl) {
+      e.preventDefault();
+      fUrl.value = txt;
+      fUrl.dispatchEvent(new Event('change'));
+      toast('הלינק נשמר ומושך תצוגה מקדימה', 'ok');
+    }
+  };
+
+  /* גרירה: קובץ מהמחשב לכל מקום בחלון, לא רק על התוכן.
+     המאזינים יושבים על #modal, שמשותף לכל החלונות, אז מנקים אותם בסגירה. */
+  const dropCtl = new AbortController();
+  function armDrop() {
+    const host = document.getElementById('modal');
+    if (!host) return;
+    const opt = { signal: dropCtl.signal };
+    ['dragenter', 'dragover'].forEach(ev => host.addEventListener(ev, e => {
+      if (!e.dataTransfer || !Array.from(e.dataTransfer.types || []).includes('Files')) return;
+      e.preventDefault();
+      host.classList.add('drop-on');
+    }, opt));
+    host.addEventListener('dragleave', e => {
+      if (!host.contains(e.relatedTarget)) host.classList.remove('drop-on');
+    }, opt);
+    host.addEventListener('drop', async e => {
+      host.classList.remove('drop-on');
+      if (!e.dataTransfer || !e.dataTransfer.files.length) return;
+      e.preventDefault();
+      await ingest(e.dataTransfer.files);
+    }, opt);
+  }
+
   modal({
     title: n.title || 'פתק',
     body, wide: true,
     onClose: () => {
+      dropCtl.abort();
+      const host = document.getElementById('modal');
+      if (host) host.classList.remove('drop-on');
       // פתק שנוצר ונשאר ריק לגמרי — נמחק, שלא יתמלא הלוח בזבל
       const cur = getItem(id);
       if (cur && !cur.title && !cur.body && !(cur.attachments || []).length &&
@@ -569,6 +650,12 @@ function editor(id, opts = {}) {
       { label: 'סגור ושמור', cls: 'btn-y' }
     ]
   });
+
+  armDrop();
+
+  // הדבקה על #modal — אירועי paste מבעבעים, אז זה תופס גם הדבקה בתוך שדה
+  document.getElementById('modal')
+    ?.addEventListener('paste', onPaste, { signal: dropCtl.signal });
 }
 
 /** מוחק קבצים שהוסרו מהפתק */

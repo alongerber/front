@@ -100,7 +100,8 @@ export function candidates(limit = 6) {
   const clients = active.sort((a, b) => score(b) - score(a)).slice(0, limit - 1);
   const tasks = s.items.filter(i => i.type === 'task' && !i.archived && !i.done)
     .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)).slice(0, 2);
-  return { clients, tasks };
+  const buckets = s.items.filter(i => i.type === 'bucket' && !i.archived);
+  return { clients, tasks, buckets };
 }
 
 /** יוצר דגימה ומקפיץ אותה */

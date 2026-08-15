@@ -63,6 +63,7 @@ export function defaultState() {
       autoBackupDir: false,       // נבחרה תיקייה לגיבוי אוטומטי
       autoBackupFiles: false,     // לצרף גם את הקבצים מהפנקס לגיבוי האוטומטי
       lastAutoBackupAt: null,
+      bucketsSeeded: false,    // נקבע ל-true אחרי זריעה חד-פעמית, כדי שמחיקה תישאר מחיקה
       homeMode: 'list',           // 'list' | 'day'
       notifications: {
         enabled: false,
@@ -93,7 +94,8 @@ export function defaultState() {
       { id: 'decision',  name: 'החלטה',  icon: '⚖️', color: '#ff9f43', system: true },
       { id: 'routine',   name: 'שגרה',   icon: '🔁', color: '#3ddc84', system: true },
       { id: 'idea',      name: 'רעיון',  icon: '💡', color: '#ff6b9d', system: true },
-      { id: 'note',      name: 'פתק',    icon: '🗒', color: '#a3e635', system: true }
+      { id: 'note',      name: 'פתק',    icon: '🗒', color: '#a3e635', system: true },
+      { id: 'bucket',    name: 'תחום',   icon: '◈',  color: '#22d3ee', system: true }
     ],
 
     items: defaultItems(),
@@ -146,6 +148,23 @@ export function defaultState() {
   };
 }
 
+/* דליי זמן שאינם לקוח — שעות שהולכות לעסק עצמו.
+   בלי אלה, שעות של שיווק וניירת נדבקות ללקוח אקראי או נעלמות,
+   ואז "כמה עולה לי סרטון" יוצא שגוי. ניתנים לעריכה ולהוספה. */
+export function defaultBuckets() {
+  const t = now();
+  const b = (title, note) => ({
+    id: uid('b'), type: 'bucket', title, note,
+    tags: [], createdAt: t, updatedAt: t, archived: false
+  });
+  return [
+    b('פרונט', 'קידום ופיתוח העסק: מודעות, דף נחיתה, תוכן, הסוכנת הקולית'),
+    b('ניירת וכספים', 'חשבוניות, רואה חשבון, בנק')
+  ];
+}
+
+export const buckets = () => state.items.filter(i => i.type === 'bucket' && !i.archived);
+
 function defaultItems() {
   const t = now();
   const routine = (title, freq, note) => ({
@@ -164,7 +183,7 @@ function defaultItems() {
   ].map(r => {
     if (r.title === 'תוכן אורגני') r.customDays = 2;
     return r;
-  });
+  }).concat(defaultBuckets());
 }
 
 /* ---------- טעינה ושמירה ---------- */
@@ -194,6 +213,17 @@ function migrate(s) {
   for (const k of ['productLines', 'itemTypes', 'items', 'timeEntries', 'subscriptions', 'ledger', 'links', 'waiting', 'chat', 'noteTags', 'samples', 'presenceLog']) {
     if (!Array.isArray(out[k])) out[k] = d[k];
   }
+  // סוגי פריטים שנוספו בגרסאות מאוחרות יותר — משלימים בלי לגעת במה שהמשתמש ערך
+  d.itemTypes.forEach(dt => {
+    if (!out.itemTypes.some(x => x.id === dt.id)) out.itemTypes.push(dt);
+  });
+
+  // דליי הזמן נזרעים פעם אחת בלבד, כדי שמחיקה שלהם תישאר מחיקה
+  if (!out.settings.bucketsSeeded) {
+    out.settings.bucketsSeeded = true;
+    if (!out.items.some(i => i.type === 'bucket')) out.items = out.items.concat(defaultBuckets());
+  }
+
   if (!out.productLines.length) out.productLines = d.productLines;
   out.productLines.forEach(p => { if (!Array.isArray(p.stages) || !p.stages.length) p.stages = defaultStages(); });
   return out;

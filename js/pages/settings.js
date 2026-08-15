@@ -2,7 +2,7 @@
    settings.js — הגדרות, גיבוי, התראות, סוגי פריטים
    ============================================================ */
 
-import { S, update, uid, downloadBackup, importJSON, exportJSON, resetAll, loadSample, liveAttachmentIds } from '../store.js';
+import { S, update, uid, addItem, patchItem, downloadBackup, importJSON, exportJSON, resetAll, loadSample, liveAttachmentIds } from '../store.js';
 import { el, ago, toast, modal, input, select, field, confirmBox, dur, num, DAY } from '../util.js';
 import * as A from '../attachments.js';
 import * as AB from '../autobackup.js';
@@ -10,6 +10,7 @@ import { labelWithHint, hintBadge } from '../help.js';
 import * as SM from '../sampling.js';
 import * as P from '../presence.js';
 import * as FW from '../floatwin.js';
+import * as T from '../timer.js';
 import * as notify from '../notify.js';
 import { lineEditor } from './pipeline.js';
 import { refresh } from '../app.js';
@@ -25,9 +26,70 @@ function render(root) {
   ));
 
   root.append(el('div', { class: 'grid g2' },
-    el('div', {}, samplingCard(), backupCard(), notifyCard()),
+    el('div', {}, samplingCard(), bucketsCard(), backupCard(), notifyCard()),
     el('div', {}, generalCard(), typesCard(), dangerCard())
   ));
+}
+
+/* ---------- דליי זמן שאינם לקוח ---------- */
+
+function bucketsCard() {
+  const s = S();
+  const list = s.items.filter(i => i.type === 'bucket' && !i.archived);
+  const card = el('div', { class: 'card' });
+
+  card.append(el('div', { class: 'card-h' },
+    el('h3', { style: { display: 'flex', alignItems: 'center' } }, 'תחומים', hintBadge('time.buckets')),
+    el('span', { class: 'sub' }, 'שעות שהולכות לעסק ולא ללקוח')));
+
+  card.append(el('div', { class: 'small muted', style: { lineHeight: '1.75', marginBottom: '13px' } },
+    'לא כל שעה שייכת ללקוח. מודעות, דף נחיתה, פיתוח הסוכנת, ניירת — ' +
+    'בלי דלי משלהן הן נדבקות ללקוח אקראי או נעלמות, ואז "כמה עולה לי סרטון" ' +
+    'יוצא שגוי. התחומים מופיעים בחלון הצף, במחליף הטיימר ובשאלת הדגימה.'));
+
+  if (!list.length) card.append(el('div', { class: 'empty' }, 'אין תחומים. הוסף אחד למטה.'));
+
+  list.forEach(bk => {
+    const nm = input({ value: bk.title, style: { flex: '0 0 130px' } });
+    nm.addEventListener('change', () => {
+      patchItem(bk.id, { title: nm.value.trim() || bk.title }, 'שינוי שם תחום');
+      refresh();
+    });
+    const nt = input({ value: bk.note || '', placeholder: 'מה נכנס לכאן', style: { flex: 1 } });
+    nt.addEventListener('change', () => patchItem(bk.id, { note: nt.value }));
+
+    const hrs = T.focusMs(bk.id, Date.now() - 30 * DAY, Date.now());
+    card.append(el('div', { style: { display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '7px' } },
+      nm, nt,
+      el('span', { class: 'small muted', style: { flex: '0 0 62px', textAlign: 'center' } },
+        hrs > 60000 ? dur(hrs, true) : '—'),
+      el('button', {
+        class: 'btn btn-xs btn-danger',
+        'data-tip': 'מסתיר את התחום. השעות שנרשמו עליו נשארות.',
+        onclick: () => confirmBox(
+          `להסיר את "${bk.title}"? השעות שנרשמו עליו יישארו בדוחות.`,
+          () => { patchItem(bk.id, { archived: true }, 'הסרת תחום'); toast('הוסר'); refresh(); })
+      }, '×')
+    ));
+  });
+
+  card.append(el('button', {
+    class: 'btn btn-sm btn-y', style: { marginTop: '7px' },
+    onclick: () => {
+      addItem({ type: 'bucket', title: 'תחום חדש', note: '' });
+      toast('נוסף — שנה את השם', 'ok'); refresh();
+    }
+  }, '+ תחום'));
+
+  const archived = s.items.filter(i => i.type === 'bucket' && i.archived);
+  if (archived.length) card.append(el('div', { class: 'small muted', style: { marginTop: '9px' } },
+    `${archived.length} תחומים מוסתרים · `,
+    el('a', {
+      style: { cursor: 'pointer' },
+      onclick: () => { archived.forEach(a => patchItem(a.id, { archived: false })); refresh(); }
+    }, 'החזר הכל')));
+
+  return card;
 }
 
 /* ---------- שכבה 1: זיהוי נוכחות ---------- */

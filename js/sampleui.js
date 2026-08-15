@@ -37,15 +37,16 @@ function askViaNotification(sm) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return false;
   if (!swReg || !swReg.active) return false;
 
-  const { clients } = SM.candidates(4);
-  const top = clients[0];
+  const { clients, buckets } = SM.candidates(4);
+  const top = clients[0] || buckets[0];
 
   // ווינדוס מציג שני כפתורים לכל היותר, אז: הסביר ביותר + "לא עבודה"
   const actions = [];
   if (top) actions.push({ action: top.id, title: short(top.title) });
   actions.push({ action: 'off', title: 'לא עבודה' });
 
-  const others = clients.slice(1, 4).map(c2 => c2.title).join(' · ');
+  const others = clients.slice(1, 3).concat(buckets.slice(0, 2))
+    .filter(x => x !== top).map(c2 => c2.title).join(' · ');
   swReg.active.postMessage({
     type: 'sample-ask', id: sm.id,
     title: 'מה אתה עושה עכשיו?',
@@ -66,15 +67,17 @@ function askInPage(sm) {
   const row = el('div', { class: 'cf cf-sample' });
   row.append(el('span', { style: { fontWeight: '700' } }, '⏱ מה אתה עושה עכשיו?'));
 
-  const { clients, tasks } = SM.candidates(5);
-  const pick = (label, opts) => row.append(el('button', {
-    class: 'btn btn-xs', onclick: () => { SM.answer(sm.id, opts); box.innerHTML = ''; onAnswered(); }
+  const { clients, tasks, buckets } = SM.candidates(5);
+  const pick = (label, opts, cls) => row.append(el('button', {
+    class: 'btn btn-xs ' + (cls || ''),
+    onclick: () => { SM.answer(sm.id, opts); box.innerHTML = ''; onAnswered(); }
   }, label));
 
   clients.slice(0, 3).forEach(c => pick(short(c.title), { itemId: c.id, kind: 'work' }));
+  buckets.slice(0, 2).forEach(bk => pick('◈ ' + short(bk.title), { itemId: bk.id, kind: 'work' }));
   tasks.slice(0, 1).forEach(t => pick(short(t.title), { itemId: t.id, kind: 'work' }));
-  pick('למידה', { kind: 'learn' });
-  pick('לא עבודה', { kind: 'off' });
+  pick('📚 למידה', { kind: 'learn' });
+  pick('☕ לא עבודה', { kind: 'off' });
 
   row.append(el('button', {
     class: 'btn btn-xs', onclick: () => { box.innerHTML = ''; picker(sm.id); }
@@ -107,13 +110,14 @@ export function picker(id) {
 
   s.items.filter(i => i.type === 'client' && !i.archived && !i.deliveredAt)
     .forEach(c => opt(c.title, c.business || 'לקוח', { itemId: c.id, kind: 'work' }));
+  s.items.filter(i => i.type === 'bucket' && !i.archived)
+    .forEach(bk => opt('◈ ' + bk.title, bk.note || 'תחום בעסק', { itemId: bk.id, kind: 'work' }));
   s.items.filter(i => i.type === 'task' && !i.archived && !i.done).slice(0, 6)
     .forEach(t => opt(t.title, 'משימה', { itemId: t.id, kind: 'work' }));
 
   grid.append(el('div', { class: 'hr' }));
-  opt('למידה', 'קראתי, צפיתי, התעדכנתי', { kind: 'learn' });
-  opt('עבודה על העסק', 'שיווק, ניירת, דברים כלליים', { kind: 'work' });
-  opt('לא עבודה', 'הפסקה, פייסבוק, חיים', { kind: 'off' });
+  opt('📚 למידה', 'קראתי, צפיתי, התעדכנתי', { kind: 'learn' });
+  opt('☕ לא עבודה', 'הפסקה, פייסבוק, חיים', { kind: 'off' });
 
   box.append(grid);
   modal({ title: 'מה אתה עושה עכשיו?', body: box, actions: [{ label: 'דלג' }] });

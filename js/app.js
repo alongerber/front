@@ -140,7 +140,11 @@ function renderTimerBar() {
       el('span', { class: 'muted small' }, 'שום טיימר לא רץ'),
       el('div', { class: 'tb-actions' },
         el('button', { class: 'btn btn-xs', onclick: openSwitcher }, 'התחל טיימר'),
-        el('button', { class: 'btn btn-xs', onclick: () => { T.startFree('learn'); toast('טיימר למידה רץ'); } }, 'למידה')
+        el('button', { class: 'btn btn-xs', onclick: () => { T.startFree('learn'); toast('טיימר למידה רץ'); } }, '📚 למידה'),
+        el('button', {
+          class: 'btn btn-xs', 'data-tip': 'time.break',
+          onclick: () => { T.startFree('off'); toast('בהפסקה'); }
+        }, '☕ הפסקה')
       )
     );
     return;
@@ -149,10 +153,13 @@ function renderTimerBar() {
   if (t) {
     const it = t.itemId ? getItem(t.itemId) : null;
     const auto = !!t.autoFrom;
-    bar.className = 'timerbar ' + (t.kind === 'wait' ? 'waiting' : 'running');
+    bar.className = 'timerbar ' + (t.kind === 'off' ? 'off' : t.kind === 'wait' ? 'waiting' : 'running');
     bar.append(
       el('span', { class: 'tb-dot' }),
-      el('span', { class: 'tb-title' }, it ? it.title : (t.kind === 'learn' ? 'למידה חופשית' : 'עבודה כללית')),
+      el('span', { class: 'tb-title' },
+        t.kind === 'off' ? 'הפסקה — לא נספר'
+          : it ? it.title
+            : (t.kind === 'learn' ? 'למידה חופשית' : 'עבודה כללית')),
       el('span', { class: 'tb-time', id: 'tb-clock' }, hms(T.elapsed())),
       el('span', {
         class: 'tb-kind',
@@ -173,6 +180,10 @@ function renderTimerBar() {
         class: 'btn btn-xs',
         onclick: () => { T.startWaiting(t.itemId); toast('הפריט בהמתנה — זמן הקיר ממשיך לרוץ'); }
       }, 'ממתין') : null,
+      t.kind !== 'off' ? el('button', {
+        class: 'btn btn-xs', 'data-tip': 'time.break',
+        onclick: () => { T.startFree('off'); toast('בהפסקה — לא נספר בתמחור'); }
+      }, '☕ הפסקה') : null,
       el('button', { class: 'btn btn-xs', onclick: () => { T.stopTimer(); toast('נעצר ונרשם'); } }, 'עצור')
     );
     bar.append(actions);
@@ -222,7 +233,9 @@ function tabTitle() {
   const t = T.activeTimer();
   const w = S().waiting[0];
   let prefix = '';
-  if (t) {
+  if (t && t.kind === 'off') {
+    prefix = `☕ הפסקה — `;
+  } else if (t) {
     const it = t.itemId ? getItem(t.itemId) : null;
     prefix = `⏱ ${hms(T.elapsed()).replace(/^00:/, '')} · ${it ? shortT(it.title) : T.KINDS[t.kind]?.name || 'עבודה'} — `;
   } else if (w) {
@@ -240,6 +253,7 @@ export function openSwitcher() {
   const s = S();
   const cands = [
     ...s.items.filter(i => i.type === 'client' && !i.archived && !i.deliveredAt),
+    ...s.items.filter(i => i.type === 'bucket' && !i.archived),
     ...s.items.filter(i => i.type === 'task' && !i.archived && !i.done).slice(0, 8),
     ...s.items.filter(i => i.type === 'knowledge' && !i.archived && i.status !== 'done').slice(0, 5)
   ];
@@ -259,10 +273,12 @@ export function openSwitcher() {
           closeModal(); toast('הטיימר עבר ל' + c.title, 'ok');
         }
       },
-        el('span', { class: 'act-rank' }, c.type === 'client' ? '👤' : c.type === 'knowledge' ? '📚' : '✓'),
+        el('span', { class: 'act-rank' },
+          c.type === 'client' ? '👤' : c.type === 'knowledge' ? '📚' : c.type === 'bucket' ? '◈' : '✓'),
         el('div', { class: 'act-main' },
           el('div', { class: 'act-title' }, c.title),
-          el('div', { class: 'act-why' }, c.business || T.KINDS[c.type === 'knowledge' ? 'learn' : 'work'].name)
+          el('div', { class: 'act-why' },
+            c.business || c.note || T.KINDS[c.type === 'knowledge' ? 'learn' : 'work'].name)
         ),
         T.isWaiting(c.id) ? el('span', { class: 'pill pill-b' }, 'בהמתנה') : null
       ));
@@ -276,7 +292,10 @@ export function openSwitcher() {
   box.append(search, list, el('div', { class: 'hr' }),
     el('div', { class: 'row' },
       el('button', { class: 'btn', onclick: () => { T.startFree('learn'); closeModal(); } }, '📚 למידה כללית'),
-      el('button', { class: 'btn', onclick: () => { T.startFree('work'); closeModal(); } }, '⚙ עבודה כללית'),
+      el('button', {
+        class: 'btn', 'data-tip': 'לא עבודה — פייסבוק, קפה, חיים. נרשם, ולא נספר בתמחור.',
+        onclick: () => { T.startFree('off'); closeModal(); toast('בהפסקה'); }
+      }, '☕ הפסקה'),
       el('button', { class: 'btn', onclick: () => { T.stopTimer(); closeModal(); } }, '■ עצור הכל')
     ));
   draw('');

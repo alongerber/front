@@ -498,9 +498,10 @@ function mini(lbl, val, color) {
 function perItemCard() {
   const card = el('div', { class: 'card', style: { marginTop: '14px' } });
   card.append(el('div', { class: 'card-h' },
-    el('h3', {}, 'שלושת המספרים לכל לקוח')));
+    el('h3', {}, 'שלושת המספרים לכל לקוח'),
+    el('span', { class: 'sub' }, 'תחומים מסומנים ב-◈ — שעות שהלכו לעסק ולא ללקוח')));
 
-  const clients = S().items.filter(i => i.type === 'client' && !i.archived)
+  const clients = S().items.filter(i => (i.type === 'client' || i.type === 'bucket') && !i.archived)
     .map(c => ({ c, focus: T.focusMs(c.id), wall: T.wallMs(c.id), wait: T.waitMs(c.id), sm: SM.itemMs(c.id) }))
     .filter(x => x.focus > 0 || x.wait > 0 || x.sm > 0)
     .sort((a, b) => (b.sm || b.focus) - (a.sm || a.focus));
@@ -520,7 +521,10 @@ function perItemCard() {
     const best = smN >= 3 ? smMs : focus;         // דגימות מנצחות כשיש מספיק מהן
     const perHour = best ? (c.amount || 0) / (best / HOUR) : 0;
     tb.append(el('tr', {},
-      el('td', { style: { fontWeight: '600', cursor: 'pointer' }, onclick: () => openItem(c.id) }, c.title),
+      el('td', {
+        style: { fontWeight: '600', cursor: 'pointer', color: c.type === 'bucket' ? '#22d3ee' : '' },
+        onclick: () => openItem(c.id)
+      }, (c.type === 'bucket' ? '◈ ' : '') + c.title),
       el('td', {
         class: 'num', style: { color: smN ? '#a3e635' : '' },
         'data-tip': smN ? `${smN} דגימות × ${Math.round(SM.sampleWeightMs() / MIN)} דקות` : 'עוד אין דגימות על הלקוח הזה'

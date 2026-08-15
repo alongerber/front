@@ -169,6 +169,12 @@ const routines = [
   { id: id('r'), type: 'routine', title: 'גיבוי המערכת', freq: 'weekly', lastDone: t(6), missCount: 0, nextDue: t(1), note: 'ייצוא JSON', ...base(40) }
 ];
 
+/* ---------- תחומים: שעות שהולכות לעסק ולא ללקוח ---------- */
+const bucketsList = [
+  { id: id('b'), type: 'bucket', title: 'פרונט', note: 'קידום ופיתוח העסק: מודעות, דף נחיתה, תוכן, הסוכנת הקולית', ...base(40) },
+  { id: id('b'), type: 'bucket', title: 'ניירת וכספים', note: 'חשבוניות, רואה חשבון, בנק', ...base(40) }
+];
+
 /* ---------- נושאים ופתקים ---------- */
 const noteTags = [
   { id: 'nt_biz', name: 'העסק', color: '#ffd400' },
@@ -268,6 +274,11 @@ E(knowledge[4].id, 11, 20, 20.5, 'learn');
 E(tasks[2].id, 1, 12, 13, 'work');
 E(null, 1, 13, 14, 'off');
 
+// שעות שהלכו לעסק עצמו — קמפיין, דף נחיתה, ניירת
+E(bucketsList[0].id, 4, 10, 12, 'work');
+E(bucketsList[0].id, 2, 16, 17.5, 'work');
+E(bucketsList[1].id, 6, 9, 10, 'work');
+
 /* ---------- המצב המלא ---------- */
 const state = {
   version: 1,
@@ -278,7 +289,9 @@ const state = {
     hourlyTarget: 250, workHoursPerDay: 6, dayStartHour: 9,
     usdRate: 3.65, leadSlaMinutes: 120, idleAskMinutes: 3,
     longAbsenceHours: 2, timerNudgeHours: 2, decisionStaleDays: 7,
-    autoBackupDays: 3, lastBackupAt: t(5), homeMode: 'list',
+    autoBackupDays: 3, lastBackupAt: t(5), homeMode: 'list', bucketsSeeded: true,   // הדוגמה כוללת תחומים, שלא ייזרעו שוב
+    presenceEnabled: false, floatWindow: true, autoWaitMinutes: 8,
+    sampling: { enabled: true, perDay: 4, fromHour: 9, toHour: 19, days: [0,1,2,3,4], onMiss: 'assume', notify: true },
     avgLeadCost: 130,
     notifications: { enabled: false, lead: true, deadline: true, routine: true, decision: true, timer: true, note: true },
     assistantEnabled: true, assistantClassify: true
@@ -300,10 +313,11 @@ const state = {
     { id: 'decision', name: 'החלטה', icon: '⚖️', color: '#ff9f43', system: true },
     { id: 'routine', name: 'שגרה', icon: '🔁', color: '#3ddc84', system: true },
     { id: 'idea', name: 'רעיון', icon: '💡', color: '#ff6b9d', system: true },
-    { id: 'note', name: 'פתק', icon: '🗒', color: '#a3e635', system: true }
+    { id: 'note', name: 'פתק', icon: '🗒', color: '#a3e635', system: true },
+    { id: 'bucket', name: 'תחום', icon: '◈', color: '#22d3ee', system: true }
   ],
   noteTags,
-  items: [...clients, ...tasks, ...knowledge, ...decisions, ...ideas, ...routines, ...notes],
+  items: [...clients, ...tasks, ...knowledge, ...decisions, ...ideas, ...routines, ...notes, ...bucketsList],
   timeEntries: entries,
   subscriptions: [
     { id: id('s'), name: 'Claude', cost: 200, currency: 'USD' },

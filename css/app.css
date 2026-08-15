@@ -155,6 +155,9 @@ button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit
 .timerbar.running .tb-dot{animation:pulse 1.6s infinite}
 .timerbar.waiting .tb-dot{background:var(--blue)}
 .timerbar.idle .tb-dot{background:var(--t4)}
+.timerbar.off{background:linear-gradient(90deg,rgba(255,159,67,.10),transparent)}
+.timerbar.off .tb-dot{background:#ff9f43}
+.timerbar.off .tb-time{color:var(--t3)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
 .tb-title{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:36vw}
 .tb-time{font-variant-numeric:tabular-nums;font-weight:700;color:var(--yellow);font-size:15px}

@@ -17,6 +17,25 @@
     "autoBackupDays": 3,
     "lastBackupAt": 1768032000000,
     "homeMode": "list",
+    "bucketsSeeded": true,
+    "presenceEnabled": false,
+    "floatWindow": true,
+    "autoWaitMinutes": 8,
+    "sampling": {
+      "enabled": true,
+      "perDay": 4,
+      "fromHour": 9,
+      "toHour": 19,
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "onMiss": "assume",
+      "notify": true
+    },
     "avgLeadCost": 130,
     "notifications": {
       "enabled": false,
@@ -192,6 +211,13 @@
       "name": "פתק",
       "icon": "🗒",
       "color": "#a3e635",
+      "system": true
+    },
+    {
+      "id": "bucket",
+      "name": "תחום",
+      "icon": "◈",
+      "color": "#22d3ee",
       "system": true
     }
   ],
@@ -742,7 +768,7 @@
       "archived": false
     },
     {
-      "id": "n_sample43",
+      "id": "n_sample45",
       "type": "note",
       "kind": "note",
       "body": "שנייה 0-3: הבעיה, בלי מבוא.\nשנייה 3-8: הפתרון, מראים ולא מספרים.\nשנייה 8-12: מחיר או הצעה.\nסוף: קריאה לפעולה אחת בלבד, לא שתיים.\n\nכל מה שארוך מ-15 שניות נופל באמצע.",
@@ -763,33 +789,33 @@
       "title": "מבנה תסריט שעובד"
     },
     {
-      "id": "n_sample49",
+      "id": "n_sample51",
       "type": "note",
       "kind": "list",
       "body": "",
       "checklist": [
         {
-          "id": "c_sample44",
+          "id": "c_sample46",
           "text": "מי הלקוח שלך, בגיל ובאזור",
           "done": false
         },
         {
-          "id": "c_sample45",
+          "id": "c_sample47",
           "text": "מה השאלה שהכי חוזרת אצלך",
           "done": false
         },
         {
-          "id": "c_sample46",
+          "id": "c_sample48",
           "text": "יש לך צילומים קיימים?",
           "done": false
         },
         {
-          "id": "c_sample47",
+          "id": "c_sample49",
           "text": "מה המתחרים עושים שמעצבן אותך",
           "done": false
         },
         {
-          "id": "c_sample48",
+          "id": "c_sample50",
           "text": "איפה הסרטון ירוץ — אינסטגרם, טיקטוק, אתר",
           "done": false
         }
@@ -811,28 +837,28 @@
       "title": "מה לשאול לקוח בשיחת אפיון"
     },
     {
-      "id": "n_sample54",
+      "id": "n_sample56",
       "type": "note",
       "kind": "list",
       "body": "",
       "checklist": [
         {
-          "id": "c_sample50",
+          "id": "c_sample52",
           "text": "Higgsfield — תנועות מצלמה",
           "done": false
         },
         {
-          "id": "c_sample51",
+          "id": "c_sample53",
           "text": "Runway Gen-4",
           "done": false
         },
         {
-          "id": "c_sample52",
+          "id": "c_sample54",
           "text": "HeyGen אווטארים",
           "done": true
         },
         {
-          "id": "c_sample53",
+          "id": "c_sample55",
           "text": "מוזיקה ברישיון — Epidemic",
           "done": false
         }
@@ -854,28 +880,28 @@
       "title": "ציוד ותוכנות לבדוק"
     },
     {
-      "id": "n_sample59",
+      "id": "n_sample61",
       "type": "note",
       "kind": "list",
       "body": "",
       "checklist": [
         {
-          "id": "c_sample55",
+          "id": "c_sample57",
           "text": "העברת שיחה לאדם",
           "done": false
         },
         {
-          "id": "c_sample56",
+          "id": "c_sample58",
           "text": "סיכום שיחה בוואטסאפ",
           "done": false
         },
         {
-          "id": "c_sample57",
+          "id": "c_sample59",
           "text": "זיהוי שעות פתיחה",
           "done": true
         },
         {
-          "id": "c_sample58",
+          "id": "c_sample60",
           "text": "תמחור — עדיין לא סגור",
           "done": false
         }
@@ -896,7 +922,7 @@
       "title": "מיטל — מה עוד חסר לפני מכירה"
     },
     {
-      "id": "n_sample60",
+      "id": "n_sample62",
       "type": "note",
       "kind": "note",
       "body": "\"הלקוחות שלך גוללים. אתה לא שם.\"\n\"סרטון פרסומת ב-7 ימים. 1,290 ₪. בלי צוות צילום.\"\n\"מוסך? קליניקה? מסעדה? יש לי סרטון בשבילך.\"",
@@ -917,28 +943,28 @@
       "title": "טקסטים למודעות"
     },
     {
-      "id": "n_sample65",
+      "id": "n_sample67",
       "type": "note",
       "kind": "list",
       "body": "",
       "checklist": [
         {
-          "id": "c_sample61",
+          "id": "c_sample63",
           "text": "חשבוניות שהוצאתי",
           "done": false
         },
         {
-          "id": "c_sample62",
+          "id": "c_sample64",
           "text": "קבלות על מנויים בדולר",
           "done": false
         },
         {
-          "id": "c_sample63",
+          "id": "c_sample65",
           "text": "דוח מהבנק",
           "done": false
         },
         {
-          "id": "c_sample64",
+          "id": "c_sample66",
           "text": "הוצאות פרסום ממטא",
           "done": false
         }
@@ -959,7 +985,7 @@
       "title": "ניירת לרואה חשבון — מה שולחים"
     },
     {
-      "id": "n_sample66",
+      "id": "n_sample68",
       "type": "note",
       "kind": "note",
       "body": "הכל ב-1Password. כאן רק תזכורת מה קיים:\n· Netlify — הדפים\n· ElevenLabs — הקולות\n· מטא — הקמפיינים\n· Vercel — הפונקציה של העוזר\n\nלא לכתוב כאן סיסמאות אמיתיות.",
@@ -981,7 +1007,7 @@
       "title": "סיסמאות ומקומות"
     },
     {
-      "id": "n_sample67",
+      "id": "n_sample69",
       "type": "note",
       "kind": "note",
       "body": "\"יקר לי\" → כמה עולה לך יום בלי לקוחות חדשים?\n\"אין לי צילומים\" → לא צריך, הכל נוצר.\n\"אני לא יודע מה להגיד\" → אני כותב את התסריט.\n\"אנסה לבד עם AI\" → קח, זה קישור לכלי. תחזור אליי בעוד שבוע.",
@@ -1001,11 +1027,31 @@
       "createdAt": 1767081600000,
       "updatedAt": 1767081600000,
       "title": "התנגדויות ששמעתי, ומה עונים"
+    },
+    {
+      "id": "b_sample43",
+      "type": "bucket",
+      "title": "פרונט",
+      "note": "",
+      "tags": [],
+      "createdAt": 1765008000000,
+      "updatedAt": 1765008000000,
+      "archived": false
+    },
+    {
+      "id": "b_sample44",
+      "type": "bucket",
+      "title": "ניירת וכספים",
+      "note": "",
+      "tags": [],
+      "createdAt": 1765008000000,
+      "updatedAt": 1765008000000,
+      "archived": false
     }
   ],
   "timeEntries": [
     {
-      "id": "te_sample68",
+      "id": "te_sample70",
       "itemId": "c_sample12",
       "start": 1766905200000,
       "end": 1766910600000,
@@ -1013,7 +1059,7 @@
       "note": ""
     },
     {
-      "id": "te_sample69",
+      "id": "te_sample71",
       "itemId": "c_sample12",
       "start": 1766998800000,
       "end": 1767006000000,
@@ -1021,7 +1067,7 @@
       "note": ""
     },
     {
-      "id": "te_sample70",
+      "id": "te_sample72",
       "itemId": "c_sample12",
       "start": 1767006000000,
       "end": 1767011400000,
@@ -1029,7 +1075,7 @@
       "note": ""
     },
     {
-      "id": "te_sample71",
+      "id": "te_sample73",
       "itemId": "c_sample12",
       "start": 1767079800000,
       "end": 1767085200000,
@@ -1037,7 +1083,7 @@
       "note": ""
     },
     {
-      "id": "te_sample72",
+      "id": "te_sample74",
       "itemId": "c_sample12",
       "start": 1767618000000,
       "end": 1767621600000,
@@ -1045,7 +1091,7 @@
       "note": ""
     },
     {
-      "id": "te_sample73",
+      "id": "te_sample75",
       "itemId": "c_sample1",
       "start": 1768201200000,
       "end": 1768208400000,
@@ -1053,7 +1099,7 @@
       "note": ""
     },
     {
-      "id": "te_sample74",
+      "id": "te_sample76",
       "itemId": "c_sample1",
       "start": 1768208400000,
       "end": 1768213800000,
@@ -1061,7 +1107,7 @@
       "note": ""
     },
     {
-      "id": "te_sample75",
+      "id": "te_sample77",
       "itemId": "c_sample1",
       "start": 1768305600000,
       "end": 1768311000000,
@@ -1069,7 +1115,7 @@
       "note": ""
     },
     {
-      "id": "te_sample76",
+      "id": "te_sample78",
       "itemId": "c_sample1",
       "start": 1768377600000,
       "end": 1768382100000,
@@ -1077,7 +1123,7 @@
       "note": ""
     },
     {
-      "id": "te_sample77",
+      "id": "te_sample79",
       "itemId": "c_sample8",
       "start": 1768226400000,
       "end": 1768229100000,
@@ -1085,7 +1131,7 @@
       "note": ""
     },
     {
-      "id": "te_sample78",
+      "id": "te_sample80",
       "itemId": "c_sample18",
       "start": 1768298400000,
       "end": 1768302000000,
@@ -1093,7 +1139,7 @@
       "note": ""
     },
     {
-      "id": "te_sample79",
+      "id": "te_sample81",
       "itemId": "k_sample25",
       "start": 1768197600000,
       "end": 1768200300000,
@@ -1101,7 +1147,7 @@
       "note": ""
     },
     {
-      "id": "te_sample80",
+      "id": "te_sample82",
       "itemId": "k_sample28",
       "start": 1767549600000,
       "end": 1767551400000,
@@ -1109,7 +1155,7 @@
       "note": ""
     },
     {
-      "id": "te_sample81",
+      "id": "te_sample83",
       "itemId": "t_sample21",
       "start": 1768384800000,
       "end": 1768388400000,
@@ -1117,47 +1163,71 @@
       "note": ""
     },
     {
-      "id": "te_sample82",
+      "id": "te_sample84",
       "itemId": null,
       "start": 1768388400000,
       "end": 1768392000000,
       "kind": "off",
       "note": ""
+    },
+    {
+      "id": "te_sample85",
+      "itemId": "b_sample43",
+      "start": 1768118400000,
+      "end": 1768125600000,
+      "kind": "work",
+      "note": ""
+    },
+    {
+      "id": "te_sample86",
+      "itemId": "b_sample43",
+      "start": 1768312800000,
+      "end": 1768318200000,
+      "kind": "work",
+      "note": ""
+    },
+    {
+      "id": "te_sample87",
+      "itemId": "b_sample44",
+      "start": 1767942000000,
+      "end": 1767945600000,
+      "kind": "work",
+      "note": ""
     }
   ],
   "subscriptions": [
     {
-      "id": "s_sample83",
+      "id": "s_sample88",
       "name": "Claude",
       "cost": 200,
       "currency": "USD"
     },
     {
-      "id": "s_sample84",
+      "id": "s_sample89",
       "name": "ElevenLabs",
       "cost": 99,
       "currency": "USD"
     },
     {
-      "id": "s_sample85",
+      "id": "s_sample90",
       "name": "Higgsfield / וידאו",
       "cost": 149,
       "currency": "USD"
     },
     {
-      "id": "s_sample86",
+      "id": "s_sample91",
       "name": "HeyGen",
       "cost": 89,
       "currency": "USD"
     },
     {
-      "id": "s_sample87",
+      "id": "s_sample92",
       "name": "Netlify + דומיינים",
       "cost": 21,
       "currency": "USD"
     },
     {
-      "id": "s_sample88",
+      "id": "s_sample93",
       "name": "כלים נלווים",
       "cost": 20,
       "currency": "USD"
@@ -1165,13 +1235,13 @@
   ],
   "ledger": [
     {
-      "id": "lg_sample89",
+      "id": "lg_sample94",
       "title": "קמפיין ממומן — מטא",
       "amount": -560,
       "date": 1767772800000
     },
     {
-      "id": "lg_sample90",
+      "id": "lg_sample95",
       "title": "מוזיקה בליווי רישיון",
       "amount": -95,
       "date": 1767427200000
@@ -1179,37 +1249,37 @@
   ],
   "links": [
     {
-      "id": "l_sample91",
+      "id": "l_sample96",
       "title": "הדף של מיטל",
       "url": "https://agentfront.netlify.app",
       "desc": "הסוכנת הקולית — הדף הציבורי"
     },
     {
-      "id": "l_sample92",
+      "id": "l_sample97",
       "title": "לוח השיחות",
       "url": "https://agentfront.netlify.app/dash.html",
       "desc": "כל השיחות שמיטל ניהלה"
     },
     {
-      "id": "l_sample93",
+      "id": "l_sample98",
       "title": "דף הנחיתה",
       "url": "https://frontvid.netlify.app",
       "desc": "הדף שאליו מגיעים מהמודעות"
     },
     {
-      "id": "l_sample94",
+      "id": "l_sample99",
       "title": "ElevenLabs",
       "url": "https://elevenlabs.io/app",
       "desc": "קולות וסוכנות קוליות"
     },
     {
-      "id": "l_sample95",
+      "id": "l_sample100",
       "title": "Meta Ads",
       "url": "https://adsmanager.facebook.com",
       "desc": "ניהול הקמפיינים"
     },
     {
-      "id": "l_sample96",
+      "id": "l_sample101",
       "title": "Netlify",
       "url": "https://app.netlify.com",
       "desc": "האחסון של כל הדפים"

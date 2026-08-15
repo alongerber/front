@@ -322,7 +322,7 @@ function card(n) {
     iconBtn('⏰', 'notes.reminder', e => { e.stopPropagation(); reminderPicker(n); }),
     iconBtn('🏷', 'notes.tags', e => { e.stopPropagation(); tagPicker(n); }),
     iconBtn(n.archived ? '↩' : '🗄', n.archived ? 'החזר ללוח' : 'notes.archive',
-      e => { e.stopPropagation(); patchItem(n.id, { archived: !n.archived }); toast(n.archived ? 'הוחזר' : 'לארכיון'); refresh(); })
+      e => { e.stopPropagation(); patchItem(n.id, { archived: !n.archived }, (n.archived ? 'החזרת פתק מהארכיון' : 'העברת פתק לארכיון')); toast(n.archived ? 'הוחזר' : 'לארכיון'); refresh(); })
   ));
 
   return node;

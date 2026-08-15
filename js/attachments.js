@@ -7,15 +7,17 @@
 
 const DB_NAME = 'front.files';
 const STORE = 'blobs';
+const META = 'meta';        // דברים קטנים שלא נכנסים ל-localStorage, כמו מצביע לתיקיית הגיבוי
 let dbPromise = null;
 
 function db() {
   if (dbPromise) return dbPromise;
   dbPromise = new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
+    const req = indexedDB.open(DB_NAME, 2);
     req.onupgradeneeded = () => {
       const d = req.result;
       if (!d.objectStoreNames.contains(STORE)) d.createObjectStore(STORE);
+      if (!d.objectStoreNames.contains(META)) d.createObjectStore(META);
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -23,10 +25,10 @@ function db() {
   return dbPromise;
 }
 
-function tx(mode, fn) {
+function tx(mode, fn, storeName = STORE) {
   return db().then(d => new Promise((resolve, reject) => {
-    const t = d.transaction(STORE, mode);
-    const store = t.objectStore(STORE);
+    const t = d.transaction(storeName, mode);
+    const store = t.objectStore(storeName);
     let result;
     try { result = fn(store); } catch (e) { reject(e); return; }
     t.oncomplete = () => resolve(result && result.result !== undefined ? result.result : result);
@@ -41,6 +43,11 @@ export const putBlob = (id, blob) => tx('readwrite', s => s.put(blob, id));
 export const getBlob = id => tx('readonly', s => s.get(id));
 export const delBlob = id => tx('readwrite', s => s.delete(id));
 export const allKeys = () => tx('readonly', s => s.getAllKeys());
+
+/* מפתח/ערך קטן — משמש למצביע לתיקיית הגיבוי, שאי אפשר לשמור ב-localStorage */
+export const putMeta = (k, v) => tx('readwrite', s => s.put(v, k), META);
+export const getMeta = k => tx('readonly', s => s.get(k), META);
+export const delMeta = k => tx('readwrite', s => s.delete(k), META);
 
 /** כמה מקום תופסים הקבצים, וכמה נשאר */
 export async function usage() {

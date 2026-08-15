@@ -57,6 +57,9 @@ export function defaultState() {
       decisionStaleDays: 7,       // החלטה פתוחה שיושבת יותר מדי
       autoBackupDays: 3,
       lastBackupAt: null,
+      autoBackupDir: false,       // נבחרה תיקייה לגיבוי אוטומטי
+      autoBackupFiles: false,     // לצרף גם את הקבצים מהפנקס לגיבוי האוטומטי
+      lastAutoBackupAt: null,
       homeMode: 'list',           // 'list' | 'day'
       notifications: {
         enabled: false,
@@ -177,11 +180,17 @@ function migrate(s) {
 
 let saveTimer = null;
 
+/* מזהה הטאב הזה. נכתב יחד עם הנתונים כדי שנדע להתעלם מהכתיבות של עצמנו. */
+const TAB = uid('tab');
+const STAMP_KEY = KEY + '.stamp';
+
 function writeNow() {
   clearTimeout(saveTimer);
   saveTimer = null;
   try {
     localStorage.setItem(KEY, JSON.stringify(state));
+    // חותמת נפרדת וקטנה — האירוע שהטאבים האחרים מקשיבים לו
+    localStorage.setItem(STAMP_KEY, TAB + ':' + Date.now());
   } catch (e) {
     console.error('שמירה נכשלה', e);
     window.dispatchEvent(new CustomEvent('front:storage-full'));
@@ -192,6 +201,31 @@ function persist() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(writeNow, 120);
 }
+
+/* ---------- סנכרון בין טאבים ----------
+   בלי זה: פותחים את המערכת בשני טאבים, עובדים באחד, והשני — שיושב על מצב ישן —
+   דורס הכל ברגע שנוגעים בו. כאן הטאב מאמץ מיד כל שינוי שנכתב בטאב אחר. */
+
+window.addEventListener('storage', e => {
+  if (e.key !== STAMP_KEY || !e.newValue) return;
+  if (e.newValue.startsWith(TAB + ':')) return;        // הכתיבה שלנו
+
+  // אם יש לנו כתיבה תלויה באוויר — היא מבוססת על מצב ישן. שומרים אותה קודם ומוותרים.
+  const hadPending = !!saveTimer;
+  clearTimeout(saveTimer);
+  saveTimer = null;
+
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return;
+    state = migrate(JSON.parse(raw));
+    undoStack.length = 0;                               // הביטול כבר לא מתאים למצב החדש
+    subs.forEach(f => { try { f(state); } catch (err) { console.error(err); } });
+    window.dispatchEvent(new CustomEvent('front:external-change', { detail: { hadPending } }));
+  } catch (err) {
+    console.warn('סנכרון בין טאבים נכשל', err);
+  }
+});
 
 /** שמירה מיידית — לפני סגירת הטאב או מעבר לרקע, שלא תיפול כתיבה באוויר */
 export const flush = () => { if (saveTimer) writeNow(); };
@@ -205,8 +239,40 @@ export const S = () => state;
 
 export function subscribe(fn) { subs.add(fn); return () => subs.delete(fn); }
 
-/** update(fn) — משנה את המצב, שומר, ומודיע לכולם */
+/* ---------- ביטול פעולה ----------
+   כל שינוי עובר דרך update() אחת, אז מספיק לצלם את המצב לפניה.
+   הצילום הוא מחרוזת JSON — הקבצים יושבים ב-IndexedDB ולא נכנסים לכאן. */
+
+const UNDO_MAX = 25;
+const undoStack = [];        // [{ json, label, at }]
+let undoing = false;
+
+export function undoDepth() { return undoStack.length; }
+export function lastUndoLabel() { return undoStack.length ? undoStack[undoStack.length - 1].label : null; }
+
+/** מחזיר את התיאור של מה שבוטל, או null אם אין מה לבטל */
+export function undo() {
+  const snap = undoStack.pop();
+  if (!snap) return null;
+  undoing = true;
+  try {
+    state = migrate(JSON.parse(snap.json));
+    persist();
+    subs.forEach(f => { try { f(state); } catch (e) { console.error(e); } });
+  } finally { undoing = false; }
+  return snap.label || 'הפעולה האחרונה';
+}
+
+/** update(fn) — משנה את המצב, שומר, ומודיע לכולם
+ *  opts.silent — בלי רינדור מחדש ובלי צילום (משמש לפעימת "אני כאן")
+ *  opts.label  — מה לכתוב ב"בוטל: ___". בלי תווית אין צילום ואי אפשר לבטל. */
 export function update(fn, opts = {}) {
+  if (opts.label && !opts.silent && !undoing) {
+    try {
+      undoStack.push({ json: JSON.stringify(state), label: opts.label, at: now() });
+      if (undoStack.length > UNDO_MAX) undoStack.shift();
+    } catch (e) { console.warn('צילום לביטול נכשל', e); }
+  }
   const r = fn(state);
   if (r && typeof r === 'object') state = r;
   persist();
@@ -274,22 +340,25 @@ export function addItem(partial) {
   return item;
 }
 
-export function patchItem(id, patch) {
+/** label אופציונלי — אם הועבר, הפעולה ניתנת לביטול ב-Ctrl+Z */
+export function patchItem(id, patch, label) {
   update(s => {
     const it = s.items.find(x => x.id === id);
     if (!it) return;
     Object.assign(it, patch, { updatedAt: now() });
-  });
+  }, { label });
   return state.items.find(x => x.id === id);
 }
 
 export function removeItem(id) {
+  const it = getItem(id);
+  const label = 'מחיקת ' + (it && it.title ? `"${it.title}"` : 'הפריט');
   update(s => {
     s.items = s.items.filter(x => x.id !== id);
     s.timeEntries = s.timeEntries.filter(e => e.itemId !== id);
     s.waiting = s.waiting.filter(w => w.itemId !== id);
     if (s.timer && s.timer.itemId === id) s.timer = null;
-  });
+  }, { label });
 }
 
 export const getItem = id => state.items.find(x => x.id === id);
@@ -321,12 +390,13 @@ export function patchNoteTag(id, patch) {
 
 /** מוחק תגית ומנקה אותה מכל הפתקים */
 export function removeNoteTag(id) {
+  const t = noteTag(id);
   update(s => {
-    s.noteTags = s.noteTags.filter(t => t.id !== id);
+    s.noteTags = s.noteTags.filter(x => x.id !== id);
     s.items.forEach(i => {
       if (Array.isArray(i.noteTags)) i.noteTags = i.noteTags.filter(x => x !== id);
     });
-  });
+  }, { label: 'מחיקת הנושא ' + (t ? `"${t.name}"` : '') });
 }
 
 /** כל מזהי הקבצים שעדיין בשימוש — לניקוי יתומים ב-IndexedDB */
@@ -370,7 +440,7 @@ export function moveToStage(itemId, stageId) {
         if (c && i < idx) c.done = true;
       });
     }
-  });
+  }, { label: 'העברת שלב' });
 }
 
 /* ---------- כסף ---------- */

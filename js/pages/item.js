@@ -217,7 +217,7 @@ function actions(it, draw) {
 
   row.append(el('span', { style: { flex: 1 } }));
   row.append(el('button', {
-    class: 'btn', onclick: () => { patchItem(it.id, { archived: !it.archived }); toast(it.archived ? 'הוחזר' : 'לארכיון'); closeModal(); refresh(); }
+    class: 'btn', onclick: () => { patchItem(it.id, { archived: !it.archived }, (it.archived ? 'החזרה מהארכיון: ' : 'העברה לארכיון: ') + it.title); toast(it.archived ? 'הוחזר' : 'לארכיון'); closeModal(); refresh(); }
   }, it.archived ? '↩ החזר' : '🗄 ארכיון'));
   row.append(el('button', {
     class: 'btn btn-danger',

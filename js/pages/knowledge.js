@@ -128,7 +128,7 @@ function row(x, isTop) {
   acts.append(el('span', { style: { flex: 1 } }));
   acts.append(el('button', {
     class: 'btn btn-xs', 'data-tip': 'know.archive',
-    onclick: () => { patchItem(k.id, { archived: !k.archived }); toast(k.archived ? 'הוחזר' : 'לארכיון'); refresh(); }
+    onclick: () => { patchItem(k.id, { archived: !k.archived }, (k.archived ? 'החזרה מהארכיון: ' : 'העברה לארכיון: ') + k.title); toast(k.archived ? 'הוחזר' : 'לארכיון'); refresh(); }
   }, k.archived ? '↩' : '🗄'));
   node.append(acts);
   return node;

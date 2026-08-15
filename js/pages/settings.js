@@ -5,6 +5,7 @@
 import { S, update, uid, downloadBackup, importJSON, exportJSON, resetAll, loadSample, liveAttachmentIds } from '../store.js';
 import { el, ago, toast, modal, input, select, field, confirmBox, dur, num, DAY } from '../util.js';
 import * as A from '../attachments.js';
+import * as AB from '../autobackup.js';
 import * as notify from '../notify.js';
 import { lineEditor } from './pipeline.js';
 import { refresh } from '../app.js';
@@ -24,6 +25,97 @@ function render(root) {
     el('div', {}, generalCard(), typesCard(), dangerCard())
   ));
 }
+
+/* ================= גיבוי אוטומטי לתיקייה ================= */
+
+function autoBackupBlock() {
+  const box = el('div', {});
+  box.append(el('div', { style: { fontWeight: '700', marginBottom: '5px' } }, 'גיבוי אוטומטי לתיקייה'));
+
+  if (!AB.supported()) {
+    box.append(el('div', { class: 'small muted', style: { lineHeight: '1.7' } },
+      'הדפדפן הזה לא מאפשר לאתר לכתוב לתיקייה. בכרום או באדג\' תוכל לבחור תיקייה פעם אחת ' +
+      'והמערכת תגבה לשם לבד, בלי שתצטרך לזכור.'));
+    return box;
+  }
+
+  box.append(el('div', { class: 'small muted', style: { lineHeight: '1.7', marginBottom: '10px' } },
+    'בוחרים תיקייה פעם אחת — למשל תיקייה מסונכרנת בדרייב — והמערכת כותבת לשם קובץ גיבוי ' +
+    'בכל פתיחה, לא יותר מפעם ביום. שומרת 30 קבצים אחרונים ומוחקת ישנים.'));
+
+  const line = el('div', { class: 'small muted', style: { marginBottom: '9px' } }, 'בודק…');
+  const row = el('div', { style: { display: 'flex', gap: '7px', flexWrap: 'wrap' } });
+  box.append(line, row);
+
+  const filesCb = el('input', {
+    type: 'checkbox', checked: !!s0().settings.autoBackupFiles,
+    style: { width: '15px', height: '15px', accentColor: '#ffd400', cursor: 'pointer' },
+    onchange: e => update(st => { st.settings.autoBackupFiles = e.target.checked; })
+  });
+  box.append(el('label', {
+    class: 'chk', style: { marginTop: '9px' },
+    'data-tip': 'הגיבוי האוטומטי יכלול גם את התמונות והמסמכים מהפנקס. הקובץ ייצא גדול בהרבה.'
+  }, filesCb, el('span', {}, 'כלול גם קבצים מהפנקס בגיבוי האוטומטי')));
+
+  (async () => {
+    const st = await AB.status();
+    const name = await AB.folderName();
+    row.innerHTML = '';
+    const last = s0().settings.lastAutoBackupAt;
+
+    if (st === 'granted') {
+      line.textContent = `כותב ל"${name}" · ` + (last ? 'גיבוי אוטומטי אחרון לפני ' + ago(last) : 'עוד לא נכתב גיבוי');
+      line.style.color = 'var(--green)';
+      row.append(
+        el('button', {
+          class: 'btn btn-sm', onclick: async () => {
+            try { const n = await AB.backupNow(); toast('נכתב ' + n, 'ok'); refresh(); }
+            catch (e) { toast(e.message, 'err'); }
+          }
+        }, 'גבה עכשיו'),
+        el('button', { class: 'btn btn-sm', onclick: () => changeFolder() }, 'החלף תיקייה'),
+        el('button', {
+          class: 'btn btn-sm btn-danger', onclick: async () => {
+            await AB.forget();
+            update(stt => { stt.settings.autoBackupDir = false; });
+            toast('נותק'); refresh();
+          }
+        }, 'נתק')
+      );
+    } else if (st === 'prompt') {
+      line.textContent = `התיקייה "${name}" נבחרה, אבל הדפדפן מבקש אישור מחדש.`;
+      line.style.color = 'var(--yellow)';
+      row.append(el('button', {
+        class: 'btn btn-sm btn-y', onclick: async () => {
+          const ok = await AB.reconnect();
+          toast(ok ? 'חובר מחדש' : 'לא אושר', ok ? 'ok' : 'err');
+          refresh();
+        }
+      }, 'חבר מחדש'));
+    } else {
+      line.textContent = 'לא נבחרה תיקייה. הגיבוי כרגע ידני בלבד.';
+      line.style.color = '';
+      row.append(el('button', { class: 'btn btn-sm btn-y', onclick: () => changeFolder() }, 'בחר תיקייה'));
+    }
+  })();
+
+  async function changeFolder() {
+    try {
+      const name = await AB.chooseFolder();
+      update(st => { st.settings.autoBackupDir = true; });
+      toast('התיקייה "' + name + '" נבחרה', 'ok');
+      try { const n = await AB.backupNow(); toast('נכתב ' + n, 'ok'); } catch { /* ננסה שוב מחר */ }
+      refresh();
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;      // סגר את החלון
+      toast(e.message || 'בחירת התיקייה נכשלה', 'err');
+    }
+  }
+
+  return box;
+}
+
+const s0 = () => S();
 
 /* ================= גיבוי ================= */
 
@@ -121,6 +213,9 @@ function backupCard() {
 
   card.append(el('div', { class: 'small muted', style: { marginTop: '4px' } },
     'טיפ: שמור את קובץ הגיבוי בדרייב או בוואטסאפ לעצמך. זה לוקח 10 שניות ומציל חודש עבודה.'));
+
+  card.append(el('div', { class: 'hr' }));
+  card.append(autoBackupBlock());
 
   // קובץ דוגמה
   card.append(el('div', { class: 'hr' }));

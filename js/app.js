@@ -2,7 +2,7 @@
    app.js — שלד האפליקציה: ניווט, סרגל הטיימר, הקלט החופשי
    ============================================================ */
 
-import { S, subscribe, update, getItem, backupOverdue, downloadBackup } from './store.js';
+import { S, subscribe, update, getItem, backupOverdue, downloadBackup, undo, undoDepth, lastUndoLabel } from './store.js';
 import { $, el, toast, hms, dur, modal, closeModal, hhmm, ago, MIN } from './util.js';
 import * as T from './timer.js';
 import { classify, commit, retype, classifyWithAssistant } from './capture.js';
@@ -72,7 +72,8 @@ function renderPage() {
     ));
   }
   document.body.dataset.mod = path;      // צובע את העמוד לפי המודול
-  document.title = (path ? PAGES[path].title + ' · ' : '') + 'פרונט';
+  baseTitle = (path ? PAGES[path].title + ' · ' : '') + 'פרונט';
+  tabTitle();
   buildNav();
   window.scrollTo(0, 0);
   $('#nav').classList.remove('open');
@@ -110,6 +111,8 @@ function buildNav() {
       p.badge && n ? el('span', { class: 'badge' }, String(n)) : null
     ));
   });
+
+  syncUndoBtn();
 
   const hint = $('#backup-hint');
   const last = S().settings.lastBackupAt;
@@ -192,7 +195,30 @@ function tickClock() {
   const clock = $('#clock');
   if (clock) clock.textContent = hhmm(Date.now());
   if (current && current.page.mod.tick) { try { current.page.mod.tick(); } catch (e) { } }
+  tabTitle();
 }
+
+/* ---------- הטיימר בכותרת הטאב ----------
+   הרגע שבו שוכחים לעצור הוא הרגע שבו אתה בטאב אחר. שם הטאב הוא המקום
+   היחיד שממשיך להיות גלוי גם אז. */
+let baseTitle = 'פרונט';
+
+function tabTitle() {
+  const t = T.activeTimer();
+  const w = S().waiting[0];
+  let prefix = '';
+  if (t) {
+    const it = t.itemId ? getItem(t.itemId) : null;
+    prefix = `⏱ ${hms(T.elapsed()).replace(/^00:/, '')} · ${it ? shortT(it.title) : T.KINDS[t.kind]?.name || 'עבודה'} — `;
+  } else if (w) {
+    const it = getItem(w.itemId);
+    prefix = `⏸ ${it ? shortT(it.title) : 'ממתין'} — `;
+  }
+  const next = prefix + baseTitle;
+  if (document.title !== next) document.title = next;
+}
+
+const shortT = s => (s || '').length > 18 ? s.slice(0, 17) + '…' : (s || '');
 
 /* ---------- מחליף מהיר: לחיצה אחת ומחליפים ---------- */
 export function openSwitcher() {
@@ -341,6 +367,28 @@ async function doCapture() {
   }
 }
 
+/* ================= ביטול פעולה ================= */
+
+const inField = t => !!(t && t.closest && t.closest('input,textarea,select,[contenteditable="true"]'));
+
+/** כפתור הביטול מתעדכן בכל שינוי מצב, לא רק ברינדור עמוד */
+function syncUndoBtn() {
+  const u = $('#nav-undo');
+  if (!u) return;
+  const label = lastUndoLabel();
+  u.hidden = !label;
+  if (label) u.textContent = '↶ בטל: ' + (label.length > 22 ? label.slice(0, 21) + '…' : label);
+}
+
+export function doUndo() {
+  const label = undo();
+  if (!label) { toast('אין מה לבטל', 'err'); return; }
+  closeModal();
+  toast('בוטל: ' + label, 'ok');
+  refresh();
+  renderTimerBar();
+}
+
 /** נפתח מכל מקום — כרטיס הפריט. פתק נפתח בעורך הפנקס. */
 export function openItem(id) {
   const it = getItem(id);
@@ -354,6 +402,8 @@ function init() {
   // ניווט
   window.addEventListener('hashchange', renderPage);
   $('#menu-toggle').addEventListener('click', () => $('#nav').classList.toggle('open'));
+  $('#nav-undo').setAttribute('data-tip', 'gen.undo');
+  $('#nav-undo').addEventListener('click', doUndo);
   $('#nav-export').addEventListener('click', () => {
     const n = downloadBackup();
     toast('ירד הקובץ ' + n, 'ok');
@@ -372,10 +422,14 @@ function init() {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'j') {
       e.preventDefault(); openSwitcher();
     }
+    // ביטול פעולה — רק כשלא עומדים בתוך שדה טקסט, שם Ctrl+Z שייך לדפדפן
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z' && !inField(e.target)) {
+      e.preventDefault(); doUndo();
+    }
   });
 
   // מצב
-  subscribe(() => { renderTimerBar(); });
+  subscribe(() => { renderTimerBar(); syncUndoBtn(); });
   T.onTick(() => { renderTimerBar(); refresh(); });
 
   // נוכחות והתראות
@@ -398,13 +452,31 @@ function init() {
   renderPage();
   tickClock();
 
-  // תזכורת גיבוי בכניסה
-  if (backupOverdue()) {
-    setTimeout(() => toast('לא גיבית כבר כמה ימים — כדאי לייצא JSON', 'err'), 2500);
-  }
+  // גיבוי אוטומטי לתיקייה, ואם אין — תזכורת
+  import('./autobackup.js').then(async AB => {
+    const name = await AB.maybeBackup();
+    if (name) { toast('גיבוי אוטומטי נכתב · ' + name, 'ok'); buildNav(); return; }
+    if (backupOverdue()) {
+      const st = await AB.status();
+      setTimeout(() => toast(st === 'prompt'
+        ? 'הגיבוי האוטומטי מנותק — כנס להגדרות ולחץ "חבר מחדש"'
+        : 'לא גיבית כבר כמה ימים — כדאי לייצא JSON', 'err'), 2500);
+    }
+  }).catch(() => {
+    if (backupOverdue()) setTimeout(() => toast('לא גיבית כבר כמה ימים — כדאי לייצא JSON', 'err'), 2500);
+  });
 
   window.addEventListener('front:storage-full', () =>
     toast('האחסון בדפדפן מלא. ייצא גיבוי ומחק פריטים ישנים.', 'err'));
+
+  // המערכת פתוחה בטאב נוסף ומשהו השתנה שם
+  window.addEventListener('front:external-change', e => {
+    refresh();
+    renderTimerBar();
+    toast(e.detail && e.detail.hadPending
+      ? 'עדכנת בטאב אחר — משכתי את השינוי לכאן. השינוי האחרון בטאב הזה בוטל.'
+      : 'עודכן מטאב אחר של המערכת', e.detail && e.detail.hadPending ? 'err' : 'ok');
+  });
 
   // אם יש היעדרות פתוחה מהפעם הקודמת
   const p = S().pendingAbsence;

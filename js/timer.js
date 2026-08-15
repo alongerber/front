@@ -6,6 +6,7 @@
 
 import { S, update, uid, getItem } from './store.js';
 import { MIN, HOUR, DAY, startOfDay, endOfDay, toast } from './util.js';
+import * as P from './presence.js';
 
 export const KINDS = {
   work:  { name: 'עבודה',  color: '#ffd400', focus: true },
@@ -126,8 +127,33 @@ function overlap(e, from, to) {
   return Math.max(0, Math.min(e.end, to) - Math.max(e.start, from));
 }
 
-/** זמן קשב — כמה באמת עבד (עבודה + למידה) */
+/** חיתוך קטע לגבולות, ואז גריעת הזמן שבו לא היית ליד המחשב */
+function activePart(start, end, from, to) {
+  const a = Math.max(start, from), b = Math.min(end, to);
+  if (b <= a) return 0;
+  return P.hasData(a) ? P.activeMsIn(a, b) : b - a;
+}
+
+/**
+ * זמן קשב — כמה באמת עבד (עבודה + למידה).
+ * כשזיהוי הנוכחות פעיל, זמן שבו לא היית ליד המחשב נגרע לבד —
+ * גם אם הטיימר המשיך לרוץ, וגם אם היית בוגאס ולא בלשונית הזאת.
+ */
 export function focusMs(itemId = null, from = 0, to = Infinity) {
+  const hi = to === Infinity ? now() : to;
+  let ms = S().timeEntries.reduce((a, e) => {
+    if (itemId && e.itemId !== itemId) return a;
+    if (!KINDS[e.kind]?.focus) return a;
+    return a + activePart(e.start, e.end, from, hi);
+  }, 0);
+  const t = S().timer;
+  if (t && KINDS[t.kind]?.focus && (!itemId || t.itemId === itemId))
+    ms += activePart(t.startedAt, now(), from, hi);
+  return ms;
+}
+
+/** זמן קשב בלי גריעת נוכחות — כדי להראות את ההפרש */
+export function grossFocusMs(itemId = null, from = 0, to = Infinity) {
   let ms = S().timeEntries.reduce((a, e) => {
     if (itemId && e.itemId !== itemId) return a;
     if (!KINDS[e.kind]?.focus) return a;
@@ -186,9 +212,9 @@ export function todayByItem() {
     cur.ms += ms; if (itemId) cur.kind = kind;
     map.set(key, cur);
   };
-  S().timeEntries.forEach(e => { if (KINDS[e.kind]?.focus) add(e.itemId, e.kind, overlap(e, from, to)); });
+  S().timeEntries.forEach(e => { if (KINDS[e.kind]?.focus) add(e.itemId, e.kind, activePart(e.start, e.end, from, to)); });
   const t = S().timer;
-  if (t && KINDS[t.kind]?.focus) add(t.itemId, t.kind, overlap({ start: t.startedAt, end: now() }, from, to));
+  if (t && KINDS[t.kind]?.focus) add(t.itemId, t.kind, activePart(t.startedAt, now(), from, to));
   return Array.from(map.values()).sort((a, b) => b.ms - a.ms);
 }
 

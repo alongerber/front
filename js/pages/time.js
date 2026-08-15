@@ -151,10 +151,14 @@ function threeNumbers() {
   const lbl = (text, tip) => el('div', { class: 'lbl', style: { display: 'flex', alignItems: 'center' } },
     text, hintBadge(tip));
 
+  const gross = T.grossFocusMs(null, from, to);
+  const deducted = Math.max(0, gross - focus);
   box.append(el('div', { class: 'stat y' },
     lbl('זמן קשב היום', 'time.focus'),
     el('div', { class: 'val' }, focus ? dur(focus, true) : '0 שע\''),
-    el('div', { class: 'sub' }, 'כמה באמת ישבת על זה — רק זה נחשב לתמחור')
+    el('div', { class: 'sub' }, deducted > MIN
+      ? `נגרעו ${dur(deducted, true)} שלא היית ליד המחשב`
+      : 'כמה באמת ישבת על זה — רק זה נחשב לתמחור')
   ));
   box.append(el('div', { class: 'stat' },
     lbl('המתנה', 'time.wait'),

@@ -53,6 +53,8 @@ export function defaultState() {
       leadSlaMinutes: 120,        // ליד ללא מענה מעל X דקות
       idleAskMinutes: 3,          // מעל כמה דקות היעדרות שואלים "איפה היית"
       autoWaitMinutes: 8,         // הטאב פתוח ואין מגע X דקות → הטיימר עובר להמתנה לבד. 0 = מכובה
+      presenceEnabled: false,     // Idle Detection — לדעת אם אתה ליד המחשב בכלל (כרום/אדג')
+      floatWindow: true,          // חלון צף מעל שאר התוכנות
       longAbsenceHours: 2,        // מעל כמה שעות הטיימר נעצר לבד
       timerNudgeHours: 2,         // טיימר רץ מעל X שעות בלי מגע
       decisionStaleDays: 7,       // החלטה פתוחה שיושבת יותר מדי
@@ -73,7 +75,7 @@ export function defaultState() {
          בזמנים אקראיים, ומספרת. ראה sampling.js */
       sampling: {
         enabled: true,
-        perDay: 12,
+        perDay: 4,
         fromHour: 9,
         toHour: 19,
         days: [0, 1, 2, 3, 4],    // 0 = ראשון
@@ -98,6 +100,9 @@ export function defaultState() {
     timeEntries: [],
     samples: [],                 // [{id, at, firedAt, answeredAt, itemId, kind, source}]
     samplePlan: null,            // {date, times:[ts], fired:[ts]}
+    presenceLog: [],             // [{t, active}] נקודות מעבר של "ליד המחשב"/"לא"
+
+
 
     subscriptions: [
       { id: uid('s'), name: 'Claude',            cost: 200, currency: 'USD' },
@@ -186,7 +191,7 @@ function migrate(s) {
   out.settings = Object.assign({}, d.settings, s.settings || {});
   out.settings.notifications = Object.assign({}, d.settings.notifications, (s.settings || {}).notifications || {});
   out.settings.sampling = Object.assign({}, d.settings.sampling, (s.settings || {}).sampling || {});
-  for (const k of ['productLines', 'itemTypes', 'items', 'timeEntries', 'subscriptions', 'ledger', 'links', 'waiting', 'chat', 'noteTags', 'samples']) {
+  for (const k of ['productLines', 'itemTypes', 'items', 'timeEntries', 'subscriptions', 'ledger', 'links', 'waiting', 'chat', 'noteTags', 'samples', 'presenceLog']) {
     if (!Array.isArray(out[k])) out[k] = d[k];
   }
   if (!out.productLines.length) out.productLines = d.productLines;

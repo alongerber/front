@@ -8,6 +8,8 @@ import * as A from '../attachments.js';
 import * as AB from '../autobackup.js';
 import { labelWithHint, hintBadge } from '../help.js';
 import * as SM from '../sampling.js';
+import * as P from '../presence.js';
+import * as FW from '../floatwin.js';
 import * as notify from '../notify.js';
 import { lineEditor } from './pipeline.js';
 import { refresh } from '../app.js';
@@ -28,6 +30,85 @@ function render(root) {
   ));
 }
 
+/* ---------- שכבה 1: זיהוי נוכחות ---------- */
+
+function presenceBlock() {
+  const box = el('div', { style: { marginBottom: '13px' } });
+  box.append(el('div', { style: { fontWeight: '700', marginBottom: '4px', display: 'flex', alignItems: 'center' } },
+    'שכבה 1 · האם אתה ליד המחשב', hintBadge('time.presence')));
+
+  if (!P.supported()) {
+    box.append(el('div', { class: 'small muted', style: { lineHeight: '1.7' } },
+      'הדפדפן הזה לא תומך. בכרום או באדג\' המערכת יודעת לבד מתי קמת מהמחשב — ' +
+      'גם כשאתה בוגאס — וגורעת את הזמן הזה מהמדידה בלי שתעשה כלום.'));
+    return box;
+  }
+
+  box.append(el('div', { class: 'small muted', style: { lineHeight: '1.7', marginBottom: '9px' } },
+    'רואה הקלדה ותזוזת עכבר בכל המערכת, לא רק בלשונית הזאת. זמן שבו לא היית ' +
+    'ליד המחשב נגרע מזמן הקשב לבד — גם אם הטיימר המשיך לרוץ.'));
+
+  const line = el('div', { class: 'small muted', style: { marginBottom: '8px' } }, 'בודק…');
+  const row = el('div', { style: { display: 'flex', gap: '7px', flexWrap: 'wrap' } });
+  box.append(line, row);
+
+  P.status().then(st => {
+    line.textContent = st.text;
+    line.style.color = st.level === 'on' ? 'var(--green)' : st.level === 'denied' ? 'var(--red)' : '';
+    row.innerHTML = '';
+    if (st.level === 'on') {
+      row.append(el('button', {
+        class: 'btn btn-sm btn-danger', onclick: () => {
+          P.stop();
+          update(s => { s.settings.presenceEnabled = false; });
+          toast('כובה'); refresh();
+        }
+      }, 'כבה'));
+    } else if (st.level !== 'denied' && st.level !== 'unsupported') {
+      row.append(el('button', {
+        class: 'btn btn-sm btn-y', onclick: async () => {
+          const p = await P.requestPermission();
+          toast(p === 'granted' ? 'זיהוי הנוכחות פעיל' : 'לא אושר', p === 'granted' ? 'ok' : 'err');
+          refresh();
+        }
+      }, 'אשר עכשיו'));
+    }
+  });
+  return box;
+}
+
+/* ---------- שכבה 2: חלון צף ---------- */
+
+function floatBlock() {
+  const box = el('div', { style: { marginBottom: '13px' } });
+  box.append(el('div', { style: { fontWeight: '700', marginBottom: '4px', display: 'flex', alignItems: 'center' } },
+    'שכבה 2 · חלון צף', hintBadge('time.floatWin')));
+
+  if (!FW.supported()) {
+    box.append(el('div', { class: 'small muted', style: { lineHeight: '1.7' } },
+      'הדפדפן הזה לא תומך בחלון צף. בכרום או באדג\' אפשר לפתוח חלונית קטנה ' +
+      'שצפה מעל כל התוכנות, ולהחליף פרויקט בלחיצה בלי לעזוב את וגאס.'));
+    return box;
+  }
+
+  box.append(el('div', { class: 'small muted', style: { lineHeight: '1.7', marginBottom: '9px' } },
+    'חלונית קטנה שצפה מעל כל התוכנות, כולל וגאס במסך מלא. רואים בה על מה ' +
+    'הטיימר, ומחליפים פרויקט בלחיצה אחת בלי לחפש לשונית. ' +
+    'זו התשובה ל"אני לא אזכור לעדכן" — אתה לא צריך לזכור, זה מול העיניים.'));
+
+  box.append(el('div', { style: { display: 'flex', gap: '7px', flexWrap: 'wrap' } },
+    el('button', {
+      class: 'btn btn-sm btn-y', onclick: async () => {
+        try { await FW.open(); toast('החלון הצף פתוח', 'ok'); }
+        catch (e) { toast(e.message, 'err'); }
+      }
+    }, '🪟 פתח עכשיו'),
+    el('span', { class: 'small muted', style: { alignSelf: 'center' } },
+      'גם מהכפתור 🪟 בסרגל העליון')
+  ));
+  return box;
+}
+
 /* ================= מדידה בדגימות ================= */
 
 function samplingCard() {
@@ -40,9 +121,16 @@ function samplingCard() {
     el('span', { class: 'sub' }, 'איך המערכת יודעת כמה זמן לקח סרטון')));
 
   card.append(el('div', { class: 'small muted', style: { lineHeight: '1.75', marginBottom: '13px' } },
+    'שלוש שכבות שעובדות יחד: הטיימר אומר על מה אתה עובד, זיהוי הנוכחות גורע ' +
+    'לבד את הזמן שלא היית ליד המחשב, והדגימות הן רשת ביטחון.'));
+
+  card.append(presenceBlock());
+  card.append(floatBlock());
+  card.append(el('div', { class: 'hr' }));
+  card.append(el('div', { style: { fontWeight: '700', marginBottom: '4px' } }, 'שכבה 3 · דגימות'));
+  card.append(el('div', { class: 'small muted', style: { lineHeight: '1.7', marginBottom: '11px' } },
     'המערכת שואלת "מה אתה עושה עכשיו?" בזמנים אקראיים, ואתה לוחץ כפתור אחד. ' +
-    'כל דגימה מייצגת פרק זמן קבוע, אז ספירת הדגימות היא המדידה. ' +
-    'זה עובד גם כשאתה בוגאס או בהיגספילד — אתה לא צריך לזכור כלום.'));
+    'תופס את המקרה שבו הטיימר על דני אבל אתה בעצם על משה.'));
 
   const on = el('input', {
     type: 'checkbox', checked: c.enabled,

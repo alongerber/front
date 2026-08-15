@@ -11,6 +11,8 @@ import { initHelp } from './help.js';
 import { rollRoutines } from './brain.js';
 import { initPalette, openPalette } from './palette.js';
 import * as sampleUI from './sampleui.js';
+import * as P from './presence.js';
+import * as FW from './floatwin.js';
 import * as notify from './notify.js';
 
 import home from './pages/home.js';
@@ -513,6 +515,22 @@ function init() {
   initHelp();
   $('#capture').setAttribute('data-tip', 'gen.capture');
   $('#nav-export').setAttribute('data-tip', 'gen.export');
+
+  // חלון צף מעל שאר התוכנות
+  const fbtn = $('#float-open');
+  if (FW.supported()) {
+    fbtn.hidden = false;
+    fbtn.setAttribute('data-tip', 'time.floatWin');
+    fbtn.addEventListener('click', async () => {
+      try {
+        if (FW.isOpen()) { FW.close(); toast('החלון הצף נסגר'); }
+        else { await FW.open(); toast('החלון הצף פתוח — הוא צף מעל כל תוכנה', 'ok'); }
+      } catch (e) { toast(e.message, 'err'); }
+    });
+  }
+
+  // זיהוי נוכחות — מתחיל לבד אם כבר אושר פעם
+  P.start().then(ok => { if (ok) P.onChange(() => { renderTimerBar(); }); });
 
   $('#search-open').setAttribute('data-tip', 'notes.globalSearch');
   $('#search-open').addEventListener('click', () => openPalette());

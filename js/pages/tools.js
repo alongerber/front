@@ -5,6 +5,7 @@
 import { S, update, uid } from '../store.js';
 import { el, toast, modal, input, field, confirmBox } from '../util.js';
 import { refresh } from '../app.js';
+import { hintBadge, labelWithHint } from '../help.js';
 
 export default { render };
 
@@ -13,7 +14,7 @@ function render(root) {
 
   root.append(el('div', { class: 'page-h' },
     el('h1', {}, 'כלים'),
-    el('div', { class: 'desc' }, 'כל מה שבנוי, במקום אחד'),
+    el('div', { class: 'desc' }, 'קיצורי דרך לכל מה שכבר בנית', hintBadge('tools.link')),
     el('div', { class: 'right' }, el('button', { class: 'btn btn-sm btn-y', onclick: () => form() }, '+ קישור'))
   ));
 
@@ -35,7 +36,9 @@ function render(root) {
   root.append(grid);
 
   root.append(el('div', { class: 'card', style: { marginTop: '14px' } },
-    el('div', { class: 'card-h' }, el('h3', {}, 'המחירים שלך')),
+    el('div', { class: 'card-h' },
+      el('h3', {}, 'המחירים שלך'),
+      el('span', { class: 'sub' }, 'משתנים בצינור → ⚙ שלבים')),
     el('div', { class: 'small muted', style: { lineHeight: '1.8' } },
       ...s.productLines.map(p => el('div', {},
         el('b', {}, p.name + ': '),

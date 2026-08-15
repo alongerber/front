@@ -681,18 +681,19 @@ function generalCard() {
 
   const rows = [
     ['ownerName', 'שם', 'text'],
-    ['workHoursPerDay', 'שעות עבודה ביום (זמן זמין)', 'number'],
+    ['workHoursPerDay', 'שעות עבודה ביום (זמן זמין)', 'number', 'set.workHours'],
     ['dayStartHour', 'שעת התחלה', 'number'],
-    ['hourlyTarget', 'תעריף שעתי יעד ₪', 'number'],
+    ['hourlyTarget', 'תעריף שעתי יעד ₪', 'number', 'set.hourly'],
     ['avgLeadCost', 'עלות ממוצעת לליד ₪', 'number']
   ];
-  rows.forEach(([key, label, type]) => {
+  rows.forEach(([key, label, type, tip]) => {
     const i = input({ type, value: s.settings[key] ?? (type === 'number' ? 0 : '') });
+    if (tip) i.setAttribute('data-tip', tip);
     i.addEventListener('change', () => {
       update(st => { st.settings[key] = type === 'number' ? Number(i.value) : i.value; });
       refresh();
     });
-    card.append(field(label, i,
+    card.append(field(tip ? labelWithHint(label, tip) : label, i,
       key === 'avgLeadCost' ? 'משמש רק עד שיצטברו נתוני פרסום אמיתיים. אז המערכת מחשבת לבד לפי ערוץ.' : null));
   });
 
@@ -792,9 +793,13 @@ function dangerCard() {
         () => { update(st => { st.timeEntries = []; st.timer = null; st.waiting = []; }); toast('נמחקו'); refresh(); })
     }, 'מחק רשומות זמן'),
     el('button', {
-      class: 'btn btn-danger', onclick: () => confirmBox(
-        'לאפס הכל לברירת מחדל? כל הלקוחות, הזמנים, הידע והקבצים בפנקס יימחקו. ייצא גיבוי קודם!',
-        async () => { resetAll(); await A.pruneOrphans([]); toast('אופס'); location.hash = '#/'; refresh(); }, 'כן, אפס הכל')
+      class: 'btn btn-danger',
+      'data-tip': 'set.reset',
+      onclick: () => confirmBox(
+        'לאפס הכל לברירת מחדל? כל הלקוחות, הזמנים, הידע והקבצים בפנקס יימחקו. ' +
+        'ייצא גיבוי קודם — גם Ctrl+Z לא יחזיר את זה.',
+        async () => { resetAll(); await A.pruneOrphans([]); toast('אופס'); location.hash = '#/'; refresh(); },
+        'כן, אפס הכל')
     }, 'אפס הכל')
   ));
   return card;

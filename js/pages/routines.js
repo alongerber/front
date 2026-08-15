@@ -19,7 +19,7 @@ function render(root) {
 
   root.append(el('div', { class: 'page-h' },
     el('h1', {}, 'שגרה'),
-    el('div', { class: 'desc' }, 'מה שחוזר, כדי שלא תצטרך לזכור'),
+    el('div', { class: 'desc' }, 'מה שחוזר, כדי שלא תצטרך לזכור', hintBadge('routine.freq')),
     el('div', { class: 'right' },
       el('button', { class: 'btn btn-sm btn-y', onclick: () => form() }, '+ שגרה'))
   ));
@@ -28,9 +28,9 @@ function render(root) {
   const quiet = list.filter(r => r.overdue >= 0 && r.missCount >= 2);
   const later = list.filter(r => r.overdue < 0);
 
-  root.append(section('להיום', due, 'אין מה לעשות עכשיו — הכל בזמן'));
+  root.append(section('להיום', due, 'אין מה לעשות עכשיו — הכל בזמן', false, 'routine.freq'));
   if (quiet.length) root.append(section('פוספסו יותר מפעם — בלי לחץ', quiet, '', true, 'routine.miss'));
-  root.append(section('בהמשך', later, 'אין שגרות עתידיות'));
+  root.append(section('בהמשך', later, 'אין שגרות עתידיות', false, 'routine.miss'));
 
   const arch = s.items.filter(i => i.type === 'routine' && i.archived);
   if (arch.length) {

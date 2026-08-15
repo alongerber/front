@@ -9,6 +9,7 @@ import { runRules } from '../rules.js';
 import { callAssistant } from '../api.js';
 import { unitEconomics, rankedKnowledge, dueRoutines, actionQueue, measuredHoursPerVideo } from '../brain.js';
 import { refresh, go } from '../app.js';
+import { hintBadge } from '../help.js';
 
 export default { render };
 
@@ -19,7 +20,9 @@ function render(root) {
 
   root.append(el('div', { class: 'page-h' },
     el('h1', {}, 'עוזר'),
-    el('div', { class: 'desc' }, 'מנוע הכללים רץ תמיד וחינם. הצ\'אט עולה כסף ומקבל את כל התמונה.'),
+    el('div', { class: 'desc' },
+      'שני דברים שונים: מנוע הכללים רץ תמיד ולא עולה כלום. הצ\'אט עולה — ומקבל את כל התמונה.',
+      hintBadge('assist.cost')),
     el('div', { class: 'right' },
       el('button', { class: 'btn btn-sm', onclick: () => { update(st => { st.chat = []; }); refresh(); } }, 'נקה שיחה'))
   ));
@@ -27,8 +30,8 @@ function render(root) {
   /* ---- מנוע כללים ---- */
   const rules = el('div', { class: 'card' });
   rules.append(el('div', { class: 'card-h' },
-    el('h3', {}, 'מנוע הכללים'),
-    el('span', { class: 'sub' }, 'בלי עלות · מתעדכן לבד')));
+    el('h3', { style: { display: 'flex', alignItems: 'center' } }, 'מנוע הכללים', hintBadge('assist.cost')),
+    el('span', { class: 'sub' }, 'רץ תמיד · לא עולה כלום · אותן התראות שבבית')));
   const alerts = runRules();
   const box = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '7px' } });
   alerts.forEach(a => box.append(el('div', { class: 'alert ' + (a.level || '') }, el('div', { style: { flex: 1 } }, a.text))));
@@ -38,8 +41,8 @@ function render(root) {
   /* ---- צ'אט ---- */
   const card = el('div', { class: 'card', style: { marginTop: '14px' } });
   card.append(el('div', { class: 'card-h' },
-    el('h3', {}, 'צ\'אט'),
-    el('span', { class: 'sub' }, 'אסטרטגיה, תמחור, החלטות')));
+    el('h3', { style: { display: 'flex', alignItems: 'center' } }, 'צ\'אט', hintBadge('assist.context')),
+    el('span', { class: 'sub' }, 'אסטרטגיה, תמחור, החלטות · מקבל את הנתונים שלך')));
 
   const chat = el('div', { class: 'chat' });
   const msgs = s.chat || [];

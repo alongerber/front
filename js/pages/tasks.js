@@ -8,6 +8,7 @@ import * as T from '../timer.js';
 import { scoreTask } from '../brain.js';
 import { refresh, openItem } from '../app.js';
 import { decideModal } from './home.js';
+import { hintBadge, labelWithHint } from '../help.js';
 
 export default { render };
 
@@ -19,7 +20,11 @@ function render(root, params) {
 
   root.append(el('div', { class: 'page-h' },
     el('h1', {}, f === 'decision' ? 'החלטות' : f === 'idea' ? 'רעיונות' : 'משימות'),
-    el('div', { class: 'desc' }, f === 'decision' ? 'דילמות פתוחות שצריך להכריע' : f === 'idea' ? 'מה שקפץ לראש' : 'עם שיוך ללקוח או בלי'),
+    el('div', { class: 'desc' },
+      f === 'decision' ? 'דילמות פתוחות. החלטה שנשארת פתוחה עולה יותר מהחלטה לא מושלמת.'
+        : f === 'idea' ? 'מה שקפץ לראש. בלי דדליין, בלי לחץ.'
+          : 'ממוינות לבד לפי דחיפות — לא לפי סדר ההוספה.',
+      hintBadge(f === 'decision' ? 'task.decision' : f === 'idea' ? 'task.idea' : 'task.why')),
     el('div', { class: 'right' },
       ...[['task', 'משימות'], ['decision', 'החלטות'], ['idea', 'רעיונות']].map(([k, l]) =>
         el('button', { class: 'btn btn-sm ' + (f === k ? 'btn-y' : ''), onclick: () => { location.hash = '#/tasks?f=' + k; } }, l)),
@@ -40,8 +45,11 @@ function renderTasks(root) {
   const done = all.filter(t => t.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0));
 
   const card = el('div', { class: 'card' });
-  card.append(el('div', { class: 'card-h' }, el('h3', {}, 'פתוחות'), el('span', { class: 'sub' }, open.length + '')));
-  if (!open.length) card.append(el('div', { class: 'empty' }, 'אין משימות פתוחות. כתוב משהו בשורת הקלט למעלה.'));
+  card.append(el('div', { class: 'card-h' },
+    el('h3', { style: { display: 'flex', alignItems: 'center' } }, 'פתוחות', hintBadge('task.why')),
+    el('span', { class: 'sub' }, open.length ? `${open.length} · הדחוף למעלה` : '')));
+  if (!open.length) card.append(el('div', { class: 'empty' },
+    'אין משימות פתוחות. כתוב משהו בשורת הקלט למעלה — המערכת תסווג לבד.'));
 
   open.forEach(({ t, why }) => {
     const client = t.clientId ? getItem(t.clientId) : null;
@@ -56,7 +64,7 @@ function renderTasks(root) {
         el('div', { style: { fontWeight: '600' } }, t.title),
         el('div', { class: 'small muted' }, why + (client ? ` · ${client.title}` : ''))
       ),
-      t.priority === 'high' ? el('span', { class: 'pill pill-r' }, 'דחוף') : null,
+      t.priority === 'high' ? el('span', { class: 'pill pill-r', 'data-tip': 'task.priority' }, 'דחוף') : null,
       t.dueDate ? el('span', { class: 'pill ' + (late ? 'pill-r' : '') }, dmy(t.dueDate)) : null,
       T.focusMs(t.id) ? el('span', { class: 'pill' }, Math.round(T.focusMs(t.id) / 60000) + ' דק\'') : null,
       el('button', { class: 'btn btn-xs ' + (running ? 'btn-y' : ''), onclick: () => { T.startTimer(t.id); refresh(); } }, running ? '● רץ' : '▶')
@@ -88,7 +96,9 @@ function renderDecisions(root) {
     .sort((a, b) => (b.resolvedAt || 0) - (a.resolvedAt || 0));
 
   const card = el('div', { class: 'card' });
-  card.append(el('div', { class: 'card-h' }, el('h3', {}, 'פתוחות'), el('span', { class: 'sub' }, 'ככל שיושב יותר, כך זה יקר יותר')));
+  card.append(el('div', { class: 'card-h' },
+    el('h3', { style: { display: 'flex', alignItems: 'center' } }, 'פתוחות', hintBadge('task.decision')),
+    el('span', { class: 'sub' }, 'ככל שיושב יותר, כך זה יקר יותר')));
   if (!open.length) card.append(el('div', { class: 'empty' }, 'אין החלטות פתוחות'));
 
   open.forEach(d => {
@@ -123,7 +133,9 @@ function renderIdeas(root) {
   const s = S();
   const ideas = s.items.filter(i => i.type === 'idea' && !i.archived).sort((a, b) => b.createdAt - a.createdAt);
   const card = el('div', { class: 'card' });
-  card.append(el('div', { class: 'card-h' }, el('h3', {}, 'רעיונות'), el('span', { class: 'sub' }, ideas.length + '')));
+  card.append(el('div', { class: 'card-h' },
+    el('h3', { style: { display: 'flex', alignItems: 'center' } }, 'רעיונות', hintBadge('task.idea')),
+    el('span', { class: 'sub' }, ideas.length ? `${ideas.length} · בלי דדליין` : '')));
   if (!ideas.length) card.append(el('div', { class: 'empty' }, 'אין רעיונות שמורים'));
   ideas.forEach(i => card.append(el('div', { style: { display: 'flex', gap: '9px', padding: '8px 0', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,.05)' } },
     el('div', { style: { flex: 1, cursor: 'pointer' }, onclick: () => form(i, 'idea') },
@@ -152,8 +164,14 @@ export function form(existing, type) {
   const fD = input({ type: 'date', value: t.dueDate ? dateInput(t.dueDate) : '' });
   const fP = select([{ value: 'normal', label: 'רגיל' }, { value: 'high', label: 'דחוף' }], t.priority || 'normal');
 
-  const body = el('div', {}, field('כותרת', fT), field('פרטים', fN));
-  if (kind === 'task') body.append(el('div', { class: 'row' }, field('לקוח', fC), field('יעד', fD), field('עדיפות', fP)));
+  const body = el('div', {},
+    field('כותרת', fT),
+    field(kind === 'decision' ? labelWithHint('הדילמה', 'task.decision') : 'פרטים', fN,
+      kind === 'decision' ? 'מה האפשרויות, ומה מטריד בכל אחת' : null));
+  if (kind === 'task') body.append(el('div', { class: 'row' },
+    field(labelWithHint('לקוח', 'task.client'), fC),
+    field('יעד', fD),
+    field(labelWithHint('עדיפות', 'task.priority'), fP)));
 
   modal({
     title: (existing ? 'עריכה — ' : 'חדש — ') + typeMeta(kind).name,

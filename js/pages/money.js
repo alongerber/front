@@ -5,7 +5,7 @@
 import { S, update, uid, monthlySubsILS, monthMoney, lineOf } from '../store.js';
 import { el, nis, num, dmy, toast, modal, input, select, field, HOUR } from '../util.js';
 import * as T from '../timer.js';
-import { unitEconomics, measuredHoursPerVideo } from '../brain.js';
+import { unitEconomics, measuredHoursPerVideo, hoursPerVideo } from '../brain.js';
 import { hintBadge } from '../help.js';
 import { refresh, openItem } from '../app.js';
 
@@ -146,10 +146,33 @@ function perVideo() {
   /* --- מה לעשות עם זה --- */
   if (!covers) card.append(adviceBox(e));
 
-  card.append(el('div', { class: 'small muted', style: { marginTop: '11px' } },
-    `לפי מה שנמדד בפועל, סרטון לוקח לך ${num(measuredHoursPerVideo(e.line.id))} שעות של זמן קשב.`));
+  card.append(hoursSourceLine(e.line.id));
 
   return card;
+}
+
+/** מאיפה בא המספר "כמה שעות לוקח סרטון" — כדי שתדע כמה לסמוך עליו */
+function hoursSourceLine(lineId) {
+  const h = hoursPerVideo(lineId);
+  const box = el('div', { class: 'small muted', style: { marginTop: '11px', lineHeight: '1.7' } });
+
+  if (h.source === 'samples') {
+    box.append(el('span', { style: { color: '#a3e635', fontWeight: '600' } },
+      `סרטון לוקח לך ${num(h.hours)} שעות נטו`));
+    box.append(el('span', {}, ` — נמדד מ-${h.samples} דגימות על ${h.n} סרטונים שנמסרו. ` +
+      `טווח הטעות בערך ±${h.errorPct}%, והוא קטן ככל שנאספות עוד דגימות.`));
+  } else if (h.source === 'timer') {
+    box.append(el('span', { style: { color: '#ffd400', fontWeight: '600' } },
+      `סרטון לוקח לך ${num(h.hours)} שעות`));
+    box.append(el('span', {}, ` — לפי הטיימר, על ${h.n} סרטונים שנמסרו. ` +
+      'הטיימר מדויק רק כשזכרת להחליף אותו. '));
+    box.append(el('a', { href: '#/time', style: { cursor: 'pointer' } }, 'הדגימות נותנות מספר אמין יותר.'));
+  } else {
+    box.append(el('span', {}, `סרטון לוקח לך ${num(h.hours)} שעות — זו ההערכה שהקלדת, לא מדידה. `));
+    box.append(el('a', { href: '#/time' }, 'הפעל מדידה בדגימות'));
+    box.append(el('span', {}, ' ותוך שבוע יהיה כאן מספר אמיתי.'));
+  }
+  return box;
 }
 
 /**

@@ -67,7 +67,19 @@ export function defaultState() {
         lead: true, deadline: true, routine: true, decision: true, timer: true, note: true
       },
       assistantEnabled: true,
-      assistantClassify: true     // להשתמש בעוזר לסיווג הקלט החופשי
+      assistantClassify: true,    // להשתמש בעוזר לסיווג הקלט החופשי
+
+      /* מדידת זמן בדגימות — המערכת שואלת "מה אתה עושה עכשיו?"
+         בזמנים אקראיים, ומספרת. ראה sampling.js */
+      sampling: {
+        enabled: true,
+        perDay: 12,
+        fromHour: 9,
+        toHour: 19,
+        days: [0, 1, 2, 3, 4],    // 0 = ראשון
+        onMiss: 'assume',         // 'assume' | 'drop' | 'endOfDay'
+        notify: true              // להקפיץ כהתראת מערכת, גם מעל תוכנות אחרות
+      }
     },
 
     productLines: [videoLine],
@@ -84,6 +96,8 @@ export function defaultState() {
 
     items: defaultItems(),
     timeEntries: [],
+    samples: [],                 // [{id, at, firedAt, answeredAt, itemId, kind, source}]
+    samplePlan: null,            // {date, times:[ts], fired:[ts]}
 
     subscriptions: [
       { id: uid('s'), name: 'Claude',            cost: 200, currency: 'USD' },
@@ -171,7 +185,8 @@ function migrate(s) {
   const out = Object.assign({}, d, s);
   out.settings = Object.assign({}, d.settings, s.settings || {});
   out.settings.notifications = Object.assign({}, d.settings.notifications, (s.settings || {}).notifications || {});
-  for (const k of ['productLines', 'itemTypes', 'items', 'timeEntries', 'subscriptions', 'ledger', 'links', 'waiting', 'chat', 'noteTags']) {
+  out.settings.sampling = Object.assign({}, d.settings.sampling, (s.settings || {}).sampling || {});
+  for (const k of ['productLines', 'itemTypes', 'items', 'timeEntries', 'subscriptions', 'ledger', 'links', 'waiting', 'chat', 'noteTags', 'samples']) {
     if (!Array.isArray(out[k])) out[k] = d[k];
   }
   if (!out.productLines.length) out.productLines = d.productLines;

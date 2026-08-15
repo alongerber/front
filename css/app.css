@@ -141,6 +141,7 @@ button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit
 .cf.cf-warn{border-color:rgba(255,90,77,.45);background:rgba(255,90,77,.07)}
 .cf.cf-wait{border-color:rgba(90,169,255,.45);background:rgba(90,169,255,.07)}
 .cf.cf-good{border-color:rgba(61,220,132,.45);background:rgba(61,220,132,.07)}
+.cf.cf-sample{border-color:var(--yellow);background:rgba(255,212,0,.08)}
 
 /* ===================== סרגל טיימר ===================== */
 .timerbar{

@@ -6,7 +6,8 @@ import { S, update, uid, downloadBackup, importJSON, exportJSON, resetAll, loadS
 import { el, ago, toast, modal, input, select, field, confirmBox, dur, num, DAY } from '../util.js';
 import * as A from '../attachments.js';
 import * as AB from '../autobackup.js';
-import { labelWithHint } from '../help.js';
+import { labelWithHint, hintBadge } from '../help.js';
+import * as SM from '../sampling.js';
 import * as notify from '../notify.js';
 import { lineEditor } from './pipeline.js';
 import { refresh } from '../app.js';
@@ -22,9 +23,127 @@ function render(root) {
   ));
 
   root.append(el('div', { class: 'grid g2' },
-    el('div', {}, backupCard(), notifyCard()),
+    el('div', {}, samplingCard(), backupCard(), notifyCard()),
     el('div', {}, generalCard(), typesCard(), dangerCard())
   ));
+}
+
+/* ================= מדידה בדגימות ================= */
+
+function samplingCard() {
+  const s = S();
+  const c = SM.cfg();
+  const card = el('div', { class: 'card' });
+
+  card.append(el('div', { class: 'card-h' },
+    el('h3', { style: { display: 'flex', alignItems: 'center' } }, 'מדידת זמן', hintBadge('time.samples')),
+    el('span', { class: 'sub' }, 'איך המערכת יודעת כמה זמן לקח סרטון')));
+
+  card.append(el('div', { class: 'small muted', style: { lineHeight: '1.75', marginBottom: '13px' } },
+    'המערכת שואלת "מה אתה עושה עכשיו?" בזמנים אקראיים, ואתה לוחץ כפתור אחד. ' +
+    'כל דגימה מייצגת פרק זמן קבוע, אז ספירת הדגימות היא המדידה. ' +
+    'זה עובד גם כשאתה בוגאס או בהיגספילד — אתה לא צריך לזכור כלום.'));
+
+  const on = el('input', {
+    type: 'checkbox', checked: c.enabled,
+    style: { width: '16px', height: '16px', accentColor: '#ffd400', cursor: 'pointer' },
+    onchange: e => { update(st => { st.settings.sampling.enabled = e.target.checked; }); refresh(); }
+  });
+  card.append(el('label', { class: 'chk' }, on, el('span', {}, 'מדידה בדגימות פעילה')));
+
+  const numRow = (key, label, min, max, tip, hint) => {
+    const i = input({ type: 'number', min, max, value: c[key] });
+    if (tip) i.setAttribute('data-tip', tip);
+    i.addEventListener('change', () => {
+      const v = Number(i.value);
+      if (!Number.isFinite(v)) return;
+      update(st => { st.settings.sampling[key] = Math.max(min, Math.min(max, v)); st.samplePlan = null; });
+      refresh();
+    });
+    return field(tip ? labelWithHint(label, tip) : label, i, hint);
+  };
+
+  const w = Math.round(SM.sampleWeightMs() / 60000);
+  card.append(el('div', { class: 'row' },
+    numRow('perDay', 'כמה שאלות ביום', 1, 48, 'time.sampleFreq'),
+    numRow('fromHour', 'משעה', 0, 23),
+    numRow('toHour', 'עד שעה', 1, 24)
+  ));
+  card.append(el('div', { class: 'small muted', style: { marginTop: '-4px', marginBottom: '11px' } },
+    `לפי ההגדרה הזאת כל דגימה שווה ${w} דקות, ושאלה תקפוץ בערך אחת ל-${w} דקות.`));
+
+  /* ימי עבודה */
+  const DAYS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];
+  const daysRow = el('div', { class: 'tag-strip', style: { marginBottom: '13px' } });
+  DAYS.forEach((d, i) => {
+    const active = c.days.includes(i);
+    daysRow.append(el('button', {
+      class: 'tag-pill' + (active ? ' on' : ''),
+      style: active ? { background: 'var(--accent)', color: '#000', borderColor: 'var(--accent)' } : {},
+      onclick: () => {
+        update(st => {
+          const arr = st.settings.sampling.days || [];
+          st.settings.sampling.days = active ? arr.filter(x => x !== i) : arr.concat(i).sort();
+          st.samplePlan = null;
+        });
+        refresh();
+      }
+    }, d));
+  });
+  card.append(el('div', {}, el('label', { class: 'fl' }, 'ימי עבודה'), daysRow));
+
+  /* התראות מערכת */
+  const notifCb = el('input', {
+    type: 'checkbox', checked: c.notify,
+    style: { width: '16px', height: '16px', accentColor: '#ffd400', cursor: 'pointer' },
+    onchange: e => { update(st => { st.settings.sampling.notify = e.target.checked; }); refresh(); }
+  });
+  card.append(el('label', { class: 'chk', 'data-tip': 'time.sampleNotify' }, notifCb,
+    el('span', {}, 'להקפיץ כהתראת מערכת (מעל וגאס ותוכנות אחרות)')));
+
+  const perm = ('Notification' in window) ? Notification.permission : 'unsupported';
+  if (c.notify && perm !== 'granted') {
+    card.append(el('div', { class: 'alert warn', style: { marginTop: '9px' } },
+      el('div', { style: { flex: 1 } },
+        perm === 'denied'
+          ? 'חסמת התראות בדפדפן. בלי זה השאלה תופיע רק כשהמערכת פתוחה מולך. ' +
+            'לפתיחה מחדש: אייקון המנעול בשורת הכתובת → התראות → אפשר.'
+          : 'צריך לאשר התראות, אחרת השאלה לא תגיע אליך כשאתה בתוכנה אחרת.'),
+      perm !== 'denied' ? el('button', {
+        class: 'btn btn-xs btn-y',
+        onclick: async () => { await notify.requestPermission(); refresh(); }
+      }, 'אשר עכשיו') : null));
+  }
+
+  /* מה קורה כשלא עונים */
+  const missSel = select([
+    { value: 'assume', label: 'להניח שהמשכתי באותו דבר (מסומן כניחוש)' },
+    { value: 'drop', label: 'לא לספור בכלל' }
+  ], c.onMiss, {
+    onchange: e => { update(st => { st.settings.sampling.onMiss = e.target.value; }); refresh(); }
+  });
+  card.append(field('כשלא עניתי לשאלה', missSel));
+
+  /* מצב נוכחי */
+  const conf = SM.confidence();
+  card.append(el('div', { class: 'alert ' + (conf.level === 'high' ? 'good' : conf.level === 'low' ? '' : 'warn') },
+    conf.text));
+
+  card.append(el('div', { style: { display: 'flex', gap: '7px', flexWrap: 'wrap', marginTop: '11px' } },
+    el('button', {
+      class: 'btn btn-sm',
+      'data-tip': 'מקפיץ שאלה עכשיו, כדי לראות איך זה נראה',
+      onclick: () => { SM.askNow(); toast('שאלה נשלחה', 'ok'); refresh(); }
+    }, 'נסה עכשיו'),
+    s.samples.length ? el('button', {
+      class: 'btn btn-sm btn-danger',
+      onclick: () => confirmBox(
+        `למחוק את כל ${s.samples.length} הדגימות? המדידה תתחיל מאפס.`,
+        () => { update(st => { st.samples = []; }, { label: 'מחיקת דגימות' }); toast('נמחקו'); refresh(); })
+    }, 'מחק דגימות') : null
+  ));
+
+  return card;
 }
 
 /* ================= גיבוי אוטומטי לתיקייה ================= */

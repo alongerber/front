@@ -10,6 +10,7 @@ import { navCounts } from './rules.js';
 import { initHelp } from './help.js';
 import { rollRoutines } from './brain.js';
 import { initPalette, openPalette } from './palette.js';
+import * as sampleUI from './sampleui.js';
 import * as notify from './notify.js';
 
 import home from './pages/home.js';
@@ -519,6 +520,7 @@ function init() {
 
   initAutoWaitUI();
   T.initPresence(askAbsence);
+  sampleUI.init(() => { renderTimerBar(); refresh(); });
   rollRoutines();
   notify.start();
 

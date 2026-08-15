@@ -9,6 +9,8 @@ import * as T from '../timer.js';
 import { refresh, openItem, openSwitcher } from '../app.js';
 import { hintBadge } from '../help.js';
 import { findIssues, fixAll, inflatedMs } from '../timecheck.js';
+import * as SM from '../sampling.js';
+import { picker as samplePicker } from '../sampleui.js';
 
 export default { render, tick };
 
@@ -34,6 +36,7 @@ function render(root) {
   ));
 
   root.append(threeNumbers());
+  root.append(samplingCard());
   root.append(timelineCard());
   root.append(el('div', { class: 'grid g2', style: { marginTop: '14px' } }, weekCard(), avgCard()));
   root.append(perItemCard());
@@ -169,6 +172,86 @@ function threeNumbers() {
     el('div', { class: 'sub' }, t ? (t.itemId ? (getItem(t.itemId)?.title || '') : T.KINDS[t.kind].name) : 'לחץ "החלף טיימר"')
   ));
   return box;
+}
+
+/* ================= דגימות ================= */
+
+function samplingCard() {
+  const c = SM.cfg();
+  const card = el('div', { class: 'card', style: { marginTop: '14px' } });
+  const conf = SM.confidence();
+
+  card.append(el('div', { class: 'card-h' },
+    el('h3', { style: { display: 'flex', alignItems: 'center' } }, 'מדידה בדגימות', hintBadge('time.samples')),
+    el('span', { class: 'sub' }, 'המערכת שואלת, אתה לוחץ כפתור. זה המספר שהתמחור נשען עליו.'),
+    el('div', { class: 'right' },
+      SM.openSample()
+        ? el('button', { class: 'btn btn-sm btn-y', onclick: () => samplePicker() }, 'יש שאלה פתוחה — ענה')
+        : null,
+      el('button', {
+        class: 'btn btn-sm', onclick: () => { location.hash = '#/settings'; }
+      }, '⚙ תדירות')
+    )
+  ));
+
+  if (!c.enabled) {
+    card.append(el('div', { class: 'alert warn' },
+      'הדגימות כבויות. בלעדיהן המדידה מסתמכת רק על הטיימר, שצריך לזכור להחליף.'));
+    return card;
+  }
+
+  const w = Math.round(SM.sampleWeightMs() / MIN);
+  const today = SM.stats({ from: startOfDay(viewDay), to: endOfDay(viewDay) });
+  const week = SM.stats({ from: startOfDay() - 7 * DAY });
+
+  card.append(el('div', { class: 'grid g3', style: { marginBottom: '13px' } },
+    el('div', { class: 'stat' },
+      el('div', { class: 'lbl' }, 'כל דגימה שווה'),
+      el('div', { class: 'val' }, w + ' דק\''),
+      el('div', { class: 'sub' }, `${c.perDay} ביום · ${c.fromHour}:00–${c.toHour}:00`)),
+    el('div', { class: 'stat' },
+      el('div', { class: 'lbl' }, 'נענו היום'),
+      el('div', { class: 'val' }, String(today.counted)),
+      el('div', { class: 'sub' }, today.offCount ? `${today.offCount} מהן "לא עבודה"` : 'הכל עבודה')),
+    el('div', { class: 'stat ' + (conf.level === 'high' ? 'g' : conf.level === 'low' ? '' : 'y') },
+      el('div', { class: 'lbl' }, 'אמינות'),
+      el('div', { class: 'val' }, conf.n),
+      el('div', { class: 'sub' }, conf.text))
+  ));
+
+  if (!week.byItem.length) {
+    card.append(el('div', { class: 'empty' },
+      'עוד לא נאספו דגימות. השאלה הראשונה תקפוץ בשעות שהגדרת — גם מעל תוכנות אחרות, ' +
+      'אם אישרת התראות.'));
+    return card;
+  }
+
+  card.append(el('div', { class: 'section', style: { marginTop: '0' } },
+    el('span', { class: 'bar' }), el('h2', {}, 'שבוע אחרון, לפי דגימות'), el('span', { class: 'line' })));
+
+  const total = week.byItem.reduce((a, x) => a + x.count, 0) + week.offCount;
+  const rowFor = (label, count, ms, color) => {
+    const share = total ? count / total : 0;
+    return el('div', { style: { marginBottom: '9px' } },
+      el('div', { style: { display: 'flex', gap: '8px', fontSize: '13px', marginBottom: '3px' } },
+        el('span', { style: { fontWeight: '600' } }, label),
+        el('span', { class: 'muted small', style: { marginInlineStart: 'auto' } },
+          `${dur(ms, true)} · ${count} דגימות · ${Math.round(share * 100)}%`)),
+      el('div', { class: 'bar' }, el('i', { style: { width: (share * 100) + '%', background: color } })));
+  };
+
+  week.byItem.slice(0, 8).forEach(x => {
+    const it = x.itemId ? getItem(x.itemId) : null;
+    card.append(rowFor(it ? it.title : (x.kind === 'learn' ? 'למידה' : 'עבודה על העסק'),
+      x.count, x.ms, it ? '#a3e635' : '#b98cff'));
+  });
+  if (week.offCount) card.append(rowFor('לא עבודה', week.offCount, week.offMs, 'rgba(255,255,255,.22)'));
+
+  if (week.guessRate > 0.25) card.append(el('div', { class: 'alert warn', style: { marginTop: '11px' } },
+    `${Math.round(week.guessRate * 100)}% מהדגימות לא נענו והמערכת ניחשה לפי הקודמת. ` +
+    'המספרים עדיין שמישים, אבל פחות מדויקים.'));
+
+  return card;
 }
 
 /* ================= ציר היום ================= */
@@ -414,9 +497,9 @@ function perItemCard() {
     el('h3', {}, 'שלושת המספרים לכל לקוח')));
 
   const clients = S().items.filter(i => i.type === 'client' && !i.archived)
-    .map(c => ({ c, focus: T.focusMs(c.id), wall: T.wallMs(c.id), wait: T.waitMs(c.id) }))
-    .filter(x => x.focus > 0 || x.wait > 0)
-    .sort((a, b) => b.focus - a.focus);
+    .map(c => ({ c, focus: T.focusMs(c.id), wall: T.wallMs(c.id), wait: T.waitMs(c.id), sm: SM.itemMs(c.id) }))
+    .filter(x => x.focus > 0 || x.wait > 0 || x.sm > 0)
+    .sort((a, b) => (b.sm || b.focus) - (a.sm || a.focus));
 
   if (!clients.length) { card.append(el('div', { class: 'empty' }, 'עוד לא נרשם זמן על לקוחות')); return card; }
 
@@ -424,13 +507,20 @@ function perItemCard() {
   const th = (t, tip) => el('th', {}, el('span', { style: { display: 'inline-flex', alignItems: 'center' } }, t, hintBadge(tip)));
   const tb = el('table', { class: 'tb' },
     el('tr', {}, el('th', {}, 'לקוח'),
-      th('זמן קשב', 'time.focus'), th('זמן קיר', 'time.wall'), th('המתנה', 'time.wait'),
+      th('לפי דגימות', 'time.samples'), th('לפי הטיימר', 'time.focus'),
+      th('זמן קיר', 'time.wall'), th('המתנה', 'time.wait'),
       el('th', {}, 'סכום'), th('₪/שעה', 'money.realHourly'), el('th', {}))
   );
   clients.forEach(({ c, focus, wall, wait }) => {
-    const perHour = focus ? (c.amount || 0) / (focus / HOUR) : 0;
+    const smMs = SM.itemMs(c.id), smN = SM.itemCount(c.id);
+    const best = smN >= 3 ? smMs : focus;         // דגימות מנצחות כשיש מספיק מהן
+    const perHour = best ? (c.amount || 0) / (best / HOUR) : 0;
     tb.append(el('tr', {},
       el('td', { style: { fontWeight: '600', cursor: 'pointer' }, onclick: () => openItem(c.id) }, c.title),
+      el('td', {
+        class: 'num', style: { color: smN ? '#a3e635' : '' },
+        'data-tip': smN ? `${smN} דגימות × ${Math.round(SM.sampleWeightMs() / MIN)} דקות` : 'עוד אין דגימות על הלקוח הזה'
+      }, smN ? dur(smMs, true) : '—'),
       el('td', { class: 'num', style: { color: '#ffd400' } }, dur(focus, true)),
       el('td', { class: 'num muted' }, dur(wall, true)),
       el('td', { class: 'num', style: { color: '#5aa9ff' } }, wait ? dur(wait, true) : '—'),

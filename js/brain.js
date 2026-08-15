@@ -6,6 +6,7 @@
 import { S, lineOf, stageOf, stageIndex, getItem, patchItem, update } from './store.js';
 import { MIN, HOUR, DAY, startOfDay, ago, dur } from './util.js';
 import { focusMs, activeTimer, isWaiting, availableToday, avgFocusPerDelivery } from './timer.js';
+import { avgPerDelivery as sampleAvgPerDelivery } from './sampling.js';
 
 const now = () => Date.now();
 
@@ -370,8 +371,26 @@ export function deliveredThisMonth() {
     (new Date(i.deliveredAt).getFullYear() + '-' + String(new Date(i.deliveredAt).getMonth() + 1).padStart(2, '0')) === mk).length;
 }
 
+/**
+ * כמה שעות באמת לוקח סרטון. שלוש שכבות, מהאמין לפחות אמין:
+ *   1. דגימות — המערכת שאלה ואתה ענית. מדידה, לא ניחוש.
+ *   2. הטיימר — מדויק כשזכרת להחליף, ומנופח כשלא.
+ *   3. ההערכה שהקלדת בקו המוצר.
+ */
 export function measuredHoursPerVideo(lineId) {
+  return hoursPerVideo(lineId).hours;
+}
+
+/** אותו דבר, עם המקור — כדי שהממשק יוכל להגיד מאיפה המספר בא */
+export function hoursPerVideo(lineId) {
+  const bySample = sampleAvgPerDelivery(lineId);
+  if (bySample) return {
+    hours: Math.round(bySample.avgMs / HOUR * 10) / 10,
+    source: 'samples', n: bySample.count, samples: bySample.samples, errorPct: bySample.errorPct
+  };
   const a = avgFocusPerDelivery(lineId);
-  if (a && a.avgMs > 10 * MIN) return Math.round(a.avgMs / HOUR * 10) / 10;
-  return lineOf(lineId).estHours || 4;
+  if (a && a.avgMs > 10 * MIN) return {
+    hours: Math.round(a.avgMs / HOUR * 10) / 10, source: 'timer', n: a.count
+  };
+  return { hours: lineOf(lineId).estHours || 4, source: 'estimate', n: 0 };
 }

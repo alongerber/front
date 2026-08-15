@@ -26,6 +26,7 @@ import notes from './pages/notes.js';
 import tools from './pages/tools.js';
 import assistant from './pages/assistant.js';
 import review from './pages/review.js';
+import guide from './pages/guide.js';
 import settings from './pages/settings.js';
 
 /* ================= עמודים ================= */
@@ -42,7 +43,8 @@ const PAGES = {
   'review':    { title: 'סקירה',   icon: '◐',  color: '#f472b6', mod: review, badge: 'review' },
   'tools':     { title: 'כלים',    icon: '⚙',  color: '#94a3b8', mod: tools },
   'assistant': { title: 'עוזר',    icon: '✦',  color: '#e879f9', mod: assistant },
-  'settings':  { title: 'הגדרות',  icon: '⚙︎', color: '#94a3b8', mod: settings }
+  'settings':  { title: 'הגדרות',  icon: '⚙︎', color: '#94a3b8', mod: settings },
+  'guide':     { title: 'מדריך',   icon: '?',  color: '#ffd400', mod: guide, badge: 'guide' }
 };
 // #/decisions → עמוד המשימות עם הפילטר הנכון
 const ALIAS = { 'decisions': 'tasks?f=decision', 'ideas': 'tasks?f=idea' };
@@ -129,6 +131,29 @@ function buildNav() {
 
 /* ================= סרגל הטיימר ================= */
 
+/** כפתור החלון הצף. כשלא נתמך — מוצג ומסביר, במקום להיעלם בשקט. */
+function floatBtn() {
+  if (!FW.supported()) return el('button', {
+    class: 'btn btn-xs', style: { opacity: '.5' },
+    'data-tip': 'החלון הצף עובד בכרום ובאדג\' מגרסה 116. בדפדפן הזה הוא לא זמין — ' +
+      'תוכל להחליף פרויקט מהסרגל הזה או ב-Ctrl+J.',
+    onclick: () => toast('החלון הצף דורש כרום או אדג\' 116+', 'err')
+  }, '🪟 חלון צף');
+
+  const open = FW.isOpen();
+  return el('button', {
+    class: 'btn btn-xs ' + (open ? 'btn-y' : ''),
+    'data-tip': 'time.floatWin',
+    onclick: async () => {
+      try {
+        if (FW.isOpen()) { FW.close(); toast('נסגר'); }
+        else { await FW.open(); toast('החלון צף מעל כל התוכנות — גרור אותו לפינה', 'ok'); }
+        renderTimerBar();
+      } catch (e) { toast(e.message, 'err'); }
+    }
+  }, open ? '🪟 סגור חלון' : '🪟 חלון צף');
+}
+
 function renderTimerBar() {
   const bar = $('#timerbar');
   const t = T.activeTimer();
@@ -141,6 +166,7 @@ function renderTimerBar() {
       el('span', { class: 'tb-dot' }),
       el('span', { class: 'muted small' }, 'שום טיימר לא רץ'),
       el('div', { class: 'tb-actions' },
+        floatBtn(),
         el('button', { class: 'btn btn-xs', onclick: openSwitcher }, 'התחל טיימר'),
         el('button', { class: 'btn btn-xs', onclick: () => { T.startFree('learn'); toast('טיימר למידה רץ'); } }, '📚 למידה'),
         el('button', {
@@ -169,6 +195,7 @@ function renderTimerBar() {
       }, auto ? 'המתנה · אוטומטי' : (T.KINDS[t.kind]?.name || t.kind))
     );
     const actions = el('div', { class: 'tb-actions' },
+      floatBtn(),
       auto || T.canClaimAutoWait() ? el('button', {
         class: 'btn btn-xs btn-y', 'data-keep-wait': true,
         'data-tip': 'מחזיר את זמן ההמתנה לזמן קשב, כאילו לא זוהתה המתנה',
@@ -200,6 +227,7 @@ function renderTimerBar() {
       el('span', { class: 'tb-kind' }, 'זמן קיר')
     );
     bar.append(el('div', { class: 'tb-actions' },
+      floatBtn(),
       waiting.length > 1 ? el('span', { class: 'pill pill-b' }, `+${waiting.length - 1} בהמתנה`) : null,
       el('button', { class: 'btn btn-xs btn-y', onclick: () => { T.startTimer(w.itemId); } }, 'חזרתי לזה'),
       el('button', { class: 'btn btn-xs', onclick: openSwitcher }, 'משהו אחר')
@@ -557,25 +585,15 @@ function init() {
   $('#capture').setAttribute('data-tip', 'gen.capture');
   $('#nav-export').setAttribute('data-tip', 'gen.export');
 
-  // חלון צף מעל שאר התוכנות
-  const fbtn = $('#float-open');
-  if (FW.supported()) {
-    fbtn.hidden = false;
-    fbtn.setAttribute('data-tip', 'time.floatWin');
-    fbtn.addEventListener('click', async () => {
-      try {
-        if (FW.isOpen()) { FW.close(); toast('החלון הצף נסגר'); }
-        else { await FW.open(); toast('החלון הצף פתוח — הוא צף מעל כל תוכנה', 'ok'); }
-      } catch (e) { toast(e.message, 'err'); }
-    });
-  }
-
   // זיהוי נוכחות — מתחיל לבד אם כבר אושר פעם
   P.start().then(ok => { if (ok) P.onChange(() => { renderTimerBar(); }); });
 
   $('#search-open').setAttribute('data-tip', 'notes.globalSearch');
   $('#search-open').addEventListener('click', () => openPalette());
   initPalette();
+
+  $('#guide-open').setAttribute('data-tip', 'gen.guide');
+  $('#guide-open').addEventListener('click', () => go('#/guide'));
 
   initAutoWaitUI();
   T.initPresence(askAbsence);
@@ -623,6 +641,11 @@ function init() {
       ? 'עדכנת בטאב אחר — משכתי את השינוי לכאן. השינוי האחרון בטאב הזה בוטל.'
       : 'עודכן מטאב אחר של המערכת', e.detail && e.detail.hadPending ? 'err' : 'ok');
   });
+
+  // הפעם הראשונה — הדרכה קצרה
+  import('./onboarding.js').then(OB => {
+    if (OB.needed()) setTimeout(() => OB.start(), 500);
+  }).catch(() => { });
 
   // אם יש היעדרות פתוחה מהפעם הקודמת
   const p = S().pendingAbsence;

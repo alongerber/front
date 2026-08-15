@@ -28,7 +28,7 @@ export async function open() {
   if (!supported()) throw new Error('הדפדפן הזה לא תומך בחלון צף. נסה כרום או אדג\'.');
   if (isOpen()) { win.focus(); return win; }
 
-  win = await documentPictureInPicture.requestWindow({ width: 310, height: 260 });
+  win = await documentPictureInPicture.requestWindow({ width: 320, height: 300 });
   win.document.documentElement.lang = 'he';
   win.document.documentElement.dir = 'rtl';
   win.document.head.append(styleTag(win.document));
@@ -41,6 +41,16 @@ export async function open() {
   T.onTick(render);
 
   win.addEventListener('pagehide', close);
+
+  // 1-9 מחליף פרויקט בלי לגעת בעכבר, 0 = הפסקה
+  win.addEventListener('keydown', ev => {
+    if (ev.key === '0') { T.startFree('off'); render(); return; }
+    const n = parseInt(ev.key, 10);
+    if (!n || n < 1 || n > 9) return;
+    const btns = win.document.querySelectorAll('.fw-btn');
+    if (btns[n - 1]) btns[n - 1].click();
+  });
+
   return win;
 }
 
@@ -108,25 +118,42 @@ function render() {
   const bucketList = s.items.filter(i => i.type === 'bucket' && !i.archived);
 
   const grid = e(doc, 'div', { class: 'fw-grid' });
-  const cell = (item, cls) => {
+  const cell = (item, cls, key) => {
     const on = t && t.itemId === item.id && t.kind !== 'wait';
     const todayMs = T.focusMs(item.id, startOfToday(), Date.now());
     grid.append(e(doc, 'button', {
       class: 'fw-btn ' + (cls || '') + (on ? ' on' : ''),
-      title: item.business || item.note || item.title,
+      title: (item.business || item.note || item.title) + (key ? ` · מקש ${key}` : ''),
       onclick: () => { T.startTimer(item.id); render(); }
     },
+      key ? e(doc, 'span', { class: 'fw-key' }, key) : null,
       e(doc, 'span', { class: 'fw-btn-t' }, item.title),
-      todayMs > 60000 ? e(doc, 'span', { class: 'fw-btn-n' }, dur(todayMs, true)) : null
+      e(doc, 'span', { class: 'fw-btn-n' }, todayMs > 30000 ? dur(todayMs, true) : '—')
     ));
   };
-  clients.forEach(c => cell(c));
-  bucketList.forEach(bk => cell(bk, 'biz'));
+  let idx = 0;
+  const num = () => ++idx <= 9 ? String(idx) : '';
+  clients.forEach(c => cell(c, '', num()));
+  bucketList.forEach(bk => cell(bk, 'biz', num()));
   grid.append(e(doc, 'button', {
     class: 'fw-btn learn' + (t && !t.itemId && t.kind === 'learn' ? ' on' : ''),
     onclick: () => { T.startFree('learn'); render(); }
   }, e(doc, 'span', { class: 'fw-btn-t' }, '📚 למידה')));
   doc.body.append(grid);
+
+  /* סיכום היום — למי שמחליף בין ארבעה דברים כל כמה דקות,
+     זה המספר שהוא בעצם רוצה לראות */
+  const today = T.todayByItem();
+  const totalToday = today.reduce((a, x) => a + x.ms, 0);
+  if (totalToday > 60000) {
+    const top = today.slice(0, 3).map(x => {
+      const it2 = x.itemId ? getItem(x.itemId) : null;
+      return (it2 ? shortName(it2.title) : (T.KINDS[x.kind]?.name || '')) + ' ' + dur(x.ms, true);
+    }).join(' · ');
+    doc.body.append(e(doc, 'div', { class: 'fw-today' },
+      e(doc, 'span', { class: 'fw-today-t' }, 'היום ' + dur(totalToday, true)),
+      e(doc, 'span', { class: 'fw-today-s' }, top)));
+  }
 
   /* שורת פעולות — "הפסקה" קודם, כי זו הלחיצה שסוגרת את החור */
   const onBreak = t && t.kind === 'off';
@@ -144,6 +171,8 @@ function render() {
     }, '↗ למערכת')
   ));
 }
+
+const shortName = s2 => (s2 || '').length > 10 ? s2.slice(0, 9) + '…' : (s2 || '');
 
 function startOfToday() { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); }
 
@@ -184,7 +213,7 @@ function styleTag(doc) {
       display:flex;flex-direction:column;align-items:flex-start;gap:1px;
       background:#1a1a18;border:1px solid rgba(255,255,255,.12);border-radius:9px;
       padding:6px 9px;cursor:pointer;color:inherit;font-family:inherit;text-align:right;
-      min-width:0;overflow:hidden;
+      min-width:0;overflow:hidden;position:relative;
     }
     .fw-btn:hover{background:#232320;border-color:rgba(255,255,255,.26)}
     .fw-btn.on{background:#ffd400;color:#000;border-color:#ffd400}
@@ -194,6 +223,18 @@ function styleTag(doc) {
     .fw-btn.learn.on{background:#b98cff;border-color:#b98cff;color:#000}
     .fw-btn-t{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
     .fw-btn-n{font-size:10px;opacity:.6;font-variant-numeric:tabular-nums}
+
+    .fw-today{
+      display:flex;gap:8px;align-items:baseline;padding:5px 10px;background:#131312;
+      border:1px solid rgba(255,255,255,.08);border-radius:9px;font-size:11px;
+    }
+    .fw-today-t{font-weight:700;color:#ffd400;flex:0 0 auto}
+    .fw-today-s{color:rgba(255,255,255,.42);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .fw-key{
+      position:absolute;inset-block-start:3px;inset-inline-start:5px;font-size:9px;
+      color:rgba(255,255,255,.28);font-variant-numeric:tabular-nums;
+    }
+    .fw-btn.on .fw-key{color:rgba(0,0,0,.4)}
 
     .fw-row{display:flex;gap:5px}
     .fw-mini{

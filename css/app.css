@@ -44,6 +44,7 @@ body[data-mod="assistant"] { --accent:#e879f9; --accent-dim:rgba(232,121,249,.14
 body[data-mod="settings"]  { --accent:#94a3b8; --accent-dim:rgba(148,163,184,.16) }
 body[data-mod="notes"]     { --accent:#a3e635; --accent-dim:rgba(163,230,53,.14) }
 body[data-mod="review"]    { --accent:#f472b6; --accent-dim:rgba(244,114,182,.14) }
+body[data-mod="guide"]     { --accent:#ffd400; --accent-dim:rgba(255,212,0,.13) }
 
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
@@ -567,6 +568,58 @@ table.tb td.num{font-variant-numeric:tabular-nums;text-align:left;direction:ltr}
 .color-dot{width:100%;height:46px;border:2px solid;border-radius:10px;cursor:pointer}
 .color-dot.on{outline:2px solid var(--accent);outline-offset:2px}
 .color-in{width:44px;height:32px;padding:2px;background:var(--card-2);border:1px solid var(--line-2);border-radius:8px;cursor:pointer;flex:0 0 auto}
+
+/* ===================== הדרכה ומדריך ===================== */
+
+.help-btn{
+  width:26px;height:26px;border-radius:50%;border:1px solid var(--line-2);
+  font-size:14px;font-weight:700;line-height:1;padding:0;display:grid;place-items:center;
+}
+.help-btn:hover{background:var(--accent);color:#000;border-color:var(--accent)}
+
+/* המסכים של הפעם הראשונה */
+.ob{text-align:center;padding:6px 10px 0}
+.ob-dots{display:flex;gap:6px;justify-content:center;margin-bottom:20px}
+.ob-dot{width:7px;height:7px;border-radius:50%;background:var(--line-2)}
+.ob-dot.on{background:var(--yellow);width:20px;border-radius:4px}
+.ob-dot.past{background:rgba(255,212,0,.4)}
+.ob-icon{font-size:40px;line-height:1;margin-bottom:12px}
+.ob-title{font-size:22px;font-weight:900;margin-bottom:12px}
+.ob-line{
+  color:var(--t2);line-height:1.8;font-size:14.5px;margin:0 auto 10px;max-width:520px;
+}
+.ob-action{margin:18px 0 6px}
+.ob-note{
+  margin:16px auto 0;max-width:520px;font-size:12.5px;color:var(--t3);line-height:1.7;
+  background:var(--card-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 13px;
+}
+.ob-foot{display:flex;align-items:center;margin-top:24px;padding-top:14px;border-top:1px solid var(--line)}
+
+/* רשימת ההתחלה */
+.step{
+  display:flex;gap:11px;align-items:flex-start;padding:11px 0;
+  border-bottom:1px solid var(--line);
+}
+.step:last-child{border-bottom:0}
+.step.done{opacity:.5}
+.step-n{
+  width:22px;height:22px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;
+  border:1px solid var(--line-2);font-size:12px;color:var(--t3);
+}
+.step.done .step-n{background:var(--green);color:#000;border-color:var(--green)}
+.step-n.sm{width:18px;height:18px;font-size:10.5px}
+
+/* שאלות נפוצות */
+.faq-q{
+  display:flex;gap:9px;align-items:center;width:100%;background:none;border:0;
+  color:inherit;font-family:inherit;font-size:14px;font-weight:600;text-align:right;
+  padding:9px 0;cursor:pointer;border-bottom:1px solid var(--line);
+}
+.faq-q:hover{color:var(--accent)}
+.faq-x{
+  width:18px;height:18px;flex:0 0 auto;border-radius:5px;background:var(--card-2);
+  display:grid;place-items:center;font-size:13px;color:var(--t3);
+}
 
 /* הכתבה קולית */
 .btn.mic{padding-inline:9px}

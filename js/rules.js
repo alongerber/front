@@ -157,6 +157,17 @@ export function navCounts() {
     notes: s.items.filter(i =>
       i.type === 'note' && !i.archived && i.reminderAt && !i.reminderDone && i.reminderAt <= now()).length,
     // חידושים בשלושת הימים הקרובים — תגית שמופיעה רק אחרי שאיחרת מופיעה מאוחר מדי
+    // תגית על המדריך עד שההגדרה הבסיסית הושלמה
+    guide: (() => {
+      const notifOK = typeof Notification !== 'undefined' && Notification.permission === 'granted';
+      const missing = [
+        s.items.some(i => i.type === 'client' && !i.archived),
+        !!s.settings.presenceEnabled,
+        notifOK,
+        !!s.settings.autoBackupDir || !!s.settings.lastBackupAt
+      ].filter(x => !x).length;
+      return missing;
+    })(),
     review: (() => {
       const d2 = new Date(); d2.setHours(0, 0, 0, 0); d2.setDate(d2.getDate() - d2.getDay());
       const wk = d2.getTime();

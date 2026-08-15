@@ -65,7 +65,9 @@ export function defaultState() {
       autoBackupDir: false,       // נבחרה תיקייה לגיבוי אוטומטי
       autoBackupFiles: false,     // לצרף גם את הקבצים מהפנקס לגיבוי האוטומטי
       lastAutoBackupAt: null,
-      bucketsSeeded: false,    // נקבע ל-true אחרי זריעה חד-פעמית, כדי שמחיקה תישאר מחיקה
+      bucketsSeeded: false,
+      onboarded: false,           // ההדרכה בפעם הראשונה
+      floatUsed: false,           // האם נפתח החלון הצף אי פעם    // נקבע ל-true אחרי זריעה חד-פעמית, כדי שמחיקה תישאר מחיקה
       homeMode: 'list',           // 'list' | 'day'
       notifications: {
         enabled: false,

@@ -514,7 +514,21 @@
       "note": ""
     },
     {
-      "id": "k_sample24",
+      "id": "t_sample24",
+      "type": "task",
+      "title": "לבדוק ספק למוזיקה מקורית",
+      "done": false,
+      "priority": "normal",
+      "dueDate": null,
+      "clientId": null,
+      "tags": [],
+      "createdAt": 1764403200000,
+      "updatedAt": 1764403200000,
+      "archived": false,
+      "note": ""
+    },
+    {
+      "id": "k_sample25",
       "type": "knowledge",
       "title": "Higgsfield — שליטה בתנועת מצלמה",
       "url": "https://higgsfield.ai",
@@ -533,7 +547,7 @@
       "note": "יכול לחסוך סבבי תיקונים על תנועות מצלמה."
     },
     {
-      "id": "k_sample25",
+      "id": "k_sample26",
       "type": "knowledge",
       "title": "ElevenLabs Agents — העברת שיחה לאדם",
       "url": "https://elevenlabs.io/docs/agents-platform/overview",
@@ -552,7 +566,7 @@
       "note": "בלי זה אי אפשר למכור את מיטל לעסקים עם תורים."
     },
     {
-      "id": "k_sample26",
+      "id": "k_sample27",
       "type": "knowledge",
       "title": "איך לתמחר שירות שהעלות השולית שלו אפסית",
       "url": "",
@@ -570,7 +584,7 @@
       "note": "פודקאסט ששמעתי חצי ממנו. רלוונטי לדילמה על הסוכנת."
     },
     {
-      "id": "k_sample27",
+      "id": "k_sample28",
       "type": "knowledge",
       "title": "Meta Ads — קמפיין לידים לעסקים מקומיים",
       "url": "https://www.facebook.com/business/ads",
@@ -589,7 +603,7 @@
       "note": ""
     },
     {
-      "id": "k_sample28",
+      "id": "k_sample29",
       "type": "knowledge",
       "title": "שימוש ב-Claude לעריכת וידאו אוטומטית",
       "url": "",
@@ -607,7 +621,7 @@
       "note": "ראיתי. שווה לנסות בסרטון הבא."
     },
     {
-      "id": "d_sample29",
+      "id": "d_sample30",
       "type": "decision",
       "title": "האם למכור את הסוכנת הקולית בנפרד או ביחד עם הסרטונים?",
       "status": "open",
@@ -618,7 +632,7 @@
       "note": "ביחד = עסקה גדולה יותר. בנפרד = קהל רחב יותר."
     },
     {
-      "id": "d_sample30",
+      "id": "d_sample31",
       "type": "decision",
       "title": "האם להעלות את המחיר ל-1,490 ₪ לסרטון?",
       "status": "open",
@@ -629,7 +643,7 @@
       "note": "אף אחד לא התלונן על המחיר עד היום. זה בדרך כלל סימן."
     },
     {
-      "id": "d_sample31",
+      "id": "d_sample32",
       "type": "decision",
       "title": "להתמקד בענף אחד או להישאר רוחבי?",
       "status": "open",
@@ -640,7 +654,7 @@
       "note": "מוסכים עבד טוב. אולי לרדוף אחרי זה."
     },
     {
-      "id": "d_sample32",
+      "id": "d_sample33",
       "type": "decision",
       "title": "לשים קמפיין ממומן או להמשיך אורגני עוד חודש?",
       "status": "resolved",
@@ -653,7 +667,7 @@
       "note": ""
     },
     {
-      "id": "i_sample33",
+      "id": "i_sample34",
       "type": "idea",
       "title": "סדרת סרטונים \"לפני ואחרי\" למוסכים",
       "tags": [],
@@ -663,7 +677,7 @@
       "note": ""
     },
     {
-      "id": "i_sample34",
+      "id": "i_sample35",
       "type": "idea",
       "title": "להציע חבילה שנתית עם הנחה של חודשיים",
       "tags": [],
@@ -673,7 +687,7 @@
       "note": ""
     },
     {
-      "id": "i_sample35",
+      "id": "i_sample36",
       "type": "idea",
       "title": "לתת למיטל לענות גם בוואטסאפ ולא רק בטלפון",
       "tags": [],
@@ -683,7 +697,7 @@
       "note": ""
     },
     {
-      "id": "i_sample36",
+      "id": "i_sample37",
       "type": "idea",
       "title": "דף נחיתה נפרד לכל ענף — מוסכים, קליניקות, מסעדות",
       "tags": [],
@@ -693,7 +707,27 @@
       "note": ""
     },
     {
-      "id": "r_sample37",
+      "id": "i_sample38",
+      "type": "idea",
+      "title": "פודקאסט על עסקים קטנים",
+      "tags": [],
+      "createdAt": 1763971200000,
+      "updatedAt": 1763971200000,
+      "archived": false,
+      "note": ""
+    },
+    {
+      "id": "i_sample39",
+      "type": "idea",
+      "title": "לפתוח ערוץ טיקטוק לעסק",
+      "tags": [],
+      "createdAt": 1764921600000,
+      "updatedAt": 1764921600000,
+      "archived": false,
+      "note": ""
+    },
+    {
+      "id": "r_sample40",
       "type": "routine",
       "title": "תוכן אורגני",
       "freq": "custom",
@@ -708,7 +742,7 @@
       "archived": false
     },
     {
-      "id": "r_sample38",
+      "id": "r_sample41",
       "type": "routine",
       "title": "בדיקת קמפיין",
       "freq": "daily",
@@ -722,7 +756,7 @@
       "archived": false
     },
     {
-      "id": "r_sample39",
+      "id": "r_sample42",
       "type": "routine",
       "title": "ניירת לרואה חשבון",
       "freq": "monthly",
@@ -736,7 +770,7 @@
       "archived": false
     },
     {
-      "id": "r_sample40",
+      "id": "r_sample43",
       "type": "routine",
       "title": "סקירת שיחות של הסוכנת",
       "freq": "weekly",
@@ -750,7 +784,7 @@
       "archived": false
     },
     {
-      "id": "r_sample41",
+      "id": "r_sample44",
       "type": "routine",
       "title": "מבט על מספרים",
       "freq": "weekly",
@@ -764,7 +798,7 @@
       "archived": false
     },
     {
-      "id": "r_sample42",
+      "id": "r_sample45",
       "type": "routine",
       "title": "גיבוי המערכת",
       "freq": "weekly",
@@ -778,7 +812,7 @@
       "archived": false
     },
     {
-      "id": "n_sample45",
+      "id": "n_sample48",
       "type": "note",
       "kind": "note",
       "body": "שנייה 0-3: הבעיה, בלי מבוא.\nשנייה 3-8: הפתרון, מראים ולא מספרים.\nשנייה 8-12: מחיר או הצעה.\nסוף: קריאה לפעולה אחת בלבד, לא שתיים.\n\nכל מה שארוך מ-15 שניות נופל באמצע.",
@@ -799,33 +833,33 @@
       "title": "מבנה תסריט שעובד"
     },
     {
-      "id": "n_sample51",
+      "id": "n_sample54",
       "type": "note",
       "kind": "list",
       "body": "",
       "checklist": [
         {
-          "id": "c_sample46",
+          "id": "c_sample49",
           "text": "מי הלקוח שלך, בגיל ובאזור",
           "done": false
         },
         {
-          "id": "c_sample47",
+          "id": "c_sample50",
           "text": "מה השאלה שהכי חוזרת אצלך",
           "done": false
         },
         {
-          "id": "c_sample48",
+          "id": "c_sample51",
           "text": "יש לך צילומים קיימים?",
           "done": false
         },
         {
-          "id": "c_sample49",
+          "id": "c_sample52",
           "text": "מה המתחרים עושים שמעצבן אותך",
           "done": false
         },
         {
-          "id": "c_sample50",
+          "id": "c_sample53",
           "text": "איפה הסרטון ירוץ — אינסטגרם, טיקטוק, אתר",
           "done": false
         }
@@ -847,28 +881,28 @@
       "title": "מה לשאול לקוח בשיחת אפיון"
     },
     {
-      "id": "n_sample56",
+      "id": "n_sample59",
       "type": "note",
       "kind": "list",
       "body": "",
       "checklist": [
         {
-          "id": "c_sample52",
+          "id": "c_sample55",
           "text": "Higgsfield — תנועות מצלמה",
           "done": false
         },
         {
-          "id": "c_sample53",
+          "id": "c_sample56",
           "text": "Runway Gen-4",
           "done": false
         },
         {
-          "id": "c_sample54",
+          "id": "c_sample57",
           "text": "HeyGen אווטארים",
           "done": true
         },
         {
-          "id": "c_sample55",
+          "id": "c_sample58",
           "text": "מוזיקה ברישיון — Epidemic",
           "done": false
         }
@@ -890,28 +924,28 @@
       "title": "ציוד ותוכנות לבדוק"
     },
     {
-      "id": "n_sample61",
+      "id": "n_sample64",
       "type": "note",
       "kind": "list",
       "body": "",
       "checklist": [
         {
-          "id": "c_sample57",
+          "id": "c_sample60",
           "text": "העברת שיחה לאדם",
           "done": false
         },
         {
-          "id": "c_sample58",
+          "id": "c_sample61",
           "text": "סיכום שיחה בוואטסאפ",
           "done": false
         },
         {
-          "id": "c_sample59",
+          "id": "c_sample62",
           "text": "זיהוי שעות פתיחה",
           "done": true
         },
         {
-          "id": "c_sample60",
+          "id": "c_sample63",
           "text": "תמחור — עדיין לא סגור",
           "done": false
         }
@@ -932,7 +966,7 @@
       "title": "מיטל — מה עוד חסר לפני מכירה"
     },
     {
-      "id": "n_sample62",
+      "id": "n_sample65",
       "type": "note",
       "kind": "note",
       "body": "\"הלקוחות שלך גוללים. אתה לא שם.\"\n\"סרטון פרסומת ב-7 ימים. 1,290 ₪. בלי צוות צילום.\"\n\"מוסך? קליניקה? מסעדה? יש לי סרטון בשבילך.\"",
@@ -953,28 +987,28 @@
       "title": "טקסטים למודעות"
     },
     {
-      "id": "n_sample67",
+      "id": "n_sample70",
       "type": "note",
       "kind": "list",
       "body": "",
       "checklist": [
         {
-          "id": "c_sample63",
+          "id": "c_sample66",
           "text": "חשבוניות שהוצאתי",
           "done": false
         },
         {
-          "id": "c_sample64",
+          "id": "c_sample67",
           "text": "קבלות על מנויים בדולר",
           "done": false
         },
         {
-          "id": "c_sample65",
+          "id": "c_sample68",
           "text": "דוח מהבנק",
           "done": false
         },
         {
-          "id": "c_sample66",
+          "id": "c_sample69",
           "text": "הוצאות פרסום ממטא",
           "done": false
         }
@@ -995,7 +1029,7 @@
       "title": "ניירת לרואה חשבון — מה שולחים"
     },
     {
-      "id": "n_sample68",
+      "id": "n_sample71",
       "type": "note",
       "kind": "note",
       "body": "הכל ב-1Password. כאן רק תזכורת מה קיים:\n· Netlify — הדפים\n· ElevenLabs — הקולות\n· מטא — הקמפיינים\n· Vercel — הפונקציה של העוזר\n\nלא לכתוב כאן סיסמאות אמיתיות.",
@@ -1017,7 +1051,7 @@
       "title": "סיסמאות ומקומות"
     },
     {
-      "id": "n_sample69",
+      "id": "n_sample72",
       "type": "note",
       "kind": "note",
       "body": "\"יקר לי\" → כמה עולה לך יום בלי לקוחות חדשים?\n\"אין לי צילומים\" → לא צריך, הכל נוצר.\n\"אני לא יודע מה להגיד\" → אני כותב את התסריט.\n\"אנסה לבד עם AI\" → קח, זה קישור לכלי. תחזור אליי בעוד שבוע.",
@@ -1039,7 +1073,7 @@
       "title": "התנגדויות ששמעתי, ומה עונים"
     },
     {
-      "id": "b_sample43",
+      "id": "b_sample46",
       "type": "bucket",
       "title": "פרונט",
       "note": "",
@@ -1049,7 +1083,7 @@
       "archived": false
     },
     {
-      "id": "b_sample44",
+      "id": "b_sample47",
       "type": "bucket",
       "title": "ניירת וכספים",
       "note": "",
@@ -1061,7 +1095,7 @@
   ],
   "timeEntries": [
     {
-      "id": "te_sample70",
+      "id": "te_sample73",
       "itemId": "c_sample12",
       "start": 1766905200000,
       "end": 1766910600000,
@@ -1069,7 +1103,7 @@
       "note": ""
     },
     {
-      "id": "te_sample71",
+      "id": "te_sample74",
       "itemId": "c_sample12",
       "start": 1766998800000,
       "end": 1767006000000,
@@ -1077,7 +1111,7 @@
       "note": ""
     },
     {
-      "id": "te_sample72",
+      "id": "te_sample75",
       "itemId": "c_sample12",
       "start": 1767006000000,
       "end": 1767011400000,
@@ -1085,7 +1119,7 @@
       "note": ""
     },
     {
-      "id": "te_sample73",
+      "id": "te_sample76",
       "itemId": "c_sample12",
       "start": 1767079800000,
       "end": 1767085200000,
@@ -1093,7 +1127,7 @@
       "note": ""
     },
     {
-      "id": "te_sample74",
+      "id": "te_sample77",
       "itemId": "c_sample12",
       "start": 1767618000000,
       "end": 1767621600000,
@@ -1101,7 +1135,7 @@
       "note": ""
     },
     {
-      "id": "te_sample75",
+      "id": "te_sample78",
       "itemId": "c_sample1",
       "start": 1768201200000,
       "end": 1768208400000,
@@ -1109,7 +1143,7 @@
       "note": ""
     },
     {
-      "id": "te_sample76",
+      "id": "te_sample79",
       "itemId": "c_sample1",
       "start": 1768208400000,
       "end": 1768213800000,
@@ -1117,7 +1151,7 @@
       "note": ""
     },
     {
-      "id": "te_sample77",
+      "id": "te_sample80",
       "itemId": "c_sample1",
       "start": 1768305600000,
       "end": 1768311000000,
@@ -1125,7 +1159,7 @@
       "note": ""
     },
     {
-      "id": "te_sample78",
+      "id": "te_sample81",
       "itemId": "c_sample1",
       "start": 1768377600000,
       "end": 1768382100000,
@@ -1133,7 +1167,7 @@
       "note": ""
     },
     {
-      "id": "te_sample79",
+      "id": "te_sample82",
       "itemId": "c_sample8",
       "start": 1768226400000,
       "end": 1768229100000,
@@ -1141,7 +1175,7 @@
       "note": ""
     },
     {
-      "id": "te_sample80",
+      "id": "te_sample83",
       "itemId": "c_sample18",
       "start": 1768298400000,
       "end": 1768302000000,
@@ -1149,23 +1183,23 @@
       "note": ""
     },
     {
-      "id": "te_sample81",
-      "itemId": "k_sample25",
+      "id": "te_sample84",
+      "itemId": "k_sample26",
       "start": 1768197600000,
       "end": 1768200300000,
       "kind": "learn",
       "note": ""
     },
     {
-      "id": "te_sample82",
-      "itemId": "k_sample28",
+      "id": "te_sample85",
+      "itemId": "k_sample29",
       "start": 1767549600000,
       "end": 1767551400000,
       "kind": "learn",
       "note": ""
     },
     {
-      "id": "te_sample83",
+      "id": "te_sample86",
       "itemId": "t_sample21",
       "start": 1768384800000,
       "end": 1768388400000,
@@ -1173,7 +1207,7 @@
       "note": ""
     },
     {
-      "id": "te_sample84",
+      "id": "te_sample87",
       "itemId": null,
       "start": 1768388400000,
       "end": 1768392000000,
@@ -1181,24 +1215,24 @@
       "note": ""
     },
     {
-      "id": "te_sample85",
-      "itemId": "b_sample43",
+      "id": "te_sample88",
+      "itemId": "b_sample46",
       "start": 1768118400000,
       "end": 1768125600000,
       "kind": "work",
       "note": ""
     },
     {
-      "id": "te_sample86",
-      "itemId": "b_sample43",
+      "id": "te_sample89",
+      "itemId": "b_sample46",
       "start": 1768312800000,
       "end": 1768318200000,
       "kind": "work",
       "note": ""
     },
     {
-      "id": "te_sample87",
-      "itemId": "b_sample44",
+      "id": "te_sample90",
+      "itemId": "b_sample47",
       "start": 1767942000000,
       "end": 1767945600000,
       "kind": "work",
@@ -1207,37 +1241,37 @@
   ],
   "subscriptions": [
     {
-      "id": "s_sample88",
+      "id": "s_sample91",
       "name": "Claude",
       "cost": 200,
       "currency": "USD"
     },
     {
-      "id": "s_sample89",
+      "id": "s_sample92",
       "name": "ElevenLabs",
       "cost": 99,
       "currency": "USD"
     },
     {
-      "id": "s_sample90",
+      "id": "s_sample93",
       "name": "Higgsfield / וידאו",
       "cost": 149,
       "currency": "USD"
     },
     {
-      "id": "s_sample91",
+      "id": "s_sample94",
       "name": "HeyGen",
       "cost": 89,
       "currency": "USD"
     },
     {
-      "id": "s_sample92",
+      "id": "s_sample95",
       "name": "Netlify + דומיינים",
       "cost": 21,
       "currency": "USD"
     },
     {
-      "id": "s_sample93",
+      "id": "s_sample96",
       "name": "כלים נלווים",
       "cost": 20,
       "currency": "USD"
@@ -1245,21 +1279,21 @@
   ],
   "ledger": [
     {
-      "id": "lg_sample94",
+      "id": "lg_sample97",
       "title": "קמפיין ממומן — מטא",
       "amount": -560,
       "date": 1767772800000,
       "source": "ad"
     },
     {
-      "id": "lg_sample95",
+      "id": "lg_sample98",
       "title": "קמפיין ממומן — מטא",
       "amount": -420,
       "date": 1765526400000,
       "source": "ad"
     },
     {
-      "id": "lg_sample96",
+      "id": "lg_sample99",
       "title": "מוזיקה בליווי רישיון",
       "amount": -95,
       "date": 1767427200000
@@ -1267,37 +1301,37 @@
   ],
   "links": [
     {
-      "id": "l_sample97",
+      "id": "l_sample100",
       "title": "הדף של מיטל",
       "url": "https://agentfront.netlify.app",
       "desc": "הסוכנת הקולית — הדף הציבורי"
     },
     {
-      "id": "l_sample98",
+      "id": "l_sample101",
       "title": "לוח השיחות",
       "url": "https://agentfront.netlify.app/dash.html",
       "desc": "כל השיחות שמיטל ניהלה"
     },
     {
-      "id": "l_sample99",
+      "id": "l_sample102",
       "title": "דף הנחיתה",
       "url": "https://frontvid.netlify.app",
       "desc": "הדף שאליו מגיעים מהמודעות"
     },
     {
-      "id": "l_sample100",
+      "id": "l_sample103",
       "title": "ElevenLabs",
       "url": "https://elevenlabs.io/app",
       "desc": "קולות וסוכנות קוליות"
     },
     {
-      "id": "l_sample101",
+      "id": "l_sample104",
       "title": "Meta Ads",
       "url": "https://adsmanager.facebook.com",
       "desc": "ניהול הקמפיינים"
     },
     {
-      "id": "l_sample102",
+      "id": "l_sample105",
       "title": "Netlify",
       "url": "https://app.netlify.com",
       "desc": "האחסון של כל הדפים"

@@ -111,7 +111,8 @@ const tasks = [
   { id: id('t'), type: 'task', title: 'לשלוח לדני גרסה ראשונה לאישור', done: false, priority: 'normal', dueDate: t(-2), clientId: clients[0].id, ...base(1) },
   { id: id('t'), type: 'task', title: 'להעלות שלושה רילים לאינסטגרם', done: false, priority: 'normal', dueDate: null, clientId: null, ...base(5) },
   { id: id('t'), type: 'task', title: 'לבנות דף מחירים לסוכנת הקולית', done: false, priority: 'normal', dueDate: null, clientId: null, ...base(8) },
-  { id: id('t'), type: 'task', title: 'לשלוח חשבונית לרונית', done: true, doneAt: t(15), priority: 'normal', dueDate: null, clientId: clients[3].id, ...base(16) }
+  { id: id('t'), type: 'task', title: 'לשלוח חשבונית לרונית', done: true, doneAt: t(15), priority: 'normal', dueDate: null, clientId: clients[3].id, ...base(16) },
+  { id: id('t'), type: 'task', title: 'לבדוק ספק למוזיקה מקורית', done: false, priority: 'normal', dueDate: null, clientId: null, ...base(47) }
 ];
 
 /* ---------- ידע ---------- */
@@ -161,7 +162,10 @@ const ideas = [
   { id: id('i'), type: 'idea', title: 'סדרת סרטונים "לפני ואחרי" למוסכים', ...base(4) },
   { id: id('i'), type: 'idea', title: 'להציע חבילה שנתית עם הנחה של חודשיים', ...base(10) },
   { id: id('i'), type: 'idea', title: 'לתת למיטל לענות גם בוואטסאפ ולא רק בטלפון', ...base(2) },
-  { id: id('i'), type: 'idea', title: 'דף נחיתה נפרד לכל ענף — מוסכים, קליניקות, מסעדות', ...base(13) }
+  { id: id('i'), type: 'idea', title: 'דף נחיתה נפרד לכל ענף — מוסכים, קליניקות, מסעדות', ...base(13) },
+  // שניים ישנים, כדי שהסקירה השבועית תציע לנקות אותם
+  { id: id('i'), type: 'idea', title: 'פודקאסט על עסקים קטנים', ...base(52) },
+  { id: id('i'), type: 'idea', title: 'לפתוח ערוץ טיקטוק לעסק', ...base(41) }
 ];
 
 /* ---------- שגרות ---------- */

@@ -670,7 +670,11 @@ export function loadSample(json) {
     walk(json);
     delete json.sampleBaseTime;
   }
+  // ההדרכה היא מצב של המשתמש, לא של הנתונים. מי שכבר עבר אותה
+  // וטוען דוגמה כדי להסתכל לא אמור לקבל אותה שוב.
+  const seen = state.settings.onboarded;
   replaceState(json);
+  if (seen) update(s => { s.settings.onboarded = true; }, { silent: true });
 }
 
 export function backupOverdue() {

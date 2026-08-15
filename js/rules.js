@@ -158,15 +158,20 @@ export function navCounts() {
       i.type === 'note' && !i.archived && i.reminderAt && !i.reminderDone && i.reminderAt <= now()).length,
     // חידושים בשלושת הימים הקרובים — תגית שמופיעה רק אחרי שאיחרת מופיעה מאוחר מדי
     // תגית על המדריך עד שההגדרה הבסיסית הושלמה
+    // חייב לספור בדיוק את מה שהעמוד מציג, אחרת התגית אומרת 4 והעמוד אומר 6
     guide: (() => {
       const notifOK = typeof Notification !== 'undefined' && Notification.permission === 'granted';
-      const missing = [
+      const hasIdle = typeof window !== 'undefined' && 'IdleDetector' in window;
+      const hasPip = typeof window !== 'undefined' && 'documentPictureInPicture' in window;
+      const steps = [
         s.items.some(i => i.type === 'client' && !i.archived),
-        !!s.settings.presenceEnabled,
+        hasIdle ? !!s.settings.presenceEnabled : null,
         notifOK,
-        !!s.settings.autoBackupDir || !!s.settings.lastBackupAt
-      ].filter(x => !x).length;
-      return missing;
+        hasPip ? !!s.settings.floatUsed : null,
+        !!s.settings.autoBackupDir || !!s.settings.lastBackupAt,
+        s.timeEntries.length > 0 || (s.samples || []).some(x => x.answeredAt)
+      ];
+      return steps.filter(x => x === false).length;
     })(),
     review: (() => {
       const d2 = new Date(); d2.setHours(0, 0, 0, 0); d2.setDate(d2.getDate() - d2.getDay());

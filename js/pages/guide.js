@@ -96,7 +96,11 @@ function render(root) {
     el('div', { class: 'right' },
       el('button', {
         class: 'btn btn-sm',
-        onclick: () => { update(s => { s.settings.onboarded = false; }); location.hash = '#/'; location.reload(); }
+        onclick: async () => {
+          update(s => { s.settings.onboarded = false; });
+          const OB = await import('../onboarding.js');
+          OB.start();
+        }
       }, '↺ הפעל שוב את ההדרכה'))
   ));
 

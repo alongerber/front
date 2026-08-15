@@ -255,6 +255,12 @@ function renderTimerBar() {
         onclick: () => { T.pauseTimer(); toast('מושהה — הזמן נשמר'); }
       }, '⏸ השהה'),
       el('button', { class: 'btn btn-xs', onclick: openSwitcher }, 'החלף'),
+      // הפסקה נשארת כפתור ולא נכנסת לתפריט — זו הלחיצה שסוגרת את חור הפייסבוק,
+      // וכל קליק נוסף לפניה הוא סיבה לא ללחוץ עליה
+      t.kind !== 'off' ? el('button', {
+        class: 'btn btn-xs', 'data-tip': 'time.break',
+        onclick: () => { T.startFree('off'); toast('בהפסקה — לא נספר בתמחור'); }
+      }, '☕ הפסקה') : null,
       el('button', { class: 'btn btn-xs', onclick: e => openTimerMenu(e.currentTarget) }, 'עוד ▾')
     );
     bar.append(actions);
@@ -333,10 +339,7 @@ function openTimerMenu(anchor) {
   if (t.itemId && !t.autoFrom) menu.append(row('⏳ ממתין לתשובה', 'זמן הקיר ימשיך לרוץ', () => {
     T.startWaiting(t.itemId); toast('הפריט בהמתנה');
   }));
-  if (t.kind !== 'off') menu.append(row('☕ הפסקה', 'לא נספר בתמחור', () => {
-    T.startFree('off'); toast('בהפסקה');
-  }));
-  menu.append(row('■ עצור', 'בלי לזכור להמשך', () => { T.stopTimer(); toast('נעצר ונרשם'); }, 'danger'));
+  menu.append(row('■ עצור', 'בלי לזכור להמשך', () => { T.stopTimer(); T.clearPaused(); toast('נעצר ונרשם'); }, 'danger'));
 
   document.body.append(menu);
   const r = anchor.getBoundingClientRect();

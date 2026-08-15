@@ -167,6 +167,32 @@ button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit
 .tb-kind{font-size:11px;color:var(--t3);border:1px solid var(--line-2);border-radius:20px;padding:1px 8px}
 .tb-actions{margin-inline-start:auto;display:flex;gap:6px;align-items:center}
 
+/* מושהה — הזמן נשמר, לא נמחק. צבע נפרד כדי שלא ייראה כמו "לא רץ כלום". */
+.timerbar.paused{background:linear-gradient(90deg,rgba(185,140,255,.12),transparent)}
+.timerbar.paused .tb-dot{background:#b98cff;animation:none}
+.timerbar.paused .tb-time{color:#b98cff}
+/* הרצף הנוכחי — קטן, ליד המספר הגדול שהוא הסך היומי */
+.tb-run{font-size:11px;color:var(--t4);font-variant-numeric:tabular-nums}
+.tb-note{font-size:11px;color:var(--t3);max-width:20vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---- תפריט "עוד" של הטיימר ---- */
+.tb-menu{
+  position:fixed;z-index:400;min-width:240px;max-height:74vh;overflow-y:auto;
+  background:#161615;border:1px solid var(--line-2);border-radius:12px;padding:6px;
+  box-shadow:0 18px 44px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:1px;
+}
+.tb-mh{font-size:10.5px;color:var(--t4);padding:7px 9px 3px;letter-spacing:.03em}
+.tb-mi{
+  display:flex;align-items:baseline;gap:8px;width:100%;text-align:start;
+  background:transparent;border:0;border-radius:8px;padding:7px 9px;
+  color:var(--t1);font-family:inherit;font-size:13px;cursor:pointer;
+}
+.tb-mi:hover{background:rgba(255,255,255,.06)}
+.tb-mi.danger:hover{background:rgba(255,90,77,.14);color:#ff8a80}
+.tb-mi.on{color:var(--yellow);font-weight:700;cursor:default}
+.tb-mi.on .tb-mi-s{color:var(--yellow)}
+.tb-mi-s{font-size:11px;color:var(--t4);margin-inline-start:auto;white-space:nowrap}
+
 /* ===================== הסברים (טולטיפ) ===================== */
 .tip{
   position:fixed;z-index:300;max-width:290px;background:#23231f;
@@ -716,6 +742,12 @@ table.tb td.num{font-variant-numeric:tabular-nums;text-align:left;direction:ltr}
   .capture-feedback{padding:0 13px}
   .g2{grid-template-columns:minmax(0,1fr)}
   .tb-title{max-width:26vw}
+  /* בסרגל צר נשאר מה שחייב: מה רץ, כמה, והכפתורים. הרצף וההערה יורדים. */
+  .tb-run,.tb-note,.tb-kind{display:none}
+  .timerbar{gap:7px;padding:0 12px;overflow-x:auto;scrollbar-width:none}
+  .timerbar::-webkit-scrollbar{display:none}
+  .tb-actions{flex:0 0 auto}
+  .tb-menu{min-width:0;width:calc(100vw - 24px)}
   .modal-back{padding:12px}
   .clock{display:none}
   .page-h h1{font-size:20px}

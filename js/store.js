@@ -151,6 +151,7 @@ export function defaultState() {
 
     // מצב ריצה
     timer: null,                 // {itemId,startedAt,kind}
+    paused: null,                // {itemId,kind,at} — מה היה רץ לפני ההשהיה
     waiting: [],                 // [{itemId,since,note}]
     lastSeenAt: now(),
     pendingAbsence: null,        // {from,to}

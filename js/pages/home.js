@@ -15,10 +15,10 @@ export default { render, tick };
 
 function tick() {
   const n = document.getElementById('home-live');
-  if (n) {
-    const t = T.activeTimer();
-    n.textContent = t ? hms(T.elapsed()) : '—';
-  }
+  const t = T.activeTimer();
+  if (n) n.textContent = t ? hms(T.KINDS[t.kind]?.focus ? T.currentTodayMs() : T.elapsed()) : '—';
+  const r = document.getElementById('home-run');
+  if (r && t) r.textContent = ' · ברצף ' + dur(T.elapsed(), true);
 }
 
 function render(root) {
@@ -77,6 +77,7 @@ function modeToggle(mode) {
 
 function statusRow() {
   const t = T.activeTimer();
+  const paused = T.pausedInfo();
   const waiting = S().waiting;
   const card = el('div', { class: 'card', style: { padding: '13px 16px' } });
   const row = el('div', { style: { display: 'flex', alignItems: 'center', gap: '13px', flexWrap: 'wrap' } });
@@ -87,9 +88,28 @@ function statusRow() {
       el('span', { class: 'dot', style: { background: T.KINDS[t.kind].color } }),
       el('div', { style: { minWidth: 0 } },
         el('div', { style: { fontWeight: '700' } }, it ? it.title : (t.kind === 'learn' ? 'למידה' : 'עבודה כללית')),
-        el('div', { class: 'small muted' }, `רץ מ-${hhmm(t.startedAt)} · ${T.KINDS[t.kind].name}`)
+        el('div', { class: 'small muted' },
+          `היום · ${T.KINDS[t.kind].icon || ''} ${T.KINDS[t.kind].name} · מ-${hhmm(t.startedAt)}`,
+          // הרצף מופיע רק כשהוא מוסיף מידע — כלומר כשכבר נצבר זמן קודם
+          T.elapsed() > MIN && T.currentTodayMs() - T.elapsed() > MIN
+            ? el('span', { id: 'home-run' }, ' · ברצף ' + dur(T.elapsed(), true)) : null)
       ),
-      el('div', { id: 'home-live', class: 'tabular', style: { fontSize: '26px', fontWeight: '900', color: T.KINDS[t.kind].color, marginInlineStart: '4px' } }, hms(T.elapsed()))
+      el('div', {
+        id: 'home-live', class: 'tabular',
+        'data-tip': 'סך הזמן נטו שנצבר היום על זה. מעבר לפרויקט אחר וחזרה ממשיך מכאן.',
+        style: { fontSize: '26px', fontWeight: '900', color: T.KINDS[t.kind].color, marginInlineStart: '4px' }
+      }, hms(T.KINDS[t.kind]?.focus ? T.currentTodayMs() : T.elapsed()))
+    );
+  } else if (paused) {
+    const pIt = paused.itemId ? getItem(paused.itemId) : null;
+    const soFar = paused.itemId ? T.itemTodayMs(paused.itemId) : T.itemTodayMs(null, paused.kind);
+    row.append(
+      el('span', { class: 'dot', style: { background: '#b98cff' } }),
+      el('div', { style: { minWidth: 0 } },
+        el('div', { style: { fontWeight: '700' } }, pIt ? pIt.title : (T.KINDS[paused.kind]?.name || 'עבודה')),
+        el('div', { class: 'small muted' }, 'מושהה · הזמן נשמר, חזרה תמשיך מכאן')
+      ),
+      el('div', { class: 'tabular', style: { fontSize: '26px', fontWeight: '900', color: '#b98cff', marginInlineStart: '4px' } }, hms(soFar))
     );
   } else {
     row.append(
@@ -102,8 +122,15 @@ function statusRow() {
   }
 
   const actions = el('div', { style: { marginInlineStart: 'auto', display: 'flex', gap: '7px', flexWrap: 'wrap' } },
-    el('button', { class: 'btn btn-sm btn-y', onclick: openSwitcher }, t ? 'החלף (Ctrl+J)' : 'התחל טיימר'),
+    !t && paused ? el('button', {
+      class: 'btn btn-sm btn-y', onclick: () => { T.resumePaused(); refresh(); }
+    }, '▶ המשך') : null,
+    el('button', { class: 'btn btn-sm ' + (t || !paused ? 'btn-y' : ''), onclick: openSwitcher }, t ? 'החלף (Ctrl+J)' : 'התחל טיימר'),
     t && t.itemId ? el('button', { class: 'btn btn-sm', 'data-tip': 'time.waitBtn', onclick: () => { T.startWaiting(t.itemId); toast('בהמתנה'); refresh(); } }, 'ממתין') : null,
+    t ? el('button', {
+      class: 'btn btn-sm', 'data-tip': 'עוצר בלי לשכוח — חזרה תמשיך מאותו מספר',
+      onclick: () => { T.pauseTimer(); toast('מושהה — הזמן נשמר'); refresh(); }
+    }, '⏸ השהה') : null,
     t ? el('button', { class: 'btn btn-sm', onclick: () => { T.stopTimer(); refresh(); } }, 'עצור') : null
   );
   row.append(actions);

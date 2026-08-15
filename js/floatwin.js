@@ -28,7 +28,7 @@ export async function open() {
   if (!supported()) throw new Error('הדפדפן הזה לא תומך בחלון צף. נסה כרום או אדג\'.');
   if (isOpen()) { win.focus(); return win; }
 
-  win = await documentPictureInPicture.requestWindow({ width: 320, height: 300 });
+  win = await documentPictureInPicture.requestWindow({ width: 330, height: 340 });
   win.document.documentElement.lang = 'he';
   win.document.documentElement.dir = 'rtl';
   win.document.head.append(styleTag(win.document));
@@ -45,6 +45,12 @@ export async function open() {
   // 1-9 מחליף פרויקט בלי לגעת בעכבר, 0 = הפסקה
   win.addEventListener('keydown', ev => {
     if (ev.key === '0') { T.startFree('off'); render(); return; }
+    // רווח משהה וממשיך — הקיצור שהכי הרבה פעמים ביום
+    if (ev.key === ' ' || ev.key === 'p') {
+      ev.preventDefault();
+      if (T.activeTimer()) T.pauseTimer(); else T.resumePaused();
+      render(); return;
+    }
     const n = parseInt(ev.key, 10);
     if (!n || n < 1 || n > 9) return;
     const btns = win.document.querySelectorAll('.fw-btn');
@@ -79,7 +85,10 @@ function e(doc, tag, attrs = {}, ...kids) {
 function tickOnly() {
   if (!isOpen()) { close(); return; }
   const c = win.document.getElementById('fw-clock');
-  if (c) c.textContent = hms(T.elapsed());
+  const t = T.activeTimer();
+  if (c && t) c.textContent = hms(T.KINDS[t.kind]?.focus ? T.currentTodayMs() : T.elapsed());
+  const r = win.document.getElementById('fw-run');
+  if (r && t) r.textContent = 'ברצף ' + dur(T.elapsed(), true);
 }
 
 function render() {
@@ -92,21 +101,33 @@ function render() {
 
   doc.body.innerHTML = '';
 
-  /* השורה העליונה — מה רץ עכשיו */
-  const state = !t ? 'idle' : t.kind === 'off' ? 'off' : (t.kind === 'wait' || away) ? 'wait' : 'run';
+  /* השורה העליונה — מה רץ עכשיו.
+     השעון מראה את הסך שנצבר היום על הפריט, לא את הרצף הנוכחי,
+     כדי שמעבר ליעקב וחזרה ליוסי לא ייראו כאיפוס. */
+  const paused = T.pausedInfo();
+  const pIt = !t && paused && paused.itemId ? getItem(paused.itemId) : null;
+  const state = !t ? (paused ? 'pause' : 'idle') : t.kind === 'off' ? 'off' : (t.kind === 'wait' || away) ? 'wait' : 'run';
+  const focus = !!(t && T.KINDS[t.kind]?.focus);
+  const bigMs = t ? (focus ? T.currentTodayMs() : T.elapsed())
+    : paused ? (paused.itemId ? T.itemTodayMs(paused.itemId) : T.itemTodayMs(null, paused.kind)) : 0;
+  const run = T.elapsed();
+
   doc.body.append(e(doc, 'div', { class: 'fw-now ' + state },
     e(doc, 'span', { class: 'fw-dot' }),
     e(doc, 'div', { class: 'fw-main' },
       e(doc, 'div', { class: 'fw-title' },
-        !t ? 'שום דבר לא רץ'
+        !t ? (pIt ? pIt.title : paused ? (T.KINDS[paused.kind]?.name || 'עבודה') : 'שום דבר לא רץ')
           : t.kind === 'off' ? 'הפסקה'
             : (it ? it.title : (T.KINDS[t.kind]?.name || 'עבודה'))),
       e(doc, 'div', { class: 'fw-sub' },
-        t && t.kind === 'off' ? 'לא נספר כזמן עבודה'
-          : away ? 'לא ליד המחשב — לא נספר'
-            : auto ? 'המתנה שזוהתה לבד'
-              : t ? (T.KINDS[t.kind]?.name || '') : 'לחץ על לקוח או תחום למטה')),
-    e(doc, 'div', { class: 'fw-clock', id: 'fw-clock' }, t ? hms(T.elapsed()) : '—')
+        !t ? (paused ? 'מושהה · הזמן נשמר' : 'לחץ על לקוח או תחום למטה')
+          : t.kind === 'off' ? 'לא נספר כזמן עבודה'
+            : away ? 'לא ליד המחשב — לא נספר'
+              : auto ? 'המתנה שזוהתה לבד'
+                : focus && run > 30000 && bigMs - run > 30000
+                  ? e(doc, 'span', { id: 'fw-run' }, 'ברצף ' + dur(run, true))
+                  : (T.KINDS[t.kind]?.name || ''))),
+    e(doc, 'div', { class: 'fw-clock', id: 'fw-clock' }, (t || paused) ? hms(bigMs) : '—')
   ));
 
   /* כפתורי החלפה — לקוחות פעילים, ואחריהם דליי העסק */
@@ -155,6 +176,21 @@ function render() {
       e(doc, 'span', { class: 'fw-today-s' }, top)));
   }
 
+  /* סוג הזמן — לחיצה אחת מסמנת שהחצי שעה הזו הייתה פגישה או סבב תיקונים,
+     בלי לעצור כלום. אלה המספרים שמפתיעים בסוף החודש. */
+  if (focus) {
+    const kr = e(doc, 'div', { class: 'fw-kinds' });
+    T.SWITCHABLE.forEach(k => {
+      const K = T.KINDS[k];
+      kr.append(e(doc, 'button', {
+        class: 'fw-kind' + (t.kind === k ? ' on' : ''),
+        title: 'סמן כ' + K.name,
+        onclick: () => { T.setKind(k); render(); }
+      }, K.icon + ' ' + K.name));
+    });
+    doc.body.append(kr);
+  }
+
   /* שורת פעולות — "הפסקה" קודם, כי זו הלחיצה שסוגרת את החור */
   const onBreak = t && t.kind === 'off';
   doc.body.append(e(doc, 'div', { class: 'fw-row' },
@@ -163,12 +199,23 @@ function render() {
       title: 'לא עבודה — פייסבוק, קפה, חיים. נרשם ולא נספר בתמחור.',
       onclick: () => { T.startFree('off'); render(); }
     }, onBreak ? '☕ בהפסקה' : '☕ הפסקה'),
+    t
+      ? e(doc, 'button', {
+        class: 'fw-mini', title: 'עוצר בלי לשכוח — חזרה תמשיך מאותו מספר',
+        onclick: () => { T.pauseTimer(); render(); }
+      }, '⏸ השהה')
+      : e(doc, 'button', {
+        class: 'fw-mini' + (paused ? ' go' : ''),
+        title: paused ? 'חזרה למה שהושהה' : 'אין מה להמשיך',
+        onclick: () => { if (T.resumePaused()) render(); }
+      }, '▶ המשך'),
     e(doc, 'button', {
-      class: 'fw-mini', onclick: () => { T.stopTimer(); render(); }
+      class: 'fw-mini', title: 'עוצר ושוכח. להשהיה יש כפתור נפרד.',
+      onclick: () => { T.stopTimer(); T.clearPaused(); render(); }
     }, '■ עצור'),
     e(doc, 'button', {
       class: 'fw-mini', onclick: () => { window.focus(); }
-    }, '↗ למערכת')
+    }, '↗')
   ));
 }
 
@@ -244,6 +291,20 @@ function styleTag(doc) {
     .fw-mini:hover{color:#fff;border-color:rgba(255,255,255,.3)}
     .fw-mini.pause{border-color:rgba(255,159,67,.4);color:#ff9f43}
     .fw-mini.pause.on{background:#ff9f43;color:#000;border-color:#ff9f43;font-weight:700}
+    .fw-mini.go{border-color:rgba(185,140,255,.55);color:#b98cff;font-weight:700}
+
+    /* סוג הזמן — לחיצה אחת, בלי לעצור */
+    .fw-kinds{display:flex;gap:4px}
+    .fw-kind{
+      flex:1;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:7px;
+      padding:4px 2px;font-size:10px;cursor:pointer;color:rgba(255,255,255,.5);
+      font-family:inherit;white-space:nowrap;overflow:hidden;
+    }
+    .fw-kind:hover{color:#fff;border-color:rgba(255,255,255,.28)}
+    .fw-kind.on{background:rgba(255,255,255,.11);color:#fff;border-color:rgba(255,255,255,.3);font-weight:700}
+
+    .fw-now.pause .fw-dot{background:#b98cff;animation:none}
+    .fw-now.pause .fw-clock{color:#b98cff}
     ::-webkit-scrollbar{width:6px}
     ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:6px}
   `;

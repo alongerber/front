@@ -8,12 +8,20 @@ import { S, update, uid, getItem } from './store.js';
 import { MIN, HOUR, DAY, startOfDay, endOfDay, toast } from './util.js';
 import * as P from './presence.js';
 
+/* סוגי זמן. focus=true נספר כזמן עבודה נטו ונכנס לתמחור.
+   meet ו-fix נפרדים מ-work כי הם המספרים שבאמת מפתיעים בסוף החודש:
+   כמה זמן הלך על שיחות, וכמה על סבבי תיקונים אחרי שהסרטון "נגמר". */
 export const KINDS = {
-  work:  { name: 'עבודה',  color: '#ffd400', focus: true },
-  learn: { name: 'למידה',  color: '#b98cff', focus: true },
-  wait:  { name: 'המתנה',  color: '#5aa9ff', focus: false },
-  off:   { name: 'לא עבדתי', color: 'rgba(255,255,255,.2)', focus: false }
+  work:  { name: 'עבודה',   icon: '⏱', color: '#ffd400', focus: true },
+  meet:  { name: 'פגישה',   icon: '💬', color: '#3ddc84', focus: true },
+  fix:   { name: 'תיקונים', icon: '🔁', color: '#ff9f43', focus: true },
+  learn: { name: 'למידה',   icon: '📚', color: '#b98cff', focus: true },
+  wait:  { name: 'המתנה',   icon: '⏳', color: '#5aa9ff', focus: false },
+  off:   { name: 'לא עבדתי', icon: '☕', color: 'rgba(255,255,255,.2)', focus: false }
 };
+
+/** הסוגים שמוצעים בכפתור החלפה — בלי המתנה והפסקה שיש להם כפתור משלהם */
+export const SWITCHABLE = ['work', 'meet', 'fix', 'learn'];
 
 const now = () => Date.now();
 const listeners = new Set();
@@ -61,7 +69,7 @@ export function startTimer(itemId, kind = 'work') {
   if (t) stopTimer(now(), true);
   // פריט שמתחילים לעבוד עליו יוצא ממצב המתנה
   endWaiting(itemId, true);
-  update(s => { s.timer = { itemId, startedAt: now(), kind, note: '' }; s.lastSeenAt = now(); });
+  update(s => { s.timer = { itemId, startedAt: now(), kind, note: '' }; s.paused = null; s.lastSeenAt = now(); });
   const it = getItem(itemId);
   if (it) touchRelated(it);
   emit();
@@ -76,8 +84,124 @@ export function switchTimer(itemId, kind) {
 export function startFree(kind = 'learn', itemId = null) {
   const t = S().timer;
   if (t) stopTimer(now(), true);
-  update(s => { s.timer = { itemId, startedAt: now(), kind, note: '' }; });
+  update(s => { s.timer = { itemId, startedAt: now(), kind, note: '' }; s.paused = null; });
   emit();
+}
+
+/* ================= השהיה =================
+   הבדל מ"עצור": עצור שוכח. השהיה זוכרת בדיוק על מה עבדת,
+   כדי שחזרה תהיה לחיצה אחת ולא חיפוש מחדש ברשימה. */
+
+/** משהה את הטיימר הרץ. הזמן נרשם, ומה שרץ נשמר לחזרה בלחיצה. */
+export function pauseTimer() {
+  const t = S().timer;
+  if (!t) return null;
+  stopTimer(now(), true);
+  update(s => { s.paused = { itemId: t.itemId, kind: t.kind, at: now() }; });
+  emit();
+  return t;
+}
+
+/** חוזר בדיוק למה שהושהה. */
+export function resumePaused() {
+  const p = S().paused;
+  if (!p) return false;
+  update(s => { s.paused = null; });
+  if (p.itemId) startTimer(p.itemId, p.kind); else startFree(p.kind);
+  return true;
+}
+
+export const pausedInfo = () => S().paused;
+export function clearPaused() { update(s => { s.paused = null; }); emit(); }
+
+/* ================= תיקונים בדיעבד =================
+   מי שמחליף נושא כל כמה דקות ישכח להחליף טיימר. במקום לקוות שיזכור,
+   אפשר לתקן אחרי — להזיז את ההתחלה אחורה, או להעביר את הדקות האחרונות. */
+
+/** מזיז את תחילת הטיימר הרץ אחורה. לא חוצה את הרשומה שלפניו. */
+export function backdateStart(ms) {
+  const t = S().timer;
+  if (!t || ms <= 0) return 0;
+  const prevEnd = S().timeEntries.reduce((a, e) => e.end <= t.startedAt && e.end > a ? e.end : a, 0);
+  const floor = Math.max(prevEnd, startOfDay());
+  const target = Math.max(floor, t.startedAt - ms);
+  const moved = t.startedAt - target;
+  if (moved < 1000) return 0;
+  update(s => { s.timer.startedAt = target; }, { label: 'תיקון זמן התחלה' });
+  emit();
+  return moved;
+}
+
+/** כמה אפשר להזיז אחורה בלי לדרוס משהו — כדי שהתפריט לא יציע מה שלא ייתכן */
+export function backdateRoom() {
+  const t = S().timer;
+  if (!t) return 0;
+  const prevEnd = S().timeEntries.reduce((a, e) => e.end <= t.startedAt && e.end > a ? e.end : a, 0);
+  return Math.max(0, t.startedAt - Math.max(prevEnd, startOfDay()));
+}
+
+/**
+ * מעביר את X הדקות האחרונות לפריט אחר.
+ * עובד גם על הטיימר הרץ וגם על רשומות שכבר נסגרו, כי "שכחתי להחליף"
+ * מתגלה בדרך כלל אחרי שכבר עברת הלאה.
+ */
+export function reassignRecent(ms, itemId, kind = 'work') {
+  const from = now() - ms;
+  let moved = 0;
+  update(s => {
+    const t = s.timer;
+    // חלק מהטיימר הרץ
+    if (t && t.startedAt < now()) {
+      const cut = Math.max(t.startedAt, from);
+      if (now() - cut > 5000) {
+        if (cut > t.startedAt) {
+          s.timeEntries.push({ id: uid('t'), itemId: t.itemId, start: t.startedAt, end: cut, kind: t.kind, note: t.note || '' });
+        }
+        moved += now() - cut;
+        s.timer = { itemId, startedAt: cut, kind, note: '' };
+      }
+    }
+    // רשומות סגורות שנופלות בתוך החלון
+    s.timeEntries.forEach(e => {
+      if (e.end <= from) return;
+      if (e.itemId === itemId && e.kind === kind) return;
+      if (e.start >= from) { moved += e.end - e.start; e.itemId = itemId; e.kind = kind; return; }
+      // רשומה שנחתכת באמצע — מפצלים
+      const tail = e.end - from;
+      if (tail < 5000) return;
+      s.timeEntries.push({ id: uid('t'), itemId, start: from, end: e.end, kind, note: e.note || '' });
+      e.end = from;
+      moved += tail;
+    });
+  }, { label: 'העברת זמן לפריט אחר' });
+  emit();
+  return moved;
+}
+
+/** מחליף את סוג הזמן של הטיימר הרץ בלי לאבד את הרצף */
+export function setKind(kind) {
+  const t = S().timer;
+  if (!t || t.kind === kind) return;
+  update(s => { s.timer.kind = kind; }, { label: 'שינוי סוג זמן' });
+  emit();
+}
+
+/** הערה על הקטע שרץ עכשיו — נכנסת לרשומה כשהיא נסגרת */
+export function setNote(note) {
+  if (!S().timer) return;
+  update(s => { s.timer.note = note; });
+  emit();
+}
+
+/** הפריטים שנגעת בהם לאחרונה — לחזרה מהירה */
+export function recentItems(n = 6) {
+  const seen = new Map();
+  S().timeEntries.slice().sort((a, b) => b.end - a.end).forEach(e => {
+    if (!e.itemId || seen.has(e.itemId)) return;
+    const it = getItem(e.itemId);
+    if (it && !it.archived) seen.set(e.itemId, { item: it, at: e.end, kind: e.kind });
+  });
+  return Array.from(seen.values()).slice(0, n);
 }
 
 function touchRelated(item) {
@@ -216,6 +340,32 @@ export function todayByItem() {
   const t = S().timer;
   if (t && KINDS[t.kind]?.focus) add(t.itemId, t.kind, activePart(t.startedAt, now(), from, to));
   return Array.from(map.values()).sort((a, b) => b.ms - a.ms);
+}
+
+/**
+ * כמה זמן נטו הצטבר היום על פריט אחד — כולל הקטע שרץ עכשיו.
+ * זה המספר שמוצג בסרגל ובחלון הצף, ולכן מעבר לפרויקט אחר וחזרה
+ * לא מאפס כלום: הוא ממשיך מאיפה שהוא היה.
+ */
+export function itemTodayMs(itemId, kind = null) {
+  const from = startOfDay(), to = endOfDay();
+  let ms = 0;
+  S().timeEntries.forEach(e => {
+    if ((e.itemId || null) !== (itemId || null)) return;
+    if (kind ? e.kind !== kind : !KINDS[e.kind]?.focus) return;
+    ms += activePart(e.start, e.end, from, to);
+  });
+  const t = S().timer;
+  if (t && (t.itemId || null) === (itemId || null) && (kind ? t.kind === kind : KINDS[t.kind]?.focus))
+    ms += activePart(t.startedAt, now(), from, to);
+  return ms;
+}
+
+/** מה שהטיימר הנוכחי צובר היום — הפריט אם יש, אחרת הסוג החופשי */
+export function currentTodayMs() {
+  const t = S().timer;
+  if (!t) return 0;
+  return t.itemId ? itemTodayMs(t.itemId) : itemTodayMs(null, t.kind);
 }
 
 /** ממוצע זמן קשב לסרטון שנמסר */

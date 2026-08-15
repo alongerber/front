@@ -156,17 +156,53 @@ function floatBtn() {
 
 function renderTimerBar() {
   const bar = $('#timerbar');
+  // append הילידי ממיר null למחרוזת "null" — el() מסנן, הוא לא
+  const put = (...kids) => bar.append(...kids.filter(Boolean));
+  closeTimerMenu();                     // העוגן נהרס — תפריט פתוח היה נשאר תלוי באוויר
   const t = T.activeTimer();
+  const paused = T.pausedInfo();
   const waiting = S().waiting;
   bar.innerHTML = '';
 
+  /* --- מושהה: זוכר בדיוק על מה עבדת, וממשיך מהמספר שהיה --- */
+  if (!t && paused) {
+    const it = paused.itemId ? getItem(paused.itemId) : null;
+    const label = it ? it.title : (T.KINDS[paused.kind]?.name || 'עבודה');
+    const soFar = paused.itemId ? T.itemTodayMs(paused.itemId) : T.itemTodayMs(null, paused.kind);
+    bar.className = 'timerbar paused';
+    put(
+      el('span', { class: 'tb-dot' }),
+      el('span', { class: 'tb-title' }, label),
+      el('span', { class: 'tb-time' }, hms(soFar)),
+      el('span', { class: 'tb-kind' }, 'מושהה · הזמן נשמר')
+    );
+    bar.append(el('div', { class: 'tb-actions' },
+      floatBtn(),
+      el('button', {
+        class: 'btn btn-xs btn-y',
+        onclick: () => { T.resumePaused(); toast('ממשיך מ' + dur(soFar, true), 'ok'); }
+      }, '▶ המשך'),
+      el('button', { class: 'btn btn-xs', onclick: openSwitcher }, 'משהו אחר'),
+      el('button', {
+        class: 'btn btn-xs', 'data-tip': 'לא מוחק זמן — רק מפסיק להציע להמשיך',
+        onclick: () => { T.clearPaused(); toast('נוקה'); }
+      }, 'סיימתי עם זה')
+    ));
+    return;
+  }
+
   if (!t && !waiting.length) {
     bar.className = 'timerbar idle';
-    bar.append(
+    const last = T.recentItems(1)[0];
+    put(
       el('span', { class: 'tb-dot' }),
       el('span', { class: 'muted small' }, 'שום טיימר לא רץ'),
       el('div', { class: 'tb-actions' },
         floatBtn(),
+        last ? el('button', {
+          class: 'btn btn-xs', 'data-tip': 'חוזר לאחרון שעבדת עליו, וממשיך מהזמן שנצבר',
+          onclick: () => { T.startTimer(last.item.id, last.kind); toast('ממשיך ב' + last.item.title, 'ok'); }
+        }, '↩ ' + last.item.title) : null,
         el('button', { class: 'btn btn-xs', onclick: openSwitcher }, 'התחל טיימר'),
         el('button', { class: 'btn btn-xs', onclick: () => { T.startFree('learn'); toast('טיימר למידה רץ'); } }, '📚 למידה'),
         el('button', {
@@ -181,18 +217,28 @@ function renderTimerBar() {
   if (t) {
     const it = t.itemId ? getItem(t.itemId) : null;
     const auto = !!t.autoFrom;
+    const K = T.KINDS[t.kind] || {};
+    const total = T.currentTodayMs();
+    const run = T.elapsed();
     bar.className = 'timerbar ' + (t.kind === 'off' ? 'off' : t.kind === 'wait' ? 'waiting' : 'running');
-    bar.append(
+    put(
       el('span', { class: 'tb-dot' }),
       el('span', { class: 'tb-title' },
         t.kind === 'off' ? 'הפסקה — לא נספר'
           : it ? it.title
             : (t.kind === 'learn' ? 'למידה חופשית' : 'עבודה כללית')),
-      el('span', { class: 'tb-time', id: 'tb-clock' }, hms(T.elapsed())),
+      // המספר הגדול הוא הסך היום, לא הרצף — כדי שמעבר וחזרה לא ייראו כאיפוס
+      el('span', {
+        class: 'tb-time', id: 'tb-clock',
+        'data-tip': K.focus ? 'סך הזמן נטו שנצבר היום על זה. מעבר לפרויקט אחר וחזרה ממשיך מכאן.' : null
+      }, hms(K.focus ? total : run)),
       el('span', {
         class: 'tb-kind',
         'data-tip': auto ? 'הטיימר עבר להמתנה לבד כי לא היה מגע. יחזור לעבודה ברגע שתיגע במשהו.' : null
-      }, auto ? 'המתנה · אוטומטי' : (T.KINDS[t.kind]?.name || t.kind))
+      }, auto ? 'המתנה · אוטומטי' : ((K.icon ? K.icon + ' ' : '') + (K.name || t.kind))),
+      K.focus && run > 30000 && total - run > 30000
+        ? el('span', { class: 'tb-run', id: 'tb-run' }, 'ברצף ' + dur(run, true)) : null,
+      t.note ? el('span', { class: 'tb-note' }, '“' + t.note + '”') : null
     );
     const actions = el('div', { class: 'tb-actions' },
       floatBtn(),
@@ -204,23 +250,19 @@ function renderTimerBar() {
           else toast('חלון הזמן לתיקון עבר', 'err');
         }
       }, 'זו הייתה עבודה') : null,
+      el('button', {
+        class: 'btn btn-xs', 'data-tip': 'עוצר בלי לשכוח. חזרה תמשיך מאותו מספר.',
+        onclick: () => { T.pauseTimer(); toast('מושהה — הזמן נשמר'); }
+      }, '⏸ השהה'),
       el('button', { class: 'btn btn-xs', onclick: openSwitcher }, 'החלף'),
-      t.itemId && !auto ? el('button', {
-        class: 'btn btn-xs',
-        onclick: () => { T.startWaiting(t.itemId); toast('הפריט בהמתנה — זמן הקיר ממשיך לרוץ'); }
-      }, 'ממתין') : null,
-      t.kind !== 'off' ? el('button', {
-        class: 'btn btn-xs', 'data-tip': 'time.break',
-        onclick: () => { T.startFree('off'); toast('בהפסקה — לא נספר בתמחור'); }
-      }, '☕ הפסקה') : null,
-      el('button', { class: 'btn btn-xs', onclick: () => { T.stopTimer(); toast('נעצר ונרשם'); } }, 'עצור')
+      el('button', { class: 'btn btn-xs', onclick: e => openTimerMenu(e.currentTarget) }, 'עוד ▾')
     );
     bar.append(actions);
   } else {
     bar.className = 'timerbar waiting';
     const w = waiting[0];
     const it = getItem(w.itemId);
-    bar.append(
+    put(
       el('span', { class: 'tb-dot' }),
       el('span', { class: 'tb-title' }, (it ? it.title : 'פריט') + ' — בהמתנה'),
       el('span', { class: 'tb-time', id: 'tb-clock' }, hms(Date.now() - w.since)),
@@ -241,13 +283,137 @@ function renderTimerBar() {
   }
 }
 
+/* ---------- תפריט "עוד" של הטיימר ----------
+   כל מה שלא צריך להיות כפתור קבוע, אבל כן צריך להיות במרחק לחיצה:
+   סוג הזמן, תיקון בדיעבד, הערה, המתנה, הפסקה, עצירה. */
+function closeTimerMenu() {
+  document.querySelectorAll('.tb-menu').forEach(m => m.remove());
+}
+
+function openTimerMenu(anchor) {
+  closeTimerMenu();
+  const t = T.activeTimer();
+  if (!t) return;
+  const menu = el('div', { class: 'tb-menu' });
+  const row = (label, sub, fn, cls) => el('button', {
+    class: 'tb-mi ' + (cls || ''),
+    onclick: () => { menu.remove(); fn(); }
+  }, el('span', {}, label), sub ? el('span', { class: 'tb-mi-s' }, sub) : null);
+
+  /* --- סוג הזמן --- */
+  menu.append(el('div', { class: 'tb-mh' }, 'זה בעצם'));
+  T.SWITCHABLE.forEach(k => {
+    const K = T.KINDS[k];
+    const on = k === t.kind;
+    menu.append(row(K.icon + ' ' + K.name, on ? '✓' : null, () => {
+      if (on) return;
+      T.setKind(k); toast('סומן כ' + K.name, 'ok'); renderTimerBar();
+    }, on ? 'on' : ''));
+  });
+
+  /* --- תיקון בדיעבד --- */
+  const room = T.backdateRoom();
+  if (room > 2 * MIN) {
+    menu.append(el('div', { class: 'tb-mh' }, 'שכחתי להתחיל'));
+    [5, 15, 30, 60].filter(m => m * MIN <= room).forEach(m => {
+      menu.append(row('התחלתי לפני ' + m + ' דק\'', null, () => {
+        const moved = T.backdateStart(m * MIN);
+        toast(moved ? 'נוספו ' + dur(moved, true) : 'אין מקום פנוי אחורה', moved ? 'ok' : 'err');
+        renderTimerBar(); refresh();
+      }));
+    });
+  }
+
+  menu.append(el('div', { class: 'tb-mh' }, 'שכחתי להחליף'));
+  menu.append(row('העבר זמן אחרון לפרויקט אחר…', null, () => openReassign()));
+
+  /* --- שאר הפעולות --- */
+  menu.append(el('div', { class: 'tb-mh' }, 'פעולות'));
+  menu.append(row('✎ הערה על מה שרץ', t.note || null, () => openNoteBox(t.note || '')));
+  if (t.itemId && !t.autoFrom) menu.append(row('⏳ ממתין לתשובה', 'זמן הקיר ימשיך לרוץ', () => {
+    T.startWaiting(t.itemId); toast('הפריט בהמתנה');
+  }));
+  if (t.kind !== 'off') menu.append(row('☕ הפסקה', 'לא נספר בתמחור', () => {
+    T.startFree('off'); toast('בהפסקה');
+  }));
+  menu.append(row('■ עצור', 'בלי לזכור להמשך', () => { T.stopTimer(); toast('נעצר ונרשם'); }, 'danger'));
+
+  document.body.append(menu);
+  const r = anchor.getBoundingClientRect();
+  menu.style.top = (r.bottom + 6) + 'px';
+  menu.style.left = Math.max(8, Math.min(r.left, innerWidth - menu.offsetWidth - 8)) + 'px';
+
+  const off = ev => {
+    if (ev.type === 'pointerdown' && (menu.contains(ev.target) || anchor.contains(ev.target))) return;
+    if (ev.type === 'keydown' && ev.key !== 'Escape') return;
+    menu.remove();
+    document.removeEventListener('pointerdown', off);
+    document.removeEventListener('keydown', off);
+  };
+  setTimeout(() => {
+    document.addEventListener('pointerdown', off);
+    document.addEventListener('keydown', off);
+  }, 0);
+}
+
+function openNoteBox(cur) {
+  const inp = el('input', { class: 'inp', value: cur, placeholder: 'על מה בדיוק? (נכנס לרשומה)' });
+  modal({
+    title: 'הערה על הקטע שרץ', body: inp,
+    actions: ['spacer', { label: 'שמור', cls: 'btn-y', onClick: () => { T.setNote(inp.value.trim()); renderTimerBar(); } }]
+  });
+}
+
+/** "עבדתי על יעקב אבל הטיימר היה על יוסי" — מעביר את הדקות האחרונות */
+function openReassign() {
+  const s = S();
+  const cands = [
+    ...s.items.filter(i => i.type === 'client' && !i.archived && !i.deliveredAt),
+    ...s.items.filter(i => i.type === 'bucket' && !i.archived),
+    ...s.items.filter(i => i.type === 'task' && !i.archived && !i.done).slice(0, 8)
+  ];
+  let mins = 15;
+  const box = el('div', {});
+  const minRow = el('div', { class: 'row', style: { marginBottom: '10px' } });
+  const paint = () => minRow.querySelectorAll('button').forEach(b =>
+    b.classList.toggle('btn-y', Number(b.dataset.m) === mins));
+  [5, 10, 15, 30, 45, 60].forEach(m => minRow.append(el('button', {
+    class: 'btn btn-sm', 'data-m': m, onclick: () => { mins = m; paint(); }
+  }, m + ' דק\'')));
+  paint();
+
+  box.append(el('div', { class: 'small muted', style: { marginBottom: '8px' } },
+    'כמה זמן אחורה להעביר — כולל הקטע שרץ עכשיו ורשומות שכבר נסגרו.'), minRow);
+
+  const list = el('div', { class: 'actionlist', style: { maxHeight: '40vh', overflowY: 'auto' } });
+  cands.forEach(c => list.append(el('div', {
+    class: 'act', style: { cursor: 'pointer' },
+    onclick: () => {
+      const moved = T.reassignRecent(mins * MIN, c.id, c.type === 'bucket' ? 'work' : 'work');
+      closeModal();
+      toast(moved ? dur(moved, true) + ' הועברו ל' + c.title : 'לא נמצא זמן להעביר', moved ? 'ok' : 'err');
+      refresh();
+    }
+  },
+    el('span', { class: 'act-rank' }, c.type === 'client' ? '👤' : c.type === 'bucket' ? '◈' : '✓'),
+    el('div', { class: 'act-main' },
+      el('div', { class: 'act-title' }, c.title),
+      el('div', { class: 'act-why' }, dur(T.itemTodayMs(c.id), true) + ' היום'))
+  )));
+  box.append(list);
+
+  modal({ title: 'העבר את הזמן האחרון ל…', body: box, wide: true });
+}
+
 function tickClock() {
   const c = $('#tb-clock');
   if (c) {
     const t = T.activeTimer();
-    if (t) c.textContent = hms(T.elapsed());
+    if (t) c.textContent = hms(T.KINDS[t.kind]?.focus ? T.currentTodayMs() : T.elapsed());
     else if (S().waiting[0]) c.textContent = hms(Date.now() - S().waiting[0].since);
   }
+  const r = $('#tb-run');
+  if (r && T.activeTimer()) r.textContent = 'ברצף ' + dur(T.elapsed(), true);
   const clock = $('#clock');
   if (clock) clock.textContent = hhmm(Date.now());
   if (current && current.page.mod.tick) { try { current.page.mod.tick(); } catch (e) { } }
@@ -299,8 +465,10 @@ export function openSwitcher() {
       list.append(el('div', {
         class: 'act', style: { cursor: 'pointer' },
         onclick: () => {
+          const had = T.itemTodayMs(c.id);
           T.startTimer(c.id, c.type === 'knowledge' ? 'learn' : 'work');
-          closeModal(); toast('הטיימר עבר ל' + c.title, 'ok');
+          closeModal();
+          toast(had > 60000 ? 'ממשיך ב' + c.title + ' מ-' + dur(had, true) : 'הטיימר עבר ל' + c.title, 'ok');
         }
       },
         el('span', { class: 'act-rank' },
@@ -310,6 +478,8 @@ export function openSwitcher() {
           el('div', { class: 'act-why' },
             c.business || c.note || T.KINDS[c.type === 'knowledge' ? 'learn' : 'work'].name)
         ),
+        // כמה כבר נצבר היום — כדי שיהיה ברור שהמעבר ממשיך ולא מאפס
+        (() => { const ms = T.itemTodayMs(c.id); return ms > 60000 ? el('span', { class: 'pill' }, dur(ms, true) + ' היום') : null; })(),
         T.isWaiting(c.id) ? el('span', { class: 'pill pill-b' }, 'בהמתנה') : null
       ));
     });

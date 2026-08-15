@@ -10,10 +10,13 @@
 
 const CACHE = 'front-v1';
 const SHELL = [
-  './', './index.html', './css/app.css',
+  './', './index.html', './css/app.css', './manifest.webmanifest',
   './js/app.js', './js/store.js', './js/util.js', './js/timer.js',
   './js/brain.js', './js/rules.js', './js/help.js', './js/capture.js',
-  './js/sampling.js', './js/search.js', './js/notify.js'
+  './js/sampling.js', './js/sampleui.js', './js/search.js', './js/notify.js',
+  './js/presence.js', './js/floatwin.js', './js/money.js', './js/links.js',
+  './js/mentions.js', './js/voice.js', './js/linkpreview.js', './js/previewcard.js',
+  './js/attachments.js', './js/autobackup.js', './js/timecheck.js', './js/palette.js', './js/api.js'
 ];
 
 self.addEventListener('install', e => {

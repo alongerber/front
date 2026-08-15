@@ -25,6 +25,7 @@ import tasks from './pages/tasks.js';
 import notes from './pages/notes.js';
 import tools from './pages/tools.js';
 import assistant from './pages/assistant.js';
+import review from './pages/review.js';
 import settings from './pages/settings.js';
 
 /* ================= עמודים ================= */
@@ -38,6 +39,7 @@ const PAGES = {
   'routines':  { title: 'שגרה',    icon: '↻',  color: '#2dd4bf', mod: routines, badge: 'routines' },
   'tasks':     { title: 'משימות',  icon: '✓',  color: '#ff6b9d', mod: tasks, badge: 'tasks' },
   'notes':     { title: 'פנקס',    icon: '🗒', color: '#a3e635', mod: notes, badge: 'notes' },
+  'review':    { title: 'סקירה',   icon: '◐',  color: '#f472b6', mod: review, badge: 'review' },
   'tools':     { title: 'כלים',    icon: '⚙',  color: '#94a3b8', mod: tools },
   'assistant': { title: 'עוזר',    icon: '✦',  color: '#e879f9', mod: assistant },
   'settings':  { title: 'הגדרות',  icon: '⚙︎', color: '#94a3b8', mod: settings }

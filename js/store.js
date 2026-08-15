@@ -125,6 +125,9 @@ export function defaultState() {
     // חיפושים שמורים — שאילתה שהופכת לכפתור קבוע ברצועה
     savedViews: [],
 
+    // סקירות שבועיות שנסגרו — [{week, at, note, delivered, focusMs, income}]
+    reviews: [],
+
     // תגיות הפנקס — נושאים ופרויקטים. ניתנות לעריכה, שינוי צבע ומחיקה.
     noteTags: [
       { id: 'nt_biz',     name: 'העסק',      color: '#ffd400' },
@@ -217,7 +220,7 @@ function migrate(s) {
   out.settings = Object.assign({}, d.settings, s.settings || {});
   out.settings.notifications = Object.assign({}, d.settings.notifications, (s.settings || {}).notifications || {});
   out.settings.sampling = Object.assign({}, d.settings.sampling, (s.settings || {}).sampling || {});
-  for (const k of ['productLines', 'itemTypes', 'items', 'timeEntries', 'subscriptions', 'ledger', 'links', 'waiting', 'chat', 'noteTags', 'samples', 'presenceLog', 'savedViews']) {
+  for (const k of ['productLines', 'itemTypes', 'items', 'timeEntries', 'subscriptions', 'ledger', 'links', 'waiting', 'chat', 'noteTags', 'samples', 'presenceLog', 'savedViews', 'reviews']) {
     if (!Array.isArray(out[k])) out[k] = d[k];
   }
   // סוגי פריטים שנוספו בגרסאות מאוחרות יותר — משלימים בלי לגעת במה שהמשתמש ערך

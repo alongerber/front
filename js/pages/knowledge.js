@@ -9,6 +9,7 @@ import * as T from '../timer.js';
 import { rankedKnowledge, knowledgeScore } from '../brain.js';
 import { refresh, openItem } from '../app.js';
 import { previewCard } from '../previewcard.js';
+import { addLink } from '../links.js';
 import { hintBadge } from '../help.js';
 
 export default { render };
@@ -52,7 +53,7 @@ function render(root) {
         }
       }, '▶ מתחיל עכשיו'),
       top.item.url ? el('a', { class: 'btn btn-sm', href: top.item.url, target: '_blank', rel: 'noopener' }, 'פתח לינק') : null,
-      el('button', { class: 'btn btn-sm', onclick: () => { patchItem(top.item.id, { status: 'done', lastTouched: Date.now() }); toast('סומן כנצפה', 'ok'); refresh(); } }, 'כבר ראיתי'),
+      el('button', { class: 'btn btn-sm', onclick: () => markDone(top.item) }, 'כבר ראיתי'),
       el('button', { class: 'btn btn-sm', onclick: () => { patchItem(top.item.id, { lastTouched: Date.now() }); toast('נדחה — יחזור בעוד כמה ימים'); refresh(); } }, 'לא עכשיו')
     ));
     root.append(c);
@@ -122,7 +123,11 @@ function row(x, isTop) {
 
   const stSel = select(Object.entries(STATUS).map(([v, o]) => ({ value: v, label: o.label })), k.status || 'new',
     { style: { width: 'auto', padding: '3px 8px', fontSize: '12px' } });
-  stSel.addEventListener('change', e => { patchItem(k.id, { status: e.target.value, lastTouched: Date.now() }); refresh(); });
+  stSel.addEventListener('change', e => {
+    if (e.target.value === 'done') { markDone(k); return; }
+    patchItem(k.id, { status: e.target.value, lastTouched: Date.now() });
+    refresh();
+  });
   acts.append(stSel);
 
   if (rel) acts.append(el('span', { class: 'pill', style: { cursor: 'pointer' }, onclick: () => openItem(rel.id) }, '↔ ' + rel.title));
@@ -135,6 +140,93 @@ function row(x, isTop) {
   }, k.archived ? '↩' : '🗄'));
   node.append(acts);
   return node;
+}
+
+/* ================= הגשר: מידע → פעולה =================
+   פריט ידע שמסומן "נצפה" ונעלם הוא למידה שנמחקה מרשימה.
+   שאלה אחת קצרה הופכת אותו למשהו שנשאר. */
+
+export function markDone(k) {
+  const ta = textarea({
+    placeholder: 'מה השורה התחתונה? מה עושים עם זה?', rows: 3,
+    value: k.resolution || ''
+  });
+  const micWrap = el('div', { style: { marginTop: '6px' } });
+  import('../voice.js').then(V => {
+    const b = V.micButton(ta, { el, toast });
+    if (b) micWrap.append(b);
+  }).catch(() => { });
+
+  const mk = { note: true, task: false };
+  const cbNote = el('input', {
+    type: 'checkbox', checked: true,
+    style: { width: '15px', height: '15px', accentColor: '#ffd400', cursor: 'pointer' },
+    onchange: e => mk.note = e.target.checked
+  });
+  const cbTask = el('input', {
+    type: 'checkbox',
+    style: { width: '15px', height: '15px', accentColor: '#ffd400', cursor: 'pointer' },
+    onchange: e => mk.task = e.target.checked
+  });
+
+  const body = el('div', {},
+    el('div', { class: 'muted small', style: { marginBottom: '11px', lineHeight: '1.75' } },
+      'למדת משהו. אם זה לא ייכתב עכשיו, בעוד שבוע לא תזכור שלמדת. ' +
+      'משפט אחד מספיק — ואפשר גם לדלג.'),
+    el('div', { style: { fontWeight: '600', marginBottom: '5px' } }, k.title),
+    ta, micWrap,
+    el('div', { class: 'hr' }),
+    el('label', { class: 'chk' }, cbNote, el('span', {}, 'שמור כפתק בפנקס (נושא: לפי התגיות)')),
+    el('label', { class: 'chk' }, cbTask, el('span', {}, 'ופתח משימה — יש כאן משהו לעשות'))
+  );
+
+  modal({
+    title: 'מה למדת?',
+    body,
+    actions: [
+      { label: 'דלג', onClick: () => { patchItem(k.id, { status: 'done', lastTouched: Date.now() }); toast('סומן כנצפה'); refresh(); } },
+      'spacer',
+      {
+        label: 'שמור', cls: 'btn-y', onClick: () => {
+          const text = ta.value.trim();
+          patchItem(k.id, { status: 'done', lastTouched: Date.now(), resolution: text }, 'סיום פריט ידע');
+
+          if (text && mk.note) {
+            const tagIds = matchTags(k.tags || []);
+            const note = addItem({
+              type: 'note', kind: 'note',
+              title: k.title,
+              body: text + (k.url ? '\n\n' + k.url : ''),
+              url: k.url || '',
+              noteTags: tagIds,
+              links: [k.id]
+            });
+            addLink(k.id, note.id);
+          }
+          if (text && mk.task) {
+            const t = addItem({ type: 'task', title: firstLine(text), note: 'מתוך: ' + k.title, links: [k.id] });
+            addLink(k.id, t.id);
+          }
+
+          toast(text ? 'נשמר — הידע לא הלך לאיבוד' : 'סומן כנצפה', 'ok');
+          refresh();
+        }
+      }
+    ]
+  });
+}
+
+const firstLine = t => (t.split('\n')[0] || t).slice(0, 90);
+
+/** מנסה להתאים את תגיות פריט הידע לנושאי הפנקס */
+function matchTags(tags) {
+  const nt = S().noteTags;
+  const out = [];
+  tags.forEach(t => {
+    const hit = nt.find(x => x.name === t || x.name.includes(t) || t.includes(x.name));
+    if (hit && !out.includes(hit.id)) out.push(hit.id);
+  });
+  return out;
 }
 
 /* ================= טופס ================= */

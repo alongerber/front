@@ -43,6 +43,7 @@ body[data-mod="tools"]     { --accent:#94a3b8; --accent-dim:rgba(148,163,184,.16
 body[data-mod="assistant"] { --accent:#e879f9; --accent-dim:rgba(232,121,249,.14) }
 body[data-mod="settings"]  { --accent:#94a3b8; --accent-dim:rgba(148,163,184,.16) }
 body[data-mod="notes"]     { --accent:#a3e635; --accent-dim:rgba(163,230,53,.14) }
+body[data-mod="review"]    { --accent:#f472b6; --accent-dim:rgba(244,114,182,.14) }
 
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}

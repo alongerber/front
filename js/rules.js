@@ -121,6 +121,13 @@ export function runRules() {
   if (av.used > av.total * 1.15)
     push('overwork', 'warn', `רשמת ${dur(av.used)} היום — מעל היעד של ${dur(av.total)}`);
 
+  /* --- סקירה שבועית --- */
+  const wd = new Date().getDay();
+  const wkStart = (() => { const d2 = new Date(); d2.setHours(0, 0, 0, 0); d2.setDate(d2.getDate() - d2.getDay()); return d2.getTime(); })();
+  const reviewed = (s.reviews || []).some(r => r.week === wkStart);
+  if (!reviewed && (wd === 4 || wd === 5 || wd === 6))
+    push('review', '', 'סוף שבוע — שווה עשר דקות של סקירה', { type: 'goto', href: '#/review' });
+
   /* --- גיבוי --- */
   const lastBackup = st.lastBackupAt || s.createdAt;
   if (st.autoBackupDays && now() - lastBackup > st.autoBackupDays * DAY)
@@ -150,6 +157,12 @@ export function navCounts() {
     notes: s.items.filter(i =>
       i.type === 'note' && !i.archived && i.reminderAt && !i.reminderDone && i.reminderAt <= now()).length,
     // חידושים בשלושת הימים הקרובים — תגית שמופיעה רק אחרי שאיחרת מופיעה מאוחר מדי
+    review: (() => {
+      const d2 = new Date(); d2.setHours(0, 0, 0, 0); d2.setDate(d2.getDate() - d2.getDay());
+      const wk = d2.getTime();
+      const day = new Date().getDay();
+      return (day >= 4 && !(s.reviews || []).some(r => r.week === wk)) ? 1 : 0;
+    })(),
     money: s.items.filter(i => i.type === 'client' && i.retainer && !i.archived &&
       !i.retainerEndedAt && i.nextRenewalAt && i.nextRenewalAt <= now() + 3 * DAY).length
   };

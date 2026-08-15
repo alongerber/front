@@ -4,7 +4,7 @@
    הקבצים עצמם יושבים ב-IndexedDB (attachments.js), רק המטא-דאטה כאן.
    ============================================================ */
 
-import { S, update, uid, addItem, patchItem, getItem, removeItem, noteTag, addNoteTag, patchNoteTag, removeNoteTag } from '../store.js';
+import { S, update, uid, addItem, patchItem, getItem, removeItem, noteTag, addNoteTag, patchNoteTag, removeNoteTag, pushHistory, restoreHistory, addSavedView, removeSavedView } from '../store.js';
 import { el, toast, modal, closeModal, input, textarea, field, confirmBox, dmy, hhmm, dateInput, DAY, MIN } from '../util.js';
 import { searchNotes, suggestions } from '../search.js';
 import { hintBadge } from '../help.js';
@@ -12,6 +12,8 @@ import { refresh } from '../app.js';
 import * as A from '../attachments.js';
 import * as LP from '../linkpreview.js';
 import { previewCard } from '../previewcard.js';
+import { attachMentions, linkChips } from '../mentions.js';
+import * as L from '../links.js';
 
 export default { render };
 
@@ -162,17 +164,62 @@ function searchRow() {
     t = setTimeout(() => { view.query = v; refresh(); setTimeout(() => focusEnd(), 0); }, 220);
   });
   wrap.append(inp);
-  if (view.query) wrap.append(el('button', {
-    class: 'btn btn-sm', onclick: () => { view.query = ''; refresh(); }
-  }, 'נקה'));
+  if (view.query) {
+    wrap.append(el('button', {
+      class: 'btn btn-sm', 'data-tip': 'notes.savedView',
+      onclick: () => saveViewPrompt(view.query)
+    }, '★ שמור תצוגה'));
+    wrap.append(el('button', {
+      class: 'btn btn-sm', onclick: () => { view.query = ''; refresh(); }
+    }, 'נקה'));
+  }
 
   const chips = el('div', { class: 'chips' });
+
+  // תצוגות שמורות קודם — חיפוש שהפך לתיקייה חכמה
+  S().savedViews.forEach(v => {
+    const on = view.query.trim() === v.query.trim();
+    chips.append(el('span', { class: 'chip saved' + (on ? ' on' : '') },
+      el('button', {
+        class: 'chip-b', 'data-tip': v.query,
+        onclick: () => { view.query = on ? '' : v.query; refresh(); }
+      }, '★ ' + v.name),
+      el('button', {
+        class: 'chip-x', 'data-tip': 'מחק תצוגה שמורה',
+        onclick: () => { removeSavedView(v.id); refresh(); }
+      }, '×')));
+  });
+
   suggestions().slice(0, 8).forEach(sg => chips.append(el('button', {
     class: 'chip', 'data-tip': sg.desc,
     onclick: () => { view.query = (view.query ? view.query.trim() + ' ' : '') + sg.text; refresh(); }
   }, sg.text)));
 
   return el('div', {}, wrap, chips);
+}
+
+function saveViewPrompt(query) {
+  const f = input({ value: defaultViewName(query), placeholder: 'שם התצוגה' });
+  modal({
+    title: 'שמור תצוגה',
+    body: el('div', {},
+      el('div', { class: 'muted small', style: { marginBottom: '11px', lineHeight: '1.7' } },
+        'החיפוש הזה יהפוך לכפתור קבוע מעל הלוח — כמו תיקייה שמתעדכנת לבד.'),
+      el('div', { class: 'small muted', style: { marginBottom: '11px', direction: 'ltr', textAlign: 'right' } }, query),
+      field('שם', f)),
+    actions: [{ label: 'ביטול' }, {
+      label: 'שמור', cls: 'btn-y', onClick: () => {
+        addSavedView(f.value.trim() || query, query);
+        toast('נשמר', 'ok'); refresh();
+      }
+    }]
+  });
+}
+
+/** שם ברירת מחדל: מנקים את תחביר המסננים ומשאירים את המהות */
+function defaultViewName(q) {
+  const clean = q.replace(/\S+:\S+/g, m => m.split(':')[1]).trim();
+  return (clean || q).slice(0, 24);
 }
 
 function focusEnd() {
@@ -373,8 +420,9 @@ function editor(id, opts = {}) {
   /* --- גוף: טקסט או צ'קליסט --- */
   let checklist = JSON.parse(JSON.stringify(n.checklist || []));
   let kind = n.kind || 'note';
-  const fBody = textarea({ placeholder: 'מה יש לך?', rows: 6 });
+  const fBody = textarea({ placeholder: 'מה יש לך?  (@ כדי לקשר ללקוח או משימה)', rows: 6 });
   fBody.value = n.body || '';
+  const detachers = [attachMentions(fBody, { exclude: id, onLink: to => { L.addLink(id, to); drawLinks(); } })];
 
   function drawBody() {
     bodyWrap.innerHTML = '';
@@ -383,6 +431,7 @@ function editor(id, opts = {}) {
     const list = el('div', { class: 'edit-list' });
     checklist.forEach((x, i) => {
       const ti = input({ value: x.text, placeholder: 'פריט', class: 'inp bare' });
+      detachers.push(attachMentions(ti, { exclude: id, onLink: to => { L.addLink(id, to); drawLinks(); } }));
       ti.addEventListener('input', e => { checklist[i].text = e.target.value; });
       ti.addEventListener('keydown', e => {
         if (e.key === 'Enter') {
@@ -469,6 +518,14 @@ function editor(id, opts = {}) {
     return n2;
   }
 
+  /* --- קישורים לפריטים --- */
+  const linkWrap = el('div', {});
+  const drawLinks = () => {
+    linkWrap.innerHTML = '';
+    linkWrap.append(linkChips(id, { onChange: () => refresh() }));
+  };
+  drawLinks();
+
   /* --- לינק --- */
   const fUrl = input({ value: n.url || '', placeholder: 'https://…  (אופציונלי)', dir: 'ltr', class: 'inp' });
   const prevBox = el('div', { style: { marginTop: '8px' } });
@@ -514,6 +571,13 @@ function editor(id, opts = {}) {
   }
   drawRem();
 
+  /* --- הכתבה --- */
+  const micSlot = el('span', {});
+  import('../voice.js').then(V => {
+    const b = V.micButton(fBody, { el, toast });
+    if (b) micSlot.append(b);
+  }).catch(() => { });
+
   /* --- הרכבה --- */
   const bText = el('button', {
     class: 'btn btn-xs', 'data-tip': 'notes.kind',
@@ -545,6 +609,10 @@ function editor(id, opts = {}) {
     attWrap,
     el('div', { class: 'hr' }),
     el('div', { class: 'small muted', style: { marginBottom: '5px', display: 'flex', alignItems: 'center' } },
+      'מקושר ל', hintBadge('gen.link')),
+    linkWrap,
+    el('div', { class: 'hr' }),
+    el('div', { class: 'small muted', style: { marginBottom: '5px', display: 'flex', alignItems: 'center' } },
       'לינק', hintBadge('notes.link')),
     fUrl, prevBox,
     el('div', { class: 'hr' }),
@@ -552,6 +620,7 @@ function editor(id, opts = {}) {
     tagWrap,
     el('div', { class: 'hr' }),
     el('div', { style: { display: 'flex', gap: '7px', alignItems: 'center', flexWrap: 'wrap' } },
+      micSlot,
       el('button', { class: 'btn btn-xs', 'data-tip': 'notes.files', onclick: pickImages }, '🖼 תמונה'),
       el('button', { class: 'btn btn-xs', 'data-tip': 'notes.files', onclick: pickFiles }, '📎 מסמך'),
       el('button', { class: 'btn btn-xs', 'data-tip': 'notes.reminder', onclick: () => reminderPicker({ id }, ts => { reminderAt = ts; drawRem(); }) }, '⏰ תזכורת'),
@@ -561,6 +630,7 @@ function editor(id, opts = {}) {
   );
 
   const save = () => {
+    pushHistory(id);          // גרסה קודמת נשמרת לפני הדריסה
     patchItem(id, {
       title: fTitle.value.trim(),
       url: fUrl.value.trim(),
@@ -624,6 +694,7 @@ function editor(id, opts = {}) {
     title: n.title || 'פתק',
     body, wide: true,
     onClose: () => {
+      detachers.forEach(f2 => { try { f2(); } catch { /* כבר נותק */ } });
       dropCtl.abort();
       const host = document.getElementById('modal');
       if (host) host.classList.remove('drop-on');
@@ -637,6 +708,9 @@ function editor(id, opts = {}) {
       save();
     },
     actions: [
+      (n.history || []).length ? {
+        label: `↺ ${n.history.length} גרסאות`, onClick: () => { historyModal(id); return false; }
+      } : null,
       {
         label: 'מחק', cls: 'btn-danger', onClick: () => {
           confirmBox('למחוק את הפתק? הקבצים המצורפים יימחקו איתו.', async () => {
@@ -648,7 +722,7 @@ function editor(id, opts = {}) {
       },
       'spacer',
       { label: 'סגור ושמור', cls: 'btn-y' }
-    ]
+    ].filter(Boolean)
   });
 
   armDrop();
@@ -683,6 +757,51 @@ async function openAttachment(a) {
     const link = document.createElement('a');
     link.href = url; link.download = a.name; link.click();
   }
+}
+
+/* ================= היסטוריית גרסאות ================= */
+
+function historyModal(id) {
+  const box = el('div', {});
+
+  const draw = () => {
+    const n = getItem(id);
+    box.innerHTML = '';
+    if (!n || !(n.history || []).length) {
+      box.append(el('div', { class: 'empty' }, 'אין גרסאות קודמות.'));
+      return;
+    }
+    box.append(el('div', { class: 'small muted', style: { marginBottom: '12px', lineHeight: '1.7' } },
+      'עשר הגרסאות האחרונות של הפתק. שחזור לא מוחק — הגרסה הנוכחית נשמרת ' +
+      'להיסטוריה קודם, אז אפשר תמיד לחזור.'));
+
+    n.history.forEach((h, i) => {
+      const preview = h.kind === 'list'
+        ? (h.checklist || []).map(c => (c.done ? '✓ ' : '· ') + c.text).join('\n')
+        : h.body;
+      box.append(el('div', { class: 'card', style: { marginBottom: '9px', padding: '11px 13px' } },
+        el('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' } },
+          el('span', { style: { fontWeight: '600' } }, h.title || 'בלי כותרת'),
+          el('span', { class: 'small muted' }, dmy(h.at) + ' ' + hhmm(h.at)),
+          el('button', {
+            class: 'btn btn-xs btn-y', style: { marginInlineStart: 'auto' },
+            onclick: () => {
+              restoreHistory(id, i);
+              toast('שוחזר', 'ok');
+              closeModal(); refresh();
+              setTimeout(() => editor(id), 150);
+            }
+          }, 'שחזר')),
+        preview
+          ? el('div', { class: 'small muted', style: { whiteSpace: 'pre-wrap', maxHeight: '82px', overflow: 'hidden' } },
+            preview.slice(0, 400))
+          : el('div', { class: 'small muted' }, '(ריק)')
+      ));
+    });
+  };
+
+  draw();
+  modal({ title: 'גרסאות קודמות', body: box, wide: true, actions: [{ label: 'סגור', cls: 'btn-y' }] });
 }
 
 /* ================= בוררים ================= */

@@ -122,6 +122,9 @@ export function defaultState() {
     // תנועות כסף שנרשמות ידנית (הכנסה נרשמת אוטומטית כשלקוח מגיע לשלב תשלום)
     ledger: [],
 
+    // חיפושים שמורים — שאילתה שהופכת לכפתור קבוע ברצועה
+    savedViews: [],
+
     // תגיות הפנקס — נושאים ופרויקטים. ניתנות לעריכה, שינוי צבע ומחיקה.
     noteTags: [
       { id: 'nt_biz',     name: 'העסק',      color: '#ffd400' },
@@ -214,7 +217,7 @@ function migrate(s) {
   out.settings = Object.assign({}, d.settings, s.settings || {});
   out.settings.notifications = Object.assign({}, d.settings.notifications, (s.settings || {}).notifications || {});
   out.settings.sampling = Object.assign({}, d.settings.sampling, (s.settings || {}).sampling || {});
-  for (const k of ['productLines', 'itemTypes', 'items', 'timeEntries', 'subscriptions', 'ledger', 'links', 'waiting', 'chat', 'noteTags', 'samples', 'presenceLog']) {
+  for (const k of ['productLines', 'itemTypes', 'items', 'timeEntries', 'subscriptions', 'ledger', 'links', 'waiting', 'chat', 'noteTags', 'samples', 'presenceLog', 'savedViews']) {
     if (!Array.isArray(out[k])) out[k] = d[k];
   }
   // סוגי פריטים שנוספו בגרסאות מאוחרות יותר — משלימים בלי לגעת במה שהמשתמש ערך
@@ -353,7 +356,7 @@ export function addItem(partial) {
   const t = now();
   const item = Object.assign({
     id: uid(partial.type ? partial.type[0] : 'i'),
-    type: 'task', title: '', note: '', tags: [],
+    type: 'task', title: '', note: '', tags: [], links: [],
     createdAt: t, updatedAt: t, archived: false
   }, partial);
 
@@ -392,6 +395,7 @@ export function addItem(partial) {
     item.pinned = !!item.pinned;
     item.reminderAt = item.reminderAt || null;
     item.reminderDone = !!item.reminderDone;
+    if (!Array.isArray(item.history)) item.history = [];
   }
 
   update(s => { s.items.unshift(item); });
@@ -415,6 +419,11 @@ export function removeItem(id) {
     s.items = s.items.filter(x => x.id !== id);
     s.timeEntries = s.timeEntries.filter(e => e.itemId !== id);
     s.waiting = s.waiting.filter(w => w.itemId !== id);
+    s.samples = s.samples.filter(x => x.itemId !== id);
+    // קישורים שהצביעו לפריט שנמחק — מנקים, שלא יישארו צ'יפים ריקים
+    s.items.forEach(i => {
+      if (Array.isArray(i.links) && i.links.includes(id)) i.links = i.links.filter(x => x !== id);
+    });
     if (s.timer && s.timer.itemId === id) s.timer = null;
   }, { label });
 }
@@ -425,6 +434,75 @@ export const itemsOf = type => state.items.filter(x => x.type === type && !x.arc
 export function typeMeta(type) {
   return state.itemTypes.find(t => t.id === type) ||
     { id: type, name: type, icon: '•', color: '#888' };
+}
+
+/* ---------- חיפושים שמורים ---------- */
+
+export function addSavedView(name, query) {
+  const v = { id: uid('sv'), name: name || query, query, createdAt: now() };
+  update(s => { if (!Array.isArray(s.savedViews)) s.savedViews = []; s.savedViews.push(v); },
+    { label: 'שמירת תצוגה' });
+  return v;
+}
+
+export function removeSavedView(id) {
+  update(s => { s.savedViews = (s.savedViews || []).filter(v => v.id !== id); },
+    { label: 'מחיקת תצוגה שמורה' });
+}
+
+export const savedViews = () => S().savedViews || [];
+
+/* ---------- היסטוריית גרסאות לפתק ----------
+   Keep מוחק ואין דרך חזרה. כאן שומרים עשר גרסאות אחרונות —
+   זה זול, כי הכל טקסט והקבצים ממילא יושבים במקום אחר. */
+
+const HISTORY_MAX = 10;
+
+/** צילום של תוכן הפתק לפני שינוי. נשמר רק אם באמת השתנה משהו. */
+export function pushHistory(id) {
+  const n = getItem(id);
+  if (!n || n.type !== 'note') return;
+  const snap = {
+    at: now(),
+    title: n.title || '',
+    body: n.body || '',
+    kind: n.kind || 'note',
+    checklist: (n.checklist || []).map(c => ({ text: c.text, done: !!c.done }))
+  };
+  const last = (n.history || [])[0];
+  if (last && sameSnap(last, snap)) return;
+
+  update(s => {
+    const it = s.items.find(x => x.id === id);
+    if (!it) return;
+    if (!Array.isArray(it.history)) it.history = [];
+    it.history.unshift(snap);
+    if (it.history.length > HISTORY_MAX) it.history.length = HISTORY_MAX;
+  }, { silent: true });
+}
+
+function sameSnap(a, b) {
+  return a.title === b.title && a.body === b.body && a.kind === b.kind &&
+    (a.checklist || []).length === (b.checklist || []).length &&
+    (a.checklist || []).every((c, i) => c.text === b.checklist[i].text && !!c.done === !!b.checklist[i].done);
+}
+
+/** משחזר גרסה. הגרסה הנוכחית נדחפת להיסטוריה קודם, כדי שאפשר יהיה לחזור. */
+export function restoreHistory(id, index) {
+  const n = getItem(id);
+  if (!n || !n.history || !n.history[index]) return false;
+  const snap = n.history[index];
+  pushHistory(id);
+  update(s => {
+    const it = s.items.find(x => x.id === id);
+    if (!it) return;
+    it.title = snap.title;
+    it.body = snap.body;
+    it.kind = snap.kind;
+    it.checklist = (snap.checklist || []).map(c => ({ id: uid('c'), text: c.text, done: !!c.done }));
+    it.updatedAt = now();
+  }, { label: 'שחזור גרסה' });
+  return true;
 }
 
 /* ---------- הפנקס ---------- */

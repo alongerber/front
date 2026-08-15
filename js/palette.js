@@ -4,10 +4,67 @@
    רעיונות, שגרות וקישורים. נפתח ב-Ctrl+Shift+F.
    ============================================================ */
 
-import { typeMeta, noteTag } from './store.js';
-import { el, modal, closeModal, input, ago, dmy, hhmm } from './util.js';
+import { S, typeMeta, noteTag, downloadBackup } from './store.js';
+import { el, modal, closeModal, input, toast, ago, dmy, hhmm } from './util.js';
 import { search, suggestions } from './search.js';
-import { go, openItem } from './app.js';
+import { go, openItem, doUndo, openSwitcher } from './app.js';
+import * as T from './timer.js';
+
+/* ---------- פקודות ----------
+   הפלטה לא רק מוצאת — היא גם מבצעת. אין טעם לחפש "דני" ואז
+   לנווט לצינור ואז ללחוץ טיימר, כשאפשר להקליד "התחל דני". */
+
+function commands(q) {
+  const s = S();
+  const out = [];
+  const add = (label, sub, run, icon) => out.push({ cmd: true, label, sub, run, icon: icon || '⌘' });
+
+  /* התחל טיימר על פריט */
+  const startable = s.items.filter(i => !i.archived &&
+    ['client', 'bucket', 'task', 'knowledge'].includes(i.type) &&
+    !i.deliveredAt && !i.done);
+  const m = q.match(/^(?:התחל|טיימר|start)\s+(.*)$/);
+  if (m && m[1]) {
+    const needle = m[1].trim().toLowerCase();
+    startable.filter(i => i.title.toLowerCase().includes(needle)).slice(0, 5).forEach(i =>
+      add('התחל טיימר על ' + i.title, typeMeta(i.type).name,
+        () => { T.startTimer(i.id, i.type === 'knowledge' ? 'learn' : 'work'); toast('הטיימר רץ על ' + i.title, 'ok'); }, '▶'));
+  }
+
+  const has = (...words) => words.some(w => q.includes(w));
+
+  if (!q || has('טיימר', 'החלף', 'עבוד')) add('החלף טיימר', 'בחירה מרשימה', () => openSwitcher(), '▶');
+  if (has('הפסק', 'קפה', 'break')) add('הפסקה', 'לא עבודה — נרשם ולא נספר', () => { T.startFree('off'); toast('בהפסקה'); }, '☕');
+  if (has('עצור', 'stop')) add('עצור טיימר', 'נסגר ונרשם', () => { T.stopTimer(); toast('נעצר ונרשם'); }, '■');
+  if (has('למידה', 'ללמוד')) add('טיימר למידה', 'למידה כללית', () => { T.startFree('learn'); toast('טיימר למידה'); }, '📚');
+  if (has('גבה', 'גיבוי', 'backup')) add('ייצוא גיבוי', 'מוריד קובץ JSON', () => { const n = downloadBackup(); toast('ירד ' + n, 'ok'); }, '⬇');
+  if (has('בטל', 'undo')) add('בטל פעולה אחרונה', 'Ctrl+Z', () => doUndo(), '↶');
+  if (has('פתק', 'note')) add('פתק חדש', 'נפתח בעורך', () => {
+    import('./store.js').then(st => {
+      const n = st.addItem({ type: 'note', title: '', body: '', kind: 'note' });
+      import('./pages/notes.js').then(mod => mod.openNote(n.id));
+    });
+  }, '🗒');
+  if (has('רשימה', 'צקליסט', "צ'קליסט")) add('רשימה חדשה', 'עם תיבות סימון', () => {
+    import('./store.js').then(st => {
+      const n = st.addItem({ type: 'note', title: '', kind: 'list', checklist: [{ id: 'c1', text: '', done: false }] });
+      import('./pages/notes.js').then(mod => mod.openNote(n.id));
+    });
+  }, '☑');
+
+  /* ניווט */
+  const PAGES = [
+    ['בית', '#/'], ['צינור', '#/pipeline'], ['זמן', '#/time'], ['כסף', '#/money'],
+    ['ידע', '#/knowledge'], ['שגרה', '#/routines'], ['משימות', '#/tasks'],
+    ['פנקס', '#/notes'], ['כלים', '#/tools'], ['עוזר', '#/assistant'], ['הגדרות', '#/settings']
+  ];
+  PAGES.forEach(([name, href]) => {
+    if (q && name.includes(q.replace(/^(עבור ל|לך ל|פתח)\s*/, ''))) 
+      add('פתח: ' + name, 'ניווט', () => go(href), '→');
+  });
+
+  return out.slice(0, 8);
+}
 
 let open = false;
 
@@ -23,8 +80,8 @@ export function openPalette(initial = '') {
   const box = el('div', {});
   const inp = input({
     value: initial,
-    placeholder: 'חפש הכל…  אפשר גם סוג:פתק · נושא:שיווק · יש:תמונה · יעד:היום',
-    'data-tip': 'notes.globalSearch'
+    placeholder: 'חפש או הפעל…  "התחל דני" · "הפסקה" · "גבה" · סוג:פתק · יש:תמונה',
+    'data-tip': 'gen.commands'
   });
   const results = el('div', { class: 'pal-list' });
   const hint = el('div', { class: 'small muted', style: { marginTop: '9px' } });
@@ -43,19 +100,40 @@ export function openPalette(initial = '') {
     cursor = 0;
 
     if (!q.trim()) {
-      hint.textContent = 'התחל להקליד. החיפוש עובר על הכותרת, התוכן, שורות הרשימות, שמות הקבצים והנושאים.';
-      rows = [];
+      const base = commands('');
+      rows = base;
+      base.forEach((c, i) => results.append(cmdRow(c, i)));
+      hint.textContent = 'חפש כל דבר, או הקלד פקודה: "התחל דני" · "הפסקה" · "עצור" · "גבה" · "בטל".';
+      mark();
       return;
     }
 
+    const cmds = commands(q.trim());
     const found = search(q, { limit: 40 });
-    rows = found.map(f => f.item);
-    hint.textContent = rows.length
-      ? `${rows.length} תוצאות · חצים לניווט, Enter לפתיחה`
-      : 'לא נמצא כלום. נסה מילה אחת קצרה יותר.';
+    rows = cmds.concat(found.map(f => f.item));
 
-    rows.forEach((it, i) => results.append(row(it, i)));
+    const nf = found.length;
+    hint.textContent = rows.length
+      ? (cmds.length ? `${cmds.length} פקודות · ` : '') +
+        `${nf} תוצאות · חצים לניווט, Enter להפעלה`
+      : 'לא נמצא כלום. נסה מילה אחת קצרה יותר, או פקודה כמו "התחל דני".';
+
+    rows.forEach((it, i) => results.append(it.cmd ? cmdRow(it, i) : row(it, i)));
     mark();
+  }
+
+  function cmdRow(c, i) {
+    return el('div', {
+      class: 'pal-row is-cmd', 'data-i': String(i),
+      onmouseenter: () => { cursor = i; mark(); },
+      onclick: () => pick(c)
+    },
+      el('span', { class: 'pal-ic' }, c.icon),
+      el('div', { class: 'pal-main' },
+        el('div', { class: 'pal-t' }, c.label),
+        el('div', { class: 'pal-s' }, c.sub || 'פקודה')),
+      el('span', { class: 'pal-kbd' }, '↵')
+    );
   }
 
   function row(it, i) {
@@ -94,6 +172,7 @@ export function openPalette(initial = '') {
 
   function pick(it) {
     closeModal();
+    if (it.cmd) { try { it.run(); } catch (e) { toast(String(e.message || e), 'err'); } return; }
     if (it.type === '__link') { window.open(it.url, '_blank', 'noopener'); return; }
     const href = PAGE_OF[it.type];
     if (href) go(href);

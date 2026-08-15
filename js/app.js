@@ -519,6 +519,15 @@ function init() {
     buildNav();
   });
 
+  // הכתבה קולית לשורת הקלט
+  import('./voice.js').then(V => {
+    const btn = V.micButton($('#capture'), { el, toast });
+    if (btn) {
+      btn.classList.add('capture-mic');
+      $('#capture-go').before(btn);
+    }
+  }).catch(() => { });
+
   // קלט חופשי
   $('#capture').addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); doCapture(); }

@@ -10,6 +10,8 @@ import { progressOf } from '../brain.js';
 import { refresh } from '../app.js';
 import { hintBadge } from '../help.js';
 import * as MO from '../money.js';
+import * as L from '../links.js';
+import { linkChips } from '../mentions.js';
 
 export function openItem(id) {
   const it = getItem(id);
@@ -23,10 +25,28 @@ export function openItem(id) {
     if (item.type === 'client') body.append(clientBlock(item, draw));
     body.append(progressBlock(item, draw));
     body.append(timeBlock(item));
+    body.append(linksBlock(item, draw));
     body.append(actions(item, draw));
   };
   draw();
   modal({ title: it.title, body, wide: true });
+}
+
+/* ---------- קישורים ---------- */
+function linksBlock(it, draw) {
+  const box = el('div', { style: { marginBottom: '15px' } });
+  const back = L.backlinksOf(it.id);
+  box.append(el('div', {
+    class: 'small muted',
+    style: { marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }
+  },
+    'מקושר ל', hintBadge('gen.link'),
+    back.length
+      ? el('span', { style: { marginInlineStart: 'auto', color: 'var(--accent)' } },
+        `${back.length} ${back.length === 1 ? 'פריט מזכיר' : 'פריטים מזכירים'} אותך`)
+      : null));
+  box.append(linkChips(it.id, { onChange: () => { draw(); refresh(); }, onOpen: id2 => { closeModal(); setTimeout(() => openItem(id2), 120); } }));
+  return box;
 }
 
 function header(it) {

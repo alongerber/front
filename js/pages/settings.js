@@ -11,6 +11,7 @@ import * as SM from '../sampling.js';
 import * as P from '../presence.js';
 import * as FW from '../floatwin.js';
 import * as T from '../timer.js';
+import * as MO from '../money.js';
 import * as notify from '../notify.js';
 import { lineEditor } from './pipeline.js';
 import { refresh } from '../app.js';
@@ -30,6 +31,57 @@ function render(root) {
     el('div', {}, generalCard(), typesCard(), dangerCard())
   ));
 }
+
+/* ---------- שער דולר ---------- */
+
+function usdBlock() {
+  const s = S();
+  const box = el('div', { class: 'field' });
+  const auto = s.settings.usdRateAuto !== false;
+
+  const i = input({ type: 'number', step: '0.01', value: s.settings.usdRate ?? 3.65, disabled: auto });
+  i.addEventListener('change', () => {
+    update(st => { st.settings.usdRate = Number(i.value) || st.settings.usdRate; st.settings.usdRateAt = null; });
+    refresh();
+  });
+  box.append(el('label', { class: 'fl', style: { display: 'flex', alignItems: 'center' } },
+    'שער דולר', hintBadge('money.usdAuto')), i);
+
+  const cb = el('input', {
+    type: 'checkbox', checked: auto,
+    style: { width: '15px', height: '15px', accentColor: '#ffd400', cursor: 'pointer' },
+    onchange: async e => {
+      update(st => { st.settings.usdRateAuto = e.target.checked; });
+      if (e.target.checked) {
+        const r = await MO.refreshUsdRate({ force: true });
+        toast(r ? `עודכן ל-${r.rate}` : 'לא הצלחתי למשוך שער — נשאר הידני', r ? 'ok' : 'err');
+      }
+      refresh();
+    }
+  });
+  box.append(el('label', { class: 'chk', style: { marginTop: '6px' } }, cb,
+    el('span', {}, 'למשוך שער יומי אוטומטית')));
+
+  const when = s.settings.usdRateAt;
+  box.append(el('div', { class: 'small muted', style: { marginTop: '4px' } },
+    auto
+      ? (when ? `עודכן ${ago(when)} · המנויים בדולר עולים ${num(monthlySubsUSD() * (s.settings.usdRate || 3.65), 0)} ₪ בחודש`
+        : 'עוד לא נמשך. יימשך בפתיחה הבאה, או לחץ עדכן.')
+      : 'ידני. שער מיושן מעוות את עלות המנויים במאות שקלים בחודש.'));
+
+  if (auto) box.append(el('button', {
+    class: 'btn btn-xs', style: { marginTop: '6px' },
+    onclick: async () => {
+      const r = await MO.refreshUsdRate({ force: true });
+      toast(r ? `שער: ${r.rate}` : 'הפונקציה לא זמינה — בדוק שהאתר פרוס', r ? 'ok' : 'err');
+      refresh();
+    }
+  }, 'עדכן עכשיו'));
+
+  return box;
+}
+
+const monthlySubsUSD = () => S().subscriptions.reduce((a, x) => a + (x.currency === 'USD' ? x.cost : 0), 0);
 
 /* ---------- דליי זמן שאינם לקוח ---------- */
 
@@ -584,17 +636,19 @@ function generalCard() {
     ['workHoursPerDay', 'שעות עבודה ביום (זמן זמין)', 'number'],
     ['dayStartHour', 'שעת התחלה', 'number'],
     ['hourlyTarget', 'תעריף שעתי יעד ₪', 'number'],
-    ['usdRate', 'שער דולר', 'number'],
     ['avgLeadCost', 'עלות ממוצעת לליד ₪', 'number']
   ];
   rows.forEach(([key, label, type]) => {
-    const i = input({ type, value: s.settings[key] ?? (type === 'number' ? 0 : '') , step: key === 'usdRate' ? '0.01' : '1' });
+    const i = input({ type, value: s.settings[key] ?? (type === 'number' ? 0 : '') });
     i.addEventListener('change', () => {
       update(st => { st.settings[key] = type === 'number' ? Number(i.value) : i.value; });
       refresh();
     });
-    card.append(field(label, i));
+    card.append(field(label, i,
+      key === 'avgLeadCost' ? 'משמש רק עד שיצטברו נתוני פרסום אמיתיים. אז המערכת מחשבת לבד לפי ערוץ.' : null));
   });
+
+  card.append(usdBlock());
 
   card.append(el('div', { class: 'hr' }));
   card.append(el('div', { style: { display: 'flex', gap: '7px', flexWrap: 'wrap' } },

@@ -54,6 +54,7 @@ const clients = [
       { id: id('ck'), text: 'אישור', done: false },
       { id: id('ck'), text: 'מסירה', done: false }
     ],
+    source: 'ad',
     ...base(6), note: 'רוצה דגש על טסט טורים ועל זה שלא צריך תור.'
   },
   {
@@ -62,6 +63,7 @@ const clients = [
     amount: 1290, mediaCost: 0, phone: '0549876543',
     dueDate: null, paidAt: null, deliveredAt: null,
     manualProgress: 0, checklist: [],
+    source: 'ad',
     ...base(0), note: 'הגיעה מהמודעה. לא חזרתי אליה עדיין.'
   },
   {
@@ -74,6 +76,7 @@ const clients = [
       { id: id('ck'), text: 'אפיון', done: false },
       { id: id('ck'), text: 'יצירה', done: false }
     ],
+    source: 'referral', retainer: true, monthlyAmount: 4200, nextRenewalAt: t(-2),
     ...base(3), note: 'חבילה של ארבעה סרטונים לחודש. סיכמנו, מחכה להעברה.'
   },
   {
@@ -88,6 +91,7 @@ const clients = [
       { id: id('ck'), text: 'אישור', done: true },
       { id: id('ck'), text: 'מסירה', done: true }
     ],
+    source: 'organic',
     ...base(20), note: 'עברה חלק. ביקשה הצעת מחיר לעוד שניים.'
   },
   {
@@ -96,6 +100,7 @@ const clients = [
     amount: 900, mediaCost: 0, phone: '0526667777',
     dueDate: null, paidAt: null, deliveredAt: null,
     manualProgress: 25, checklist: [],
+    source: 'referral',
     ...base(4), note: 'רוצה שמיטל תענה לשיחות בערב. שלחתי דמו, מחכה לתשובה.'
   }
 ];
@@ -287,7 +292,7 @@ const state = {
   settings: {
     ownerName: 'אלון', businessName: 'פרונט',
     hourlyTarget: 250, workHoursPerDay: 6, dayStartHour: 9,
-    usdRate: 3.65, leadSlaMinutes: 120, idleAskMinutes: 3,
+    usdRate: 3.65, usdRateAuto: true, usdRateAt: null, leadSlaMinutes: 120, idleAskMinutes: 3,
     longAbsenceHours: 2, timerNudgeHours: 2, decisionStaleDays: 7,
     autoBackupDays: 3, lastBackupAt: t(5), homeMode: 'list', bucketsSeeded: true,   // הדוגמה כוללת תחומים, שלא ייזרעו שוב
     presenceEnabled: false, floatWindow: true, autoWaitMinutes: 8,
@@ -328,7 +333,8 @@ const state = {
     { id: id('s'), name: 'כלים נלווים', cost: 20, currency: 'USD' }
   ],
   ledger: [
-    { id: id('lg'), title: 'קמפיין ממומן — מטא', amount: -560, date: t(8) },
+    { id: id('lg'), title: 'קמפיין ממומן — מטא', amount: -560, date: t(8), source: 'ad' },
+    { id: id('lg'), title: 'קמפיין ממומן — מטא', amount: -420, date: t(34), source: 'ad' },
     { id: id('lg'), title: 'מוזיקה בליווי רישיון', amount: -95, date: t(12) }
   ],
   links: [

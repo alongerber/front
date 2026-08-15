@@ -9,6 +9,8 @@
     "workHoursPerDay": 6,
     "dayStartHour": 9,
     "usdRate": 3.65,
+    "usdRateAuto": true,
+    "usdRateAt": null,
     "leadSlaMinutes": 120,
     "idleAskMinutes": 3,
     "longAbsenceHours": 2,
@@ -296,6 +298,7 @@
           "done": false
         }
       ],
+      "source": "ad",
       "tags": [],
       "createdAt": 1767945600000,
       "updatedAt": 1767945600000,
@@ -318,6 +321,7 @@
       "deliveredAt": null,
       "manualProgress": 0,
       "checklist": [],
+      "source": "ad",
       "tags": [],
       "createdAt": 1768464000000,
       "updatedAt": 1768464000000,
@@ -356,6 +360,10 @@
           "done": false
         }
       ],
+      "source": "referral",
+      "retainer": true,
+      "monthlyAmount": 4200,
+      "nextRenewalAt": 1768636800000,
       "tags": [],
       "createdAt": 1768204800000,
       "updatedAt": 1768204800000,
@@ -404,6 +412,7 @@
           "done": true
         }
       ],
+      "source": "organic",
       "tags": [],
       "createdAt": 1766736000000,
       "updatedAt": 1766736000000,
@@ -426,6 +435,7 @@
       "deliveredAt": null,
       "manualProgress": 25,
       "checklist": [],
+      "source": "referral",
       "tags": [],
       "createdAt": 1768118400000,
       "updatedAt": 1768118400000,
@@ -1238,10 +1248,18 @@
       "id": "lg_sample94",
       "title": "קמפיין ממומן — מטא",
       "amount": -560,
-      "date": 1767772800000
+      "date": 1767772800000,
+      "source": "ad"
     },
     {
       "id": "lg_sample95",
+      "title": "קמפיין ממומן — מטא",
+      "amount": -420,
+      "date": 1765526400000,
+      "source": "ad"
+    },
+    {
+      "id": "lg_sample96",
       "title": "מוזיקה בליווי רישיון",
       "amount": -95,
       "date": 1767427200000
@@ -1249,37 +1267,37 @@
   ],
   "links": [
     {
-      "id": "l_sample96",
+      "id": "l_sample97",
       "title": "הדף של מיטל",
       "url": "https://agentfront.netlify.app",
       "desc": "הסוכנת הקולית — הדף הציבורי"
     },
     {
-      "id": "l_sample97",
+      "id": "l_sample98",
       "title": "לוח השיחות",
       "url": "https://agentfront.netlify.app/dash.html",
       "desc": "כל השיחות שמיטל ניהלה"
     },
     {
-      "id": "l_sample98",
+      "id": "l_sample99",
       "title": "דף הנחיתה",
       "url": "https://frontvid.netlify.app",
       "desc": "הדף שאליו מגיעים מהמודעות"
     },
     {
-      "id": "l_sample99",
+      "id": "l_sample100",
       "title": "ElevenLabs",
       "url": "https://elevenlabs.io/app",
       "desc": "קולות וסוכנות קוליות"
     },
     {
-      "id": "l_sample100",
+      "id": "l_sample101",
       "title": "Meta Ads",
       "url": "https://adsmanager.facebook.com",
       "desc": "ניהול הקמפיינים"
     },
     {
-      "id": "l_sample101",
+      "id": "l_sample102",
       "title": "Netlify",
       "url": "https://app.netlify.com",
       "desc": "האחסון של כל הדפים"

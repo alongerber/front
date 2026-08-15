@@ -50,6 +50,8 @@ export function defaultState() {
       workHoursPerDay: 6,         // זמן זמין ליום
       dayStartHour: 9,
       usdRate: 3.65,
+      usdRateAt: null,            // מתי נמשך אוטומטית. null = הוקלד ידנית
+      usdRateAuto: true,          // למשוך שער יומי דרך פונקציית השרת
       leadSlaMinutes: 120,        // ליד ללא מענה מעל X דקות
       idleAskMinutes: 3,          // מעל כמה דקות היעדרות שואלים "איפה היית"
       autoWaitMinutes: 8,         // הטאב פתוח ואין מגע X דקות → הטיימר עובר להמתנה לבד. 0 = מכובה
@@ -360,6 +362,9 @@ export function addItem(partial) {
     if (!item.stageSince) item.stageSince = t;
     if (!Array.isArray(item.checklist)) item.checklist = checklistFromLine(line, item.stageId);
     if (typeof item.manualProgress !== 'number') item.manualProgress = 0;
+    item.source = item.source || 'other';        // מאיפה הגיע: מודעה / אורגני / הפניה / חוזר
+    item.retainer = !!item.retainer;             // משלם כל חודש?
+    if (item.retainer && !item.nextRenewalAt) item.nextRenewalAt = t;
   }
   if (item.type === 'knowledge') {
     item.status = item.status || 'new';

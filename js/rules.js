@@ -54,6 +54,19 @@ export function runRules() {
       else if (left < DAY) push('due_' + i.id, 'warn', `${i.title} — יעד בעוד ${dur(left)}`);
     });
 
+  /* --- חידושי ריטיינר --- */
+  const renew = s.items.filter(i =>
+    i.type === 'client' && i.retainer && !i.archived && !i.retainerEndedAt &&
+    i.nextRenewalAt && i.nextRenewalAt <= now() + 3 * DAY);
+  if (renew.length) {
+    const late = renew.filter(c => c.nextRenewalAt < now());
+    push('renew', late.length ? 'bad' : 'warn',
+      renew.length === 1
+        ? (late.length ? `${renew[0].title} — החידוש עבר, לא נרשם תשלום` : `${renew[0].title} — חידוש בעוד ${dur(renew[0].nextRenewalAt - now())}`)
+        : `${renew.length} חידושי ריטיינר בימים הקרובים`,
+      { type: 'goto', href: '#/money' });
+  }
+
   /* --- תזכורות מהפנקס --- */
   const dueNotes = s.items.filter(i =>
     i.type === 'note' && !i.archived && i.reminderAt && !i.reminderDone && i.reminderAt <= now());
@@ -135,6 +148,9 @@ export function navCounts() {
     decisions: s.items.filter(i => i.type === 'decision' && !i.archived && i.status === 'open').length,
     tasks: s.items.filter(i => i.type === 'task' && !i.archived && !i.done).length,
     notes: s.items.filter(i =>
-      i.type === 'note' && !i.archived && i.reminderAt && !i.reminderDone && i.reminderAt <= now()).length
+      i.type === 'note' && !i.archived && i.reminderAt && !i.reminderDone && i.reminderAt <= now()).length,
+    // חידושים בשלושת הימים הקרובים — תגית שמופיעה רק אחרי שאיחרת מופיעה מאוחר מדי
+    money: s.items.filter(i => i.type === 'client' && i.retainer && !i.archived &&
+      !i.retainerEndedAt && i.nextRenewalAt && i.nextRenewalAt <= now() + 3 * DAY).length
   };
 }

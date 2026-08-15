@@ -8,6 +8,7 @@ import * as T from '../timer.js';
 import { unitEconomics, measuredHoursPerVideo, hoursPerVideo } from '../brain.js';
 import { hintBadge } from '../help.js';
 import { refresh, openItem } from '../app.js';
+import * as MO from '../money.js';
 
 export default { render };
 
@@ -42,17 +43,279 @@ function render(root) {
       el('button', { class: 'btn btn-sm', 'data-tip': 'money.ledger', onclick: () => ledgerModal() }, '+ תנועה'))
   ));
 
+  root.append(priceCard());
+
   root.append(section('החודש בפועל', 'מה שקרה, לא מה שאולי יקרה'));
   root.append(headline());
 
   root.append(section('סרטון בודד', 'כמה מרוויחים על סרטון אחד — בשתי דרכי מדידה'));
   root.append(perVideo());
 
+  root.append(section('כמה זמן ייקח הבא', 'לפי מה שנמסר בפועל, לא לפי הרגשה'));
+  root.append(forecastCard());
+
+  root.append(section('מאיפה מגיעים הלקוחות', 'כמה עולה ליד בכל ערוץ, וכמה מהם נסגרים'));
+  root.append(sourcesCard());
+
+  root.append(section('הכנסה חוזרת', 'לקוחות שמשלמים כל חודש'));
+  root.append(mrrCard());
+
   root.append(section('מה קורה אם אשנה משהו', 'הזז סליידר וראה מיד'));
   root.append(simulator());
 
   root.append(section('הוצאות קבועות', 'מה שיוצא כל חודש בלי קשר לכמות'));
   root.append(el('div', { class: 'grid g2' }, subsCard(), ledgerCard()));
+}
+
+/* ================= המחיר שאתה צריך =================
+   המספר היחיד בעמוד שאומר לך מה לעשות, ולא רק מה קרה. */
+
+function priceCard() {
+  const r = MO.requiredPrice();
+  const ok = r.gap <= 0;
+  const card = el('div', { class: 'card', style: { borderColor: ok ? 'rgba(61,220,132,.4)' : 'rgba(255,159,67,.45)' } });
+
+  card.append(el('div', { class: 'card-h' },
+    el('h3', { style: { display: 'flex', alignItems: 'center' } }, 'המחיר שאתה צריך', hintBadge('money.required')),
+    el('span', { class: 'sub' }, 'מספר אחד, מחושב ממה שנמדד')));
+
+  card.append(el('div', { style: { display: 'flex', gap: '20px', alignItems: 'baseline', flexWrap: 'wrap' } },
+    el('div', { style: { fontSize: '38px', fontWeight: '900', letterSpacing: '-1px', color: ok ? 'var(--green)' : '#ff9f43' } },
+      nis(r.need)),
+    el('div', { class: 'muted' },
+      ok ? `אתה גובה ${nis(r.current)} — מכסה.`
+        : `אתה גובה ${nis(r.current)}. חסרים ${nis(r.gap)}.`)
+  ));
+
+  /* איך הגענו לזה */
+  const step = (label, val, note) => el('div', {
+    style: { display: 'flex', gap: '8px', fontSize: '13px', padding: '4px 0', borderBottom: '1px solid var(--line)' }
+  },
+    el('span', {}, label),
+    note ? el('span', { class: 'muted small' }, note) : null,
+    el('span', { class: 'tabular', style: { marginInlineStart: 'auto', fontWeight: '600' } }, val));
+
+  card.append(el('div', { style: { marginTop: '14px' } },
+    step('הזמן שלך', nis(r.hours * r.rate),
+      `${num(r.hours)} שעות × ${nis(r.rate)} לשעה`),
+    step('מנויים', nis(r.subsPerVideo), `מחולק ל-${num(r.perMonth)} סרטונים בחודש`),
+    step('הבאת הלקוח', nis(r.leadCost), 'עלות ממוצעת לליד'),
+    el('div', { style: { display: 'flex', paddingTop: '7px', fontWeight: '700' } },
+      el('span', {}, 'סה"כ, מעוגל'),
+      el('span', { class: 'tabular', style: { marginInlineStart: 'auto' } }, nis(r.need)))
+  ));
+
+  /* מה זה אומר בפועל */
+  const box = el('div', { class: 'advice', style: { marginTop: '14px' } });
+  if (ok) {
+    box.append(el('div', { style: { fontWeight: '700', marginBottom: '5px' } }, 'המחיר מכסה — אפשר להשאיר אותו.'),
+      el('div', { class: 'small' },
+        `במחיר של ${nis(r.current)} השעה שלך יוצאת ${nis(r.actualRate)} בפועל, ` +
+        `מול יעד של ${nis(r.rate)}.`));
+  } else {
+    box.append(el('div', { style: { fontWeight: '700', marginBottom: '5px' } },
+      `במחיר הנוכחי השעה שלך יוצאת ${nis(r.actualRate)} במקום ${nis(r.rate)}.`));
+    const ul = el('ul', { style: { margin: '6px 0 0', paddingInlineStart: '18px', lineHeight: '1.9' } });
+    ul.append(el('li', {}, `להעלות ל-${nis(r.need)} — זה מכסה בדיוק`));
+    const hoursNeeded = r.rate > 0 ? (r.current - r.subsPerVideo - r.leadCost) / r.rate : 0;
+    if (hoursNeeded > 0.25)
+      ul.append(el('li', {}, `או לקצר את העבודה ל-${num(hoursNeeded)} שעות (עכשיו ${num(r.hours)})`));
+    const morePerMonth = Math.ceil(monthlySubsILS() / Math.max(1, r.current - r.hours * r.rate - r.leadCost));
+    if (morePerMonth > 0 && morePerMonth < 60)
+      ul.append(el('li', {}, `או לעשות ${morePerMonth} סרטונים בחודש — המנויים מתחלקים על יותר ראשים`));
+    box.append(ul);
+  }
+  card.append(box);
+
+  if (r.lowData) card.append(el('div', { class: 'alert warn', style: { marginTop: '11px' } },
+    el('div', { style: { flex: 1 } },
+      `נמסרו רק ${r.deliveredCount} סרטונים ב-90 יום, אז המנויים מתחלקים על מעט ראשים ` +
+      `(${nis(r.subsPerVideo)} לסרטון). המספר נכון מתמטית, אבל הוא בעיקר אומר שצריך יותר סרטונים — ` +
+      'לא בהכרח מחיר גבוה יותר.')));
+
+  card.append(el('div', { class: 'small muted', style: { marginTop: '9px' } },
+    r.hoursSource === 'samples' ? 'השעות נמדדו בדגימות — זה המספר האמין ביותר שיש.'
+      : r.hoursSource === 'timer' ? 'השעות לפי הטיימר. הפעל מדידה בדגימות למספר אמין יותר.'
+        : 'השעות הן הערכה שהקלדת, לא מדידה. עד שיצטברו נתונים, קח את המחיר הזה בעירבון מוגבל.'));
+
+  if (!ok) card.append(el('button', {
+    class: 'btn btn-y', style: { marginTop: '11px' },
+    onclick: () => {
+      const line = lineOf(null);
+      update(st => {
+        const l = st.productLines.find(x => x.id === line.id);
+        if (l) l.pricing.unit = r.need;
+      }, { label: 'שינוי מחיר' });
+      toast(`המחיר עודכן ל-${nis(r.need)}`, 'ok');
+      refresh();
+    }
+  }, `עדכן את המחיר ל-${nis(r.need)}`));
+
+  return card;
+}
+
+/* ================= תחזית ================= */
+
+function forecastCard() {
+  const f = MO.forecast();
+  const card = el('div', { class: 'card' });
+
+  if (!f) {
+    card.append(el('div', { class: 'empty' },
+      'צריך לפחות שני סרטונים שנמסרו עם מדידת זמן כדי לחזות. ' +
+      'אחרי שניים-שלושה יופיע כאן טווח אמיתי.'));
+    return card;
+  }
+
+  card.append(el('div', { class: 'grid g3', style: { marginBottom: '13px' } },
+    statBox('בדרך כלל', num(f.p50) + ' שעות', {
+      cls: 'y', tip: 'money.p50',
+      sub: `מחצית מהסרטונים לקחו פחות מזה`
+    }),
+    statBox('כשמסתבך', num(f.p80) + ' שעות', {
+      color: '#ff9f43', tip: 'money.p80',
+      sub: 'אחד מכל חמישה חורג מזה'
+    }),
+    statBox('להבטיח ללקוח', f.days80 + ' ימים', {
+      cls: 'g', tip: 'money.deliveryPromise',
+      sub: `בפועל בדרך כלל ${f.days50} ימים`
+    })
+  ));
+
+  card.append(el('div', { class: 'advice' },
+    el('div', { style: { fontWeight: '700', marginBottom: '5px' } },
+      `הסרטון הבא: תכנן ${num(f.p50)} שעות, שמור ${num(f.p80)} ביומן.`),
+    el('div', { class: 'small' },
+      `לפי ${f.n} סרטונים שנמסרו. הקצר לקח ${num(f.min)} שעות, הארוך ${num(f.max)}. ` +
+      `ההבטחה ללקוח צריכה להישען על ${f.days80} ימים ולא על ${f.days50} — ` +
+      'עדיף למסור מוקדם מאשר לאחר.')
+  ));
+
+  return card;
+}
+
+/* ================= מקור הליד ================= */
+
+function sourcesCard() {
+  const rows = MO.bySource({ days: 90 });
+  const card = el('div', { class: 'card' });
+
+  if (!rows.length) {
+    card.append(el('div', { class: 'empty' },
+      'עוד אין לקוחות עם מקור מסומן. בכרטיס של כל לקוח יש שדה "מאיפה הגיע" — ' +
+      'אחרי כמה לקוחות יופיע כאן פילוח שאומר לך אם הקמפיין משתלם.'));
+    return card;
+  }
+
+  const tb = el('table', { class: 'tb' },
+    el('tr', {},
+      el('th', {}, 'ערוץ'), el('th', {}, 'לידים'), el('th', {}, 'נסגרו'),
+      el('th', {}, el('span', { style: { display: 'inline-flex', alignItems: 'center' } }, 'המרה', hintBadge('money.conv'))),
+      el('th', {}, 'הכנסה'), el('th', {}, 'הוצאה'),
+      el('th', {}, el('span', { style: { display: 'inline-flex', alignItems: 'center' } }, 'לליד', hintBadge('money.cpl'))),
+      el('th', {}, 'ללקוח סגור')));
+
+  rows.forEach(r => {
+    tb.append(el('tr', {},
+      el('td', { style: { fontWeight: '600' } },
+        el('span', { class: 'dot', style: { background: r.meta.color, marginInlineEnd: '6px' } }), r.meta.name),
+      el('td', { class: 'num' }, String(r.leads)),
+      el('td', { class: 'num' }, String(r.won)),
+      el('td', {
+        class: 'num',
+        style: { color: r.convRate >= 0.5 ? '#3ddc84' : r.convRate < 0.2 && r.leads >= 3 ? '#ff5a4d' : '' }
+      }, r.leads ? Math.round(r.convRate * 100) + '%' : '—'),
+      el('td', { class: 'num' }, r.revenue ? nis(r.revenue) : '—'),
+      el('td', { class: 'num muted' }, r.spend ? nis(r.spend) : '—'),
+      el('td', { class: 'num' }, r.costPerLead ? nis(r.costPerLead) : '—'),
+      el('td', {
+        class: 'num',
+        style: { color: r.costPerWin && r.revenue / Math.max(1, r.won) < r.costPerWin ? '#ff5a4d' : '' }
+      }, r.costPerWin ? nis(r.costPerWin) : '—')
+    ));
+  });
+  card.append(tb);
+
+  /* המסקנה במשפט */
+  const paid = rows.filter(r => r.spend > 0);
+  if (paid.length) {
+    const best = paid.slice().sort((a, b) => (b.roi ?? -9) - (a.roi ?? -9))[0];
+    const worst = paid.slice().sort((a, b) => (a.roi ?? 9) - (b.roi ?? 9))[0];
+    card.append(el('div', { class: 'advice', style: { marginTop: '13px' } },
+      best.roi != null && best.roi > 0
+        ? el('div', {}, `${best.meta.name} מחזיר ${num(best.roi + 1)} ₪ על כל שקל. זה הערוץ להגדיל.`)
+        : el('div', {}, 'אף ערוץ ממומן לא מחזיר את ההשקעה עדיין.'),
+      paid.length > 1 && worst.roi != null && worst.roi < 0
+        ? el('div', { class: 'small', style: { marginTop: '4px' } },
+          `${worst.meta.name} מפסיד ${nis(worst.spend - worst.revenue)} ב-90 יום. שווה לכבות או לשנות.`)
+        : null
+    ));
+  } else {
+    const org = rows.find(r => r.source === 'organic' || r.source === 'referral');
+    if (org) card.append(el('div', { class: 'small muted', style: { marginTop: '11px' } },
+      `כרגע הכל אורגני והפניות — עלות אפס. כשתתחיל קמפיין, רשום את ההוצאה ב"+ תנועה" ` +
+      `וסמן אותה כפרסום, וכאן תראה אם הוא משתלם.`));
+  }
+
+  return card;
+}
+
+/* ================= הכנסה חוזרת ================= */
+
+function mrrCard() {
+  const m = MO.mrr();
+  const due = MO.renewalsDue({ withinDays: 10 });
+  const card = el('div', { class: 'card' });
+
+  if (!m.count) {
+    card.append(el('div', { class: 'empty' },
+      'אין לקוחות בריטיינר. חבילת ארבעת הסרטונים ב-4,200 ₪ היא בדיוק כזאת — ' +
+      'בכרטיס הלקוח אפשר לסמן "משלם כל חודש" ואז הוא ייספר כאן.'));
+    return card;
+  }
+
+  card.append(el('div', { class: 'grid g3', style: { marginBottom: '13px' } },
+    statBox('הכנסה חודשית קבועה', nis(m.total), {
+      cls: 'g', tip: 'money.mrr', sub: `${m.count} לקוחות בריטיינר`
+    }),
+    statBox('כיסוי המנויים', Math.round(m.total / Math.max(1, monthlySubsILS()) * 100) + '%', {
+      sub: `המנויים עולים ${nis(monthlySubsILS())} בחודש`
+    }),
+    statBox('בשנה', nis(m.total * 12), { sub: 'אם כולם יישארו' })
+  ));
+
+  if (due.length) card.append(el('div', { class: 'alert warn', style: { marginBottom: '11px' } },
+    el('div', { style: { flex: 1 } },
+      due.length === 1
+        ? `${due[0].title} — חידוש ב-${dmy(due[0].nextRenewalAt)}`
+        : `${due.length} חידושים בעשרה הימים הקרובים`)));
+
+  const tb = el('table', { class: 'tb' },
+    el('tr', {}, el('th', {}, 'לקוח'), el('th', {}, 'לחודש'), el('th', {}, 'חידוש הבא'), el('th', {})));
+  m.list.forEach(c => {
+    const late = c.nextRenewalAt && c.nextRenewalAt < Date.now();
+    tb.append(el('tr', {},
+      el('td', { style: { fontWeight: '600', cursor: 'pointer' }, onclick: () => openItem(c.id) }, c.title),
+      el('td', { class: 'num' }, nis(c.monthlyAmount || c.amount || 0)),
+      el('td', { class: 'num', style: { color: late ? '#ff5a4d' : '' } },
+        c.nextRenewalAt ? dmy(c.nextRenewalAt) : '—'),
+      el('td', {}, el('button', {
+        class: 'btn btn-xs', 'data-tip': 'רושם את התשלום החודשי ומזיז את החידוש חודש קדימה',
+        onclick: () => {
+          const amt = c.monthlyAmount || c.amount || 0;
+          update(st => {
+            st.ledger.push({ id: uid('lg'), title: `ריטיינר — ${c.title}`, amount: amt, date: Date.now() });
+            const x = st.items.find(i => i.id === c.id);
+            if (x) { x.nextRenewalAt = MO.nextRenewalDate(x.nextRenewalAt || Date.now()); x.paidAt = Date.now(); }
+          }, { label: 'רישום חידוש' });
+          toast(`נרשם ${nis(amt)} מ${c.title}`, 'ok');
+          refresh();
+        }
+      }, 'שולם'))
+    ));
+  });
+  card.append(tb);
+  return card;
 }
 
 /* ================= החודש בפועל ================= */

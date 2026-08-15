@@ -4,10 +4,12 @@
    ============================================================ */
 
 import { S, update, uid, patchItem, getItem, removeItem, lineOf, stageOf, moveToStage, typeMeta, checklistFromLine } from '../store.js';
-import { el, dur, ago, nis, hhmm, dmy, toast, modal, closeModal, input, select, textarea, field, confirmBox, MIN, HOUR } from '../util.js';
+import { el, dur, ago, nis, hhmm, dmy, dateInput, toast, modal, closeModal, input, select, textarea, field, confirmBox, MIN, HOUR } from '../util.js';
 import * as T from '../timer.js';
 import { progressOf } from '../brain.js';
 import { refresh } from '../app.js';
+import { hintBadge } from '../help.js';
+import * as MO from '../money.js';
 
 export function openItem(id) {
   const it = getItem(id);
@@ -73,6 +75,54 @@ function clientBlock(c, draw) {
     el('a', { class: 'btn btn-sm', href: 'tel:' + c.phone }, '☎ ' + c.phone),
     el('a', { class: 'btn btn-sm', style: { marginInlineStart: '5px' }, href: 'https://wa.me/972' + c.phone.replace(/\D/g, '').replace(/^0/, ''), target: '_blank', rel: 'noopener' }, 'WhatsApp')
   ));
+
+  /* מאיפה הגיע — בלי זה אי אפשר לדעת אם הקמפיין משתלם */
+  box.append(el('div', { class: 'hr' }));
+  const srcRow = el('div', { style: { display: 'flex', gap: '5px', flexWrap: 'wrap' } });
+  MO.SOURCES.forEach(sc => {
+    const on = (c.source || 'other') === sc.id;
+    srcRow.append(el('button', {
+      class: 'tag-pill sm' + (on ? ' on' : ''),
+      style: on ? { background: sc.color, color: '#000', borderColor: sc.color } : { borderColor: sc.color + '66' },
+      onclick: () => { patchItem(c.id, { source: sc.id }, 'שינוי מקור ליד'); draw(); refresh(); }
+    }, sc.name));
+  });
+  box.append(el('div', { class: 'small muted', style: { marginBottom: '6px', display: 'flex', alignItems: 'center' } },
+    'מאיפה הגיע', hintBadge('money.source')));
+  box.append(srcRow);
+
+  /* ריטיינר */
+  box.append(el('div', { class: 'hr' }));
+  const retCb = el('input', {
+    type: 'checkbox', checked: !!c.retainer,
+    style: { width: '16px', height: '16px', accentColor: '#ffd400', cursor: 'pointer' },
+    onchange: e => {
+      patchItem(c.id, {
+        retainer: e.target.checked,
+        monthlyAmount: c.monthlyAmount || c.amount || lineOf(c.productLineId).pricing?.bundle || 0,
+        nextRenewalAt: c.nextRenewalAt || MO.nextRenewalDate()
+      }, 'שינוי ריטיינר');
+      draw(); refresh();
+    }
+  });
+  box.append(el('label', { class: 'chk', 'data-tip': 'money.retainer' }, retCb,
+    el('span', {}, 'משלם כל חודש (ריטיינר)')));
+
+  if (c.retainer) {
+    const amt = input({ type: 'number', min: 0, value: c.monthlyAmount || c.amount || 0 });
+    amt.addEventListener('change', () => {
+      patchItem(c.id, { monthlyAmount: Number(amt.value) || 0 }, 'שינוי סכום חודשי');
+      refresh();
+    });
+    const dt = input({ type: 'date', value: dateInput(c.nextRenewalAt || Date.now()) });
+    dt.addEventListener('change', () => {
+      const ts = new Date(dt.value + 'T09:00').getTime();
+      if (ts) { patchItem(c.id, { nextRenewalAt: ts }, 'שינוי תאריך חידוש'); refresh(); }
+    });
+    box.append(el('div', { class: 'row', style: { marginTop: '9px' } },
+      field('סכום לחודש', amt), field('חידוש הבא', dt)));
+  }
+
   return box;
 }
 

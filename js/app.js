@@ -33,7 +33,7 @@ const PAGES = {
   '':          { title: 'בית',     icon: '◆',  color: '#ffd400', mod: home },
   'pipeline':  { title: 'צינור',   icon: '▤',  color: '#5aa9ff', mod: pipeline, badge: 'pipeline' },
   'time':      { title: 'זמן',     icon: '◷',  color: '#b98cff', mod: time },
-  'money':     { title: 'כסף',     icon: '₪',  color: '#3ddc84', mod: money },
+  'money':     { title: 'כסף',     icon: '₪',  color: '#3ddc84', mod: money, badge: 'money' },
   'knowledge': { title: 'ידע',     icon: '❐',  color: '#ff9f43', mod: knowledge, badge: 'knowledge' },
   'routines':  { title: 'שגרה',    icon: '↻',  color: '#2dd4bf', mod: routines, badge: 'routines' },
   'tasks':     { title: 'משימות',  icon: '✓',  color: '#ff6b9d', mod: tasks, badge: 'tasks' },
@@ -560,6 +560,11 @@ function init() {
   sampleUI.init(() => { renderTimerBar(); refresh(); });
   rollRoutines();
   notify.start();
+
+  // שער דולר יומי — משפיע ישירות על עלות המנויים
+  import('./money.js').then(MO => MO.refreshUsdRate()).then(r => {
+    if (r && r.changed) { toast(`שער הדולר עודכן ל-${r.rate}`, 'ok'); refresh(); }
+  }).catch(() => { });
 
   // שעון
   setInterval(tickClock, 1000);

@@ -169,10 +169,12 @@ function whereTime(d) {
       el('div', { class: 'bar' }, el('i', { style: { width: (share * 100) + '%', background: isBiz ? '#22d3ee' : 'var(--accent)' } }))));
   });
 
+  const restMs = Math.max(0, total - clientMs - bizMs);
   if (total > 0) card.append(el('div', { class: 'advice', style: { marginTop: '11px' } },
     el('div', {},
       `${Math.round(clientMs / total * 100)}% מהזמן הלך ללקוחות, ` +
-      `${Math.round(bizMs / total * 100)}% לעסק עצמו.`),
+      `${Math.round(bizMs / total * 100)}% לעסק עצמו` +
+      (restMs / total > 0.05 ? `, ו-${Math.round(restMs / total * 100)}% למשימות ולמידה` : '') + '.'),
     bizMs > clientMs
       ? el('div', { class: 'small', style: { marginTop: '4px' } },
         'יותר זמן על העסק מאשר על לקוחות. בשבוע של בנייה זה הגיוני; בשבוע רגיל זה סימן.')

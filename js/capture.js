@@ -95,11 +95,11 @@ export function classify(raw) {
   const urlMatch = text.match(URL_RE);
   const isPureUrl = urlMatch && text.replace(urlMatch[0], '').trim().length < 12;
 
-  // 1. לינק לבד → פריט ידע
+  // 1. לינק לבד → משהו ללמוד
   if (isPureUrl) {
     return {
       type: 'knowledge',
-      label: 'נשמר כפריט ידע',
+      label: 'נשמר לרשימת הלמידה',
       data: { title: titleFromUrl(urlMatch[0]), url: normalizeUrl(urlMatch[0]), note: '', estMinutes: 15 }
     };
   }
@@ -148,7 +148,7 @@ export function classify(raw) {
   // 5. ידע — כולל משפטי חדשות שהם לא הוראת פעולה
   if (has(t, KW.knowledge) || urlMatch || (!startsWithVerb && has(t, DECLARATIVE))) {
     return {
-      type: 'knowledge', label: 'נשמר כפריט ידע',
+      type: 'knowledge', label: 'נשמר לרשימת הלמידה',
       data: {
         title: urlMatch ? text.replace(urlMatch[0], '').trim() || titleFromUrl(urlMatch[0]) : text,
         url: urlMatch ? normalizeUrl(urlMatch[0]) : '',

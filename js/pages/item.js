@@ -111,7 +111,7 @@ function clientBlock(c, draw) {
     'מאיפה הגיע', hintBadge('money.source')));
   box.append(srcRow);
 
-  /* ריטיינר */
+  /* לקוח קבוע */
   box.append(el('div', { class: 'hr' }));
   const retCb = el('input', {
     type: 'checkbox', checked: !!c.retainer,
@@ -121,12 +121,12 @@ function clientBlock(c, draw) {
         retainer: e.target.checked,
         monthlyAmount: c.monthlyAmount || c.amount || lineOf(c.productLineId).pricing?.bundle || 0,
         nextRenewalAt: c.nextRenewalAt || MO.nextRenewalDate()
-      }, 'שינוי ריטיינר');
+      }, 'שינוי לקוח קבוע');
       draw(); refresh();
     }
   });
   box.append(el('label', { class: 'chk', 'data-tip': 'money.retainer' }, retCb,
-    el('span', {}, 'משלם כל חודש (ריטיינר)')));
+    el('span', {}, 'משלם כל חודש (לקוח קבוע)')));
 
   if (c.retainer) {
     const amt = input({ type: 'number', min: 0, value: c.monthlyAmount || c.amount || 0 });
@@ -234,8 +234,8 @@ function timeBlock(it) {
   const box = el('div', { style: { marginBottom: '15px' } });
 
   box.append(el('div', { class: 'grid g4' },
-    numBox('זמן קשב', dur(focus, true), '#ffd400'),
-    numBox('זמן קיר', dur(wall, true), 'rgba(255,255,255,.6)'),
+    numBox('זמן עבודה נטו', dur(focus, true), '#ffd400'),
+    numBox('זמן מהתחלה עד מסירה', dur(wall, true), 'rgba(255,255,255,.6)'),
     numBox('המתנה', wait ? dur(wait, true) : '—', '#5aa9ff'),
     numBox('עלות הזמן', nis(focus / HOUR * rate), '#ff5a4d')
   ));

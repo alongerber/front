@@ -243,7 +243,7 @@ function usdBlock() {
 
 const monthlySubsUSD = () => S().subscriptions.reduce((a, x) => a + (x.currency === 'USD' ? x.cost : 0), 0);
 
-/* ---------- דליי זמן שאינם לקוח ---------- */
+/* ---------- עבודה שלא שייכת ללקוח ---------- */
 
 function bucketsCard() {
   const s = S();
@@ -251,15 +251,15 @@ function bucketsCard() {
   const card = el('div', { class: 'card' });
 
   card.append(el('div', { class: 'card-h' },
-    el('h3', { style: { display: 'flex', alignItems: 'center' } }, 'תחומים', hintBadge('time.buckets')),
+    el('h3', { style: { display: 'flex', alignItems: 'center' } }, 'עבודה על העסק', hintBadge('time.buckets')),
     el('span', { class: 'sub' }, 'שעות שהולכות לעסק ולא ללקוח')));
 
   card.append(el('div', { class: 'small muted', style: { lineHeight: '1.75', marginBottom: '13px' } },
     'לא כל שעה שייכת ללקוח. מודעות, דף נחיתה, פיתוח הסוכנת, ניירת — ' +
-    'בלי דלי משלהן הן נדבקות ללקוח אקראי או נעלמות, ואז "כמה עולה לי סרטון" ' +
-    'יוצא שגוי. התחומים מופיעים בחלון הצף, במחליף הטיימר ובשאלת הדגימה.'));
+    'בלי מקום משלהן הן נדבקות ללקוח אקראי או נעלמות, ואז "כמה עולה לי סרטון" ' +
+    'יוצא שגוי. הם מופיעים בחלון הצף, במחליף הטיימר ובהשאלה שקופצת.'));
 
-  if (!list.length) card.append(el('div', { class: 'empty' }, 'אין תחומים. הוסף אחד למטה.'));
+  if (!list.length) card.append(el('div', { class: 'empty' }, 'עוד לא הוספת. הוסף אחד למטה.'));
 
   list.forEach(bk => {
     const nm = input({ value: bk.title, style: { flex: '0 0 130px' } });
@@ -295,7 +295,7 @@ function bucketsCard() {
 
   const archived = s.items.filter(i => i.type === 'bucket' && i.archived);
   if (archived.length) card.append(el('div', { class: 'small muted', style: { marginTop: '9px' } },
-    `${archived.length} תחומים מוסתרים · `,
+    `${archived.length} עבודה על העסק מוסתרים · `,
     el('a', {
       style: { cursor: 'pointer' },
       onclick: () => { archived.forEach(a => patchItem(a.id, { archived: false })); refresh(); }
@@ -383,7 +383,7 @@ function floatBlock() {
   return box;
 }
 
-/* ================= מדידה בדגימות ================= */
+/* ================= בדיקות אקראיות ================= */
 
 function samplingCard() {
   const s = S();
@@ -396,12 +396,12 @@ function samplingCard() {
 
   card.append(el('div', { class: 'small muted', style: { lineHeight: '1.75', marginBottom: '13px' } },
     'שלוש שכבות שעובדות יחד: הטיימר אומר על מה אתה עובד, זיהוי הנוכחות גורע ' +
-    'לבד את הזמן שלא היית ליד המחשב, והדגימות הן רשת ביטחון.'));
+    'לבד את הזמן שלא היית ליד המחשב, והבדיקות הן רשת ביטחון.'));
 
   card.append(presenceBlock());
   card.append(floatBlock());
   card.append(el('div', { class: 'hr' }));
-  card.append(el('div', { style: { fontWeight: '700', marginBottom: '4px' } }, 'שכבה 3 · דגימות'));
+  card.append(el('div', { style: { fontWeight: '700', marginBottom: '4px' } }, 'שכבה 3 · בדיקות'));
   card.append(el('div', { class: 'small muted', style: { lineHeight: '1.7', marginBottom: '11px' } },
     'המערכת שואלת "מה אתה עושה עכשיו?" בזמנים אקראיים, ואתה לוחץ כפתור אחד. ' +
     'תופס את המקרה שבו הטיימר על דני אבל אתה בעצם על משה.'));
@@ -411,7 +411,7 @@ function samplingCard() {
     style: { width: '16px', height: '16px', accentColor: '#ffd400', cursor: 'pointer' },
     onchange: e => { update(st => { st.settings.sampling.enabled = e.target.checked; }); refresh(); }
   });
-  card.append(el('label', { class: 'chk' }, on, el('span', {}, 'מדידה בדגימות פעילה')));
+  card.append(el('label', { class: 'chk' }, on, el('span', {}, 'בדיקות אקראיות פעילה')));
 
   const numRow = (key, label, min, max, tip, hint) => {
     const i = input({ type: 'number', min, max, value: c[key] });
@@ -432,7 +432,7 @@ function samplingCard() {
     numRow('toHour', 'עד שעה', 1, 24)
   ));
   card.append(el('div', { class: 'small muted', style: { marginTop: '-4px', marginBottom: '11px' } },
-    `לפי ההגדרה הזאת כל דגימה שווה ${w} דקות, ושאלה תקפוץ בערך אחת ל-${w} דקות.`));
+    `לפי ההגדרה הזאת כל בדיקה שווה ${w} דקות, ושאלה תקפוץ בערך אחת ל-${w} דקות.`));
 
   /* ימי עבודה */
   const DAYS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];
@@ -500,9 +500,9 @@ function samplingCard() {
     s.samples.length ? el('button', {
       class: 'btn btn-sm btn-danger',
       onclick: () => confirmBox(
-        `למחוק את כל ${s.samples.length} הדגימות? המדידה תתחיל מאפס.`,
-        () => { update(st => { st.samples = []; }, { label: 'מחיקת דגימות' }); toast('נמחקו'); refresh(); })
-    }, 'מחק דגימות') : null
+        `למחוק את כל ${s.samples.length} הבדיקות? המדידה תתחיל מאפס.`,
+        () => { update(st => { st.samples = []; }, { label: 'מחיקת בדיקות' }); toast('נמחקו'); refresh(); })
+    }, 'מחק בדיקות') : null
   ));
 
   return card;
@@ -838,7 +838,7 @@ function generalCard() {
 
   card.append(el('div', { class: 'hr' }));
   card.append(el('div', { style: { display: 'flex', gap: '7px', flexWrap: 'wrap' } },
-    el('button', { class: 'btn', onclick: lineEditor }, 'קווי מוצר ושלבים')));
+    el('button', { class: 'btn', onclick: lineEditor }, 'מה אתה מוכר ושלבים')));
 
   card.append(el('div', { class: 'hr' }));
   card.append(linkPreviewBlock());

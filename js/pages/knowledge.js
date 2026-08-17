@@ -32,7 +32,7 @@ function render(root) {
     el('div', { class: 'right' },
       ...[['open', 'פתוחים'], ['all', 'הכל'], ['done', 'נצפו'], ['archive', 'ארכיון']].map(([k, l]) =>
         el('button', { class: 'btn btn-sm ' + (filter === k ? 'btn-y' : ''), onclick: () => { filter = k; refresh(); } }, l)),
-      el('button', { class: 'btn btn-sm btn-y', onclick: () => form() }, '+ פריט ידע')
+      el('button', { class: 'btn btn-sm btn-y', onclick: () => form() }, '+ משהו ללמוד')
     )
   ));
 
@@ -144,7 +144,7 @@ function row(x, isTop) {
 }
 
 /* ================= הגשר: מידע → פעולה =================
-   פריט ידע שמסומן "נצפה" ונעלם הוא למידה שנמחקה מרשימה.
+   משהו ללמוד שמסומן "נצפה" ונעלם הוא למידה שנמחקה מרשימה.
    שאלה אחת קצרה הופכת אותו למשהו שנשאר. */
 
 export function markDone(k) {
@@ -190,7 +190,7 @@ export function markDone(k) {
       {
         label: 'שמור', cls: 'btn-y', onClick: () => {
           const text = ta.value.trim();
-          patchItem(k.id, { status: 'done', lastTouched: Date.now(), resolution: text }, 'סיום פריט ידע');
+          patchItem(k.id, { status: 'done', lastTouched: Date.now(), resolution: text }, 'סיום משהו ללמוד');
 
           if (text && mk.note) {
             const tagIds = matchTags(k.tags || []);
@@ -247,7 +247,7 @@ export function form(existing) {
   const fRel = select(rels, k.relatedItemId || '');
 
   modal({
-    title: existing ? 'עריכת פריט ידע' : 'פריט ידע חדש',
+    title: existing ? 'עריכת משהו ללמוד' : 'משהו ללמוד חדש',
     body: el('div', {},
       field('כותרת', fT),
       field('לינק', fU),

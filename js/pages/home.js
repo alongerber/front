@@ -461,7 +461,7 @@ function todayCard() {
   const waitToday = T.waitMs(null, startOfDay(), Date.now());
   if (waitToday > MIN)
     card.append(el('div', { class: 'small muted', style: { marginTop: '9px', paddingTop: '9px', borderTop: '1px solid rgba(255,255,255,.08)' } },
-      `ועוד ${dur(waitToday)} של המתנה — זמן קיר, לא זמן קשב`));
+      `ועוד ${dur(waitToday)} של המתנה — זמן מהתחלה עד מסירה, לא זמן עבודה נטו`));
   return card;
 }
 

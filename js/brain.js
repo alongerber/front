@@ -271,7 +271,7 @@ export function buildDayPlan() {
     blocks.push({ id: e.item.id, kind: e.kind, title: e.item.title, why: e.why, start: cursor, minutes: mins });
     cursor += mins * MIN;
 
-    // אחרי כשעתיים של עבודה — משבצים פריט ידע אחד
+    // אחרי כשעתיים של עבודה — משבצים משהו ללמוד אחד
     if (!insertedKnowledge && cursor - dayStart > 2 * HOUR) {
       const k = topKnowledge();
       if (k && cursor < dayEnd) {
@@ -373,7 +373,7 @@ export function deliveredThisMonth() {
 
 /**
  * כמה שעות באמת לוקח סרטון. שלוש שכבות, מהאמין לפחות אמין:
- *   1. דגימות — המערכת שאלה ואתה ענית. מדידה, לא ניחוש.
+ *   1. בדיקות — המערכת שאלה ואתה ענית. מדידה, לא ניחוש.
  *   2. הטיימר — מדויק כשזכרת להחליף, ומנופח כשלא.
  *   3. ההערכה שהקלדת בקו המוצר.
  */

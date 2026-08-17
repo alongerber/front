@@ -1,6 +1,6 @@
 /* ============================================================
    store.js — מודל הנתונים, localStorage, ייצוא/ייבוא
-   הכל נשען על ארבעה מושגים: קווי מוצר · שלבים · פריטים · רשומות זמן
+   הכל נשען על ארבעה מושגים: מה אתה מוכר · שלבים · פריטים · רשומות זמן
    ============================================================ */
 
 const KEY = 'front.v1';
@@ -66,6 +66,7 @@ export function defaultState() {
       autoBackupFiles: false,     // לצרף גם את הקבצים מהפנקס לגיבוי האוטומטי
       lastAutoBackupAt: null,
       bucketsSeeded: false,       // נקבע ל-true אחרי זריעה חד-פעמית, כדי שמחיקה תישאר מחיקה
+      renamedTypes: false,        // שינוי שמות חד-פעמי מז'רגון לשפה פשוטה
       onboarded: false,           // ההדרכה בפעם הראשונה
       installed: false,           // הותקן על מסך הבית — בלי זה אין "רעיון מהיר" בטלפון
       floatUsed: false,           // האם נפתח החלון הצף אי פעם
@@ -84,7 +85,7 @@ export function defaultState() {
       syncEnabled: false,
       syncLastAt: null,
 
-      /* מדידת זמן בדגימות — המערכת שואלת "מה אתה עושה עכשיו?"
+      /* מדידת זמן בבדיקות — המערכת שואלת "מה אתה עושה עכשיו?"
          בזמנים אקראיים, ומספרת. ראה sampling.js */
       sampling: {
         enabled: true,
@@ -107,7 +108,7 @@ export function defaultState() {
       { id: 'routine',   name: 'שגרה',   icon: '🔁', color: '#3ddc84', system: true },
       { id: 'idea',      name: 'רעיון',  icon: '💡', color: '#ff6b9d', system: true },
       { id: 'note',      name: 'פתק',    icon: '🗒', color: '#a3e635', system: true },
-      { id: 'bucket',    name: 'תחום',   icon: '◈',  color: '#22d3ee', system: true }
+      { id: 'bucket',    name: 'על העסק', icon: '◈',  color: '#22d3ee', system: true }
     ],
 
     items: defaultItems(),
@@ -172,7 +173,7 @@ export function defaultState() {
   };
 }
 
-/* דליי זמן שאינם לקוח — שעות שהולכות לעסק עצמו.
+/* עבודה שלא שייכת ללקוח — שעות שהולכות לעסק עצמו.
    בלי אלה, שעות של שיווק וניירת נדבקות ללקוח אקראי או נעלמות,
    ואז "כמה עולה לי סרטון" יוצא שגוי. ניתנים לעריכה ולהוספה. */
 export function defaultBuckets() {
@@ -202,7 +203,7 @@ function defaultItems() {
     routine('בדיקת קמפיין', 'daily', 'עלות לליד, מה עובד, מה לכבות'),
     routine('ניירת לרואה חשבון', 'monthly', 'חשבוניות והוצאות של החודש'),
     routine('סקירת שיחות של הסוכנת', 'weekly', 'לעבור על ההקלטות ולתקן פרומפט'),
-    routine('מבט על מספרים', 'weekly', 'רווח, זמן קשב, עלות לסרטון'),
+    routine('מבט על מספרים', 'weekly', 'רווח, זמן עבודה נטו, עלות לסרטון'),
     routine('גיבוי המערכת', 'weekly', 'ייצוא JSON ושמירה בענן')
   ].map(r => {
     if (r.title === 'תוכן אורגני') r.customDays = 2;
@@ -243,6 +244,17 @@ function migrate(s) {
   d.itemTypes.forEach(dt => {
     if (!out.itemTypes.some(x => x.id === dt.id)) out.itemTypes.push(dt);
   });
+
+  /* שמות שהיו ז'רגון והוחלפו בשפה פשוטה. מעדכנים רק אם השם עדיין
+     הוא ברירת המחדל הישנה — מי ששינה בעצמו, שלו נשאר. פעם אחת. */
+  if (!out.settings.renamedTypes) {
+    out.settings.renamedTypes = true;
+    const RENAMED = { bucket: ['תחום', 'על העסק'] };
+    out.itemTypes.forEach(t => {
+      const r = RENAMED[t.id];
+      if (r && t.name === r[0]) t.name = r[1];
+    });
+  }
 
   // דליי הזמן נזרעים פעם אחת בלבד, כדי שמחיקה שלהם תישאר מחיקה
   if (!out.settings.bucketsSeeded) {
@@ -564,7 +576,7 @@ export function liveAttachmentIds() {
   return ids;
 }
 
-/* ---------- קווי מוצר ושלבים ---------- */
+/* ---------- מה אתה מוכר ושלבים ---------- */
 
 export const lineOf = id => state.productLines.find(p => p.id === id) || state.productLines[0];
 export function stageOf(item) {

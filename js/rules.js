@@ -54,7 +54,7 @@ export function runRules() {
       else if (left < DAY) push('due_' + i.id, 'warn', `${i.title} — יעד בעוד ${dur(left)}`);
     });
 
-  /* --- חידושי ריטיינר --- */
+  /* --- חידושים של לקוחות קבועים --- */
   const renew = s.items.filter(i =>
     i.type === 'client' && i.retainer && !i.archived && !i.retainerEndedAt &&
     i.nextRenewalAt && i.nextRenewalAt <= now() + 3 * DAY);
@@ -63,7 +63,7 @@ export function runRules() {
     push('renew', late.length ? 'bad' : 'warn',
       renew.length === 1
         ? (late.length ? `${renew[0].title} — החידוש עבר, לא נרשם תשלום` : `${renew[0].title} — חידוש בעוד ${dur(renew[0].nextRenewalAt - now())}`)
-        : `${renew.length} חידושי ריטיינר בימים הקרובים`,
+        : `${renew.length} חידושים של לקוחות קבועים בימים הקרובים`,
       { type: 'goto', href: '#/money' });
   }
 
@@ -137,7 +137,7 @@ export function runRules() {
   /* --- אין כלום --- */
   if (!out.length) {
     const k = s.items.filter(i => i.type === 'knowledge' && !i.archived && i.status !== 'done').length;
-    push('calm', 'good', k ? `שקט. יש ${k} פריטי ידע שמחכים — זה הזמן.` : 'שקט. הכל במקום.');
+    push('calm', 'good', k ? `שקט. יש ${k} דברים ללמוד שמחכים — זה הזמן.` : 'שקט. הכל במקום.');
   }
 
   const dismissed = s.dismissedAlerts || {};

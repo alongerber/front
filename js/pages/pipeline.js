@@ -1,5 +1,5 @@
 /* ============================================================
-   pipeline.js — התמונה המלאה: קווי מוצר, שלבים, ומי איפה
+   pipeline.js — התמונה המלאה: מה אתה מוכר, שלבים, ומי איפה
    עמודות עם גרירה בין שלבים
    ============================================================ */
 
@@ -84,7 +84,7 @@ function render(root, params) {
     const card = el('div', { class: 'card', style: { marginTop: '16px' } });
     card.append(el('div', { class: 'card-h' }, el('h3', {}, 'נמסרו'), el('span', { class: 'sub' }, done.length + ' פריטים')));
     const tb = el('table', { class: 'tb' },
-      el('tr', {}, el('th', {}, 'לקוח'), el('th', {}, 'עסק'), el('th', {}, 'סכום'), el('th', {}, 'זמן קשב'), el('th', {}, 'זמן קיר'), el('th', {}, 'נמסר'), el('th', {}))
+      el('tr', {}, el('th', {}, 'לקוח'), el('th', {}, 'עסק'), el('th', {}, 'סכום'), el('th', {}, 'זמן עבודה נטו'), el('th', {}, 'זמן מהתחלה עד מסירה'), el('th', {}, 'נמסר'), el('th', {}))
     );
     done.slice(0, 25).forEach(c => {
       tb.append(el('tr', {},
@@ -185,7 +185,7 @@ export function clientForm(existing, lineId) {
 
   const body = el('div', {},
     el('div', { class: 'row' }, field('שם', fTitle), field('עסק', fBiz)),
-    el('div', { class: 'row' }, field('קו מוצר', fLine), field('שלב', fStage)),
+    el('div', { class: 'row' }, field('סוג העבודה', fLine), field('שלב', fStage)),
     el('div', { class: 'row' }, field('סכום ₪', fAmount), field('תאריך יעד', fDue)),
     el('div', { class: 'row' }, field('טלפון', fPhone), field('עלות מדיה ₪', fMedia, 'נזקף ללקוח הזה')),
     field('הערה', fNote)
@@ -227,7 +227,7 @@ export function clientForm(existing, lineId) {
   });
 }
 
-/* ================= עורך קווי מוצר ושלבים ================= */
+/* ================= עורך מה אתה מוכר ושלבים ================= */
 
 export function lineEditor() {
   const box = el('div', {});
@@ -352,7 +352,7 @@ export function lineEditor() {
       onclick: () => {
         update(s => {
           s.productLines.push({
-            id: uid('pl'), name: 'קו מוצר חדש', color: '#5aa9ff',
+            id: uid('pl'), name: 'סוג העבודה חדש', color: '#5aa9ff',
             stages: [
               { id: uid('st'), name: 'ליד', priority: 10, sla: 120 },
               { id: uid('st'), name: 'שיחה', priority: 9, sla: 1440 },
@@ -365,8 +365,8 @@ export function lineEditor() {
         });
         draw(); refresh();
       }
-    }, '+ קו מוצר (למשל: סוכנת קולית)'));
+    }, '+ סוג העבודה (למשל: סוכנת קולית)'));
   };
   draw();
-  modal({ title: 'קווי מוצר ושלבים', body: box, wide: true, actions: [{ label: 'סגור', cls: 'btn-y' }] });
+  modal({ title: 'מה אתה מוכר ושלבים', body: box, wide: true, actions: [{ label: 'סגור', cls: 'btn-y' }] });
 }

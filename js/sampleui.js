@@ -1,5 +1,5 @@
 /* ============================================================
-   sampleui.js — הצד הנראה של הדגימות
+   sampleui.js — הצד הנראה של הבדיקות
    רושם את ה-Service Worker, מקפיץ את השאלה, וקולט את התשובה —
    בין אם נלחצה בתוך ההתראה (גם מעל וגאס) ובין אם בתוך המערכת.
    ============================================================ */
@@ -92,12 +92,12 @@ function askInPage(sm) {
 
 export function picker(id) {
   const sm = S().samples.find(x => x.id === id) || SM.openSample();
-  if (!sm) { toast('אין דגימה פתוחה', 'err'); return; }
+  if (!sm) { toast('אין בדיקה פתוחה', 'err'); return; }
 
   const s = S();
   const box = el('div', {});
   box.append(el('div', { class: 'muted small', style: { marginBottom: '12px', lineHeight: '1.7' } },
-    `הדגימה נשאלה ב-${hhmm(sm.at)}. כל דגימה מייצגת בערך ` +
+    `הבדיקה נשאלה ב-${hhmm(sm.at)}. כל בדיקה מייצגת בערך ` +
     `${Math.round(SM.sampleWeightMs() / MIN)} דקות, אז התשובה כאן היא המדידה.`));
 
   const grid = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '50vh', overflowY: 'auto' } });
@@ -111,7 +111,7 @@ export function picker(id) {
   s.items.filter(i => i.type === 'client' && !i.archived && !i.deliveredAt)
     .forEach(c => opt(c.title, c.business || 'לקוח', { itemId: c.id, kind: 'work' }));
   s.items.filter(i => i.type === 'bucket' && !i.archived)
-    .forEach(bk => opt('◈ ' + bk.title, bk.note || 'תחום בעסק', { itemId: bk.id, kind: 'work' }));
+    .forEach(bk => opt('◈ ' + bk.title, bk.note || 'עבודה על העסק', { itemId: bk.id, kind: 'work' }));
   s.items.filter(i => i.type === 'task' && !i.archived && !i.done).slice(0, 6)
     .forEach(t => opt(t.title, 'משימה', { itemId: t.id, kind: 'work' }));
 
@@ -166,7 +166,7 @@ export function init(onChange) {
 
   SM.start();
 
-  // חזרת לטאב ויש דגימה פתוחה — מציגים אותה
+  // חזרת לטאב ויש בדיקה פתוחה — מציגים אותה
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;
     const sm = SM.openSample();
@@ -174,7 +174,7 @@ export function init(onChange) {
   });
 }
 
-/** נקרא מהעמודים כדי להציג דגימה ממתינה */
+/** נקרא מהעמודים כדי להציג בדיקה ממתינה */
 export function showOpen() {
   const sm = SM.openSample();
   if (sm) askInPage(sm);

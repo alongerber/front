@@ -1,18 +1,18 @@
 /* ============================================================
-   sampling.js — מדידת זמן בדגימות
+   sampling.js — מדידת זמן בבדיקות
    ------------------------------------------------------------
    הבעיה: אתה עובר בין לשוניות שלוש פעמים בדקה, ורוב העבודה קורית
    בכלל מחוץ לדפדפן. דף אינטרנט לא יכול לדעת אם אתה בוגאס או בפייסבוק,
    וטיימר שצריך לזכור להחליף — לא מוחלף.
 
    הפתרון: לא לעקוב, לשאול. המערכת מקפיצה שאלה אחת בזמנים אקראיים,
-   "מה אתה עושה עכשיו?", ואתה לוחץ כפתור אחד. כל דגימה מייצגת פרק זמן
-   קבוע, אז ספירת הדגימות היא מדידה של השעות.
+   "מה אתה עושה עכשיו?", ואתה לוחץ כפתור אחד. כל בדיקה מייצגת פרק זמן
+   קבוע, אז ספירת הבדיקות היא מדידה של השעות.
 
-   12 דגימות ביום על חלון של 10 שעות → כל דגימה שווה 50 דקות.
-   דני קיבל 4 דגימות → דני לקח בערך 3.3 שעות. אחרי שבוע זה מתייצב.
+   12 בדיקות ביום על חלון של 10 שעות → כל בדיקה שווה 50 דקות.
+   דני קיבל 4 בדיקות → דני לקח בערך 3.3 שעות. אחרי שבוע זה מתייצב.
 
-   דגימה מוקפצת כהתראת מערכת הפעלה, כך שהיא מגיעה גם מעל וגאס.
+   בדיקה מוקפצת כהתראת מערכת הפעלה, כך שהיא מגיעה גם מעל וגאס.
    כפתורי התשובה יושבים בתוך ההתראה עצמה (דורש Service Worker).
    ============================================================ */
 
@@ -36,14 +36,14 @@ export function cfg() {
   };
 }
 
-/** כמה זמן "שווה" דגימה אחת */
+/** כמה זמן "שווה" בדיקה אחת */
 export function sampleWeightMs() {
   const c = cfg();
   const windowH = Math.max(1, c.toHour - c.fromHour);
   return windowH * HOUR / c.perDay;
 }
 
-/** דגימה נדחית בתוך משבצת, לא אקראית לגמרי — כך אין צביר ואין חורים */
+/** בדיקה נדחית בתוך משבצת, לא אקראית לגמרי — כך אין צביר ואין חורים */
 function planDay(dayTs) {
   const c = cfg();
   const base = startOfDay(dayTs);
@@ -71,13 +71,13 @@ function ensurePlan() {
   return next;
 }
 
-/* ---------- מחזור החיים של דגימה ---------- */
+/* ---------- מחזור החיים של בדיקה ---------- */
 
 const listeners = new Set();
 export function onSample(fn) { listeners.add(fn); return () => listeners.delete(fn); }
 const emit = (ev, data) => listeners.forEach(f => { try { f(ev, data); } catch (e) { console.error(e); } });
 
-/** הדגימה הפתוחה שממתינה לתשובה, אם יש */
+/** הבדיקה הפתוחה שממתינה לתשובה, אם יש */
 export function openSample() {
   return S().samples.find(x => !x.answeredAt && !x.closedAt) || null;
 }
@@ -104,9 +104,9 @@ export function candidates(limit = 6) {
   return { clients, tasks, buckets };
 }
 
-/** יוצר דגימה ומקפיץ אותה */
+/** יוצר בדיקה ומקפיץ אותה */
 function fire(dueAt) {
-  // דגימה קודמת שלא נענתה — סוגרים אותה לפי המדיניות
+  // בדיקה קודמת שלא נענתה — סוגרים אותה לפי המדיניות
   closeStale();
 
   const sm = { id: uid('sm'), at: dueAt, firedAt: now(), answeredAt: null, itemId: null, kind: null, source: null };
@@ -115,7 +115,7 @@ function fire(dueAt) {
   return sm;
 }
 
-/** תשובה לדגימה. kind: 'work' | 'learn' | 'off' */
+/** תשובה לבדיקה. kind: 'work' | 'learn' | 'off' */
 export function answer(id, { itemId = null, kind = 'work', source = 'answer' } = {}) {
   update(s => {
     const sm = s.samples.find(x => x.id === id);
@@ -125,7 +125,7 @@ export function answer(id, { itemId = null, kind = 'work', source = 'answer' } =
   emit('answer', S().samples.find(x => x.id === id));
 }
 
-/** דגימה שלא נענתה בזמן סביר */
+/** בדיקה שלא נענתה בזמן סביר */
 function closeStale() {
   const c = cfg();
   const cutoff = now() - Math.min(25 * MIN, sampleWeightMs() * 0.6);
@@ -190,7 +190,7 @@ export function askNow() {
 /* ---------- סטטיסטיקה ---------- */
 
 /**
- * כמה שעות הלכו לאן, לפי דגימות.
+ * כמה שעות הלכו לאן, לפי בדיקות.
  * מחזיר {weightMs, counted, byItem:[{itemId,count,ms}], offCount, offMs, guessRate}
  */
 export function stats({ from = 0, to = Infinity, itemId = null } = {}) {
@@ -225,7 +225,7 @@ export function stats({ from = 0, to = Infinity, itemId = null } = {}) {
   return out;
 }
 
-/** כמה זמן נטו הושקע בפריט אחד, לפי דגימות */
+/** כמה זמן נטו הושקע בפריט אחד, לפי בדיקות */
 export function itemMs(id) {
   const w = sampleWeightMs();
   return S().samples.filter(x => x.itemId === id && x.answeredAt && x.source !== 'missed').length * w;
@@ -236,7 +236,7 @@ export function itemCount(id) {
 }
 
 /**
- * ממוצע שעות נטו לסרטון שנמסר, לפי דגימות.
+ * ממוצע שעות נטו לסרטון שנמסר, לפי בדיקות.
  * מחזיר null כשאין מספיק נתונים כדי לומר משהו אמין.
  */
 export function avgPerDelivery(productLineId = null) {
@@ -250,7 +250,7 @@ export function avgPerDelivery(productLineId = null) {
   return {
     avgMs: total * w / done.length,
     count: done.length, samples: total,
-    // ככל שיש יותר דגימות, השגיאה קטנה. ~1/√n
+    // ככל שיש יותר בדיקות, השגיאה קטנה. ~1/√n
     errorPct: Math.round(100 / Math.sqrt(total))
   };
 }
@@ -258,12 +258,12 @@ export function avgPerDelivery(productLineId = null) {
 /** האם כבר אפשר לסמוך על המספרים */
 export function confidence() {
   const n = S().samples.filter(x => x.answeredAt && x.source === 'answer').length;
-  if (n < 15) return { level: 'low', n, text: `${n} דגימות — עוד מוקדם. תן לזה כמה ימים.` };
-  if (n < 60) return { level: 'mid', n, text: `${n} דגימות — המספרים מתחילים להתייצב.` };
-  return { level: 'high', n, text: `${n} דגימות — המספרים אמינים.` };
+  if (n < 15) return { level: 'low', n, text: `${n} בדיקות — עוד מוקדם. תן לזה כמה ימים.` };
+  if (n < 60) return { level: 'mid', n, text: `${n} בדיקות — המספרים מתחילים להתייצב.` };
+  return { level: 'high', n, text: `${n} בדיקות — המספרים אמינים.` };
 }
 
-/** דגימות של יום מסוים, לציר היום */
+/** בדיקות של יום מסוים, לציר היום */
 export function daySamples(dayTs = Date.now()) {
   const from = startOfDay(dayTs), to = from + DAY;
   return S().samples.filter(x => x.at >= from && x.at < to).sort((a, b) => a.at - b.at);

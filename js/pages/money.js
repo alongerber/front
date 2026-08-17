@@ -134,8 +134,8 @@ function priceCard() {
       'לא בהכרח מחיר גבוה יותר.')));
 
   card.append(el('div', { class: 'small muted', style: { marginTop: '9px' } },
-    r.hoursSource === 'samples' ? 'השעות נמדדו בדגימות — זה המספר האמין ביותר שיש.'
-      : r.hoursSource === 'timer' ? 'השעות לפי הטיימר. הפעל מדידה בדגימות למספר אמין יותר.'
+    r.hoursSource === 'samples' ? 'השעות נמדדו בבדיקות — זה המספר האמין ביותר שיש.'
+      : r.hoursSource === 'timer' ? 'השעות לפי הטיימר. הפעל בדיקות אקראיות למספר אמין יותר.'
         : 'השעות הן הערכה שהקלדת, לא מדידה. עד שיצטברו נתונים, קח את המחיר הזה בעירבון מוגבל.'));
 
   if (!ok) card.append(el('button', {
@@ -269,14 +269,14 @@ function mrrCard() {
 
   if (!m.count) {
     card.append(el('div', { class: 'empty' },
-      'אין לקוחות בריטיינר. חבילת ארבעת הסרטונים ב-4,200 ₪ היא בדיוק כזאת — ' +
+      'אין לקוחות בלקוח קבוע. חבילת ארבעת הסרטונים ב-4,200 ₪ היא בדיוק כזאת — ' +
       'בכרטיס הלקוח אפשר לסמן "משלם כל חודש" ואז הוא ייספר כאן.'));
     return card;
   }
 
   card.append(el('div', { class: 'grid g3', style: { marginBottom: '13px' } },
     statBox('הכנסה חודשית קבועה', nis(m.total), {
-      cls: 'g', tip: 'money.mrr', sub: `${m.count} לקוחות בריטיינר`
+      cls: 'g', tip: 'money.mrr', sub: `${m.count} לקוחות בלקוח קבוע`
     }),
     statBox('כיסוי המנויים', Math.round(m.total / Math.max(1, monthlySubsILS()) * 100) + '%', {
       sub: `המנויים עולים ${nis(monthlySubsILS())} בחודש`
@@ -304,7 +304,7 @@ function mrrCard() {
         onclick: () => {
           const amt = c.monthlyAmount || c.amount || 0;
           update(st => {
-            st.ledger.push({ id: uid('lg'), title: `ריטיינר — ${c.title}`, amount: amt, date: Date.now() });
+            st.ledger.push({ id: uid('lg'), title: `לקוח קבוע — ${c.title}`, amount: amt, date: Date.now() });
             const x = st.items.find(i => i.id === c.id);
             if (x) { x.nextRenewalAt = MO.nextRenewalDate(x.nextRenewalAt || Date.now()); x.paidAt = Date.now(); }
           }, { label: 'רישום חידוש' });
@@ -422,17 +422,17 @@ function hoursSourceLine(lineId) {
   if (h.source === 'samples') {
     box.append(el('span', { style: { color: '#a3e635', fontWeight: '600' } },
       `סרטון לוקח לך ${num(h.hours)} שעות נטו`));
-    box.append(el('span', {}, ` — נמדד מ-${h.samples} דגימות על ${h.n} סרטונים שנמסרו. ` +
-      `טווח הטעות בערך ±${h.errorPct}%, והוא קטן ככל שנאספות עוד דגימות.`));
+    box.append(el('span', {}, ` — נמדד מ-${h.samples} בדיקות על ${h.n} סרטונים שנמסרו. ` +
+      `טווח הטעות בערך ±${h.errorPct}%, והוא קטן ככל שנאספות עוד בדיקות.`));
   } else if (h.source === 'timer') {
     box.append(el('span', { style: { color: '#ffd400', fontWeight: '600' } },
       `סרטון לוקח לך ${num(h.hours)} שעות`));
     box.append(el('span', {}, ` — לפי הטיימר, על ${h.n} סרטונים שנמסרו. ` +
       'הטיימר מדויק רק כשזכרת להחליף אותו. '));
-    box.append(el('a', { href: '#/time', style: { cursor: 'pointer' } }, 'הדגימות נותנות מספר אמין יותר.'));
+    box.append(el('a', { href: '#/time', style: { cursor: 'pointer' } }, 'הבדיקות נותנות מספר אמין יותר.'));
   } else {
     box.append(el('span', {}, `סרטון לוקח לך ${num(h.hours)} שעות — זו ההערכה שהקלדת, לא מדידה. `));
-    box.append(el('a', { href: '#/time' }, 'הפעל מדידה בדגימות'));
+    box.append(el('a', { href: '#/time' }, 'הפעל בדיקות אקראיות'));
     box.append(el('span', {}, ' ותוך שבוע יהיה כאן מספר אמיתי.'));
   }
   return box;
@@ -490,7 +490,7 @@ const SLIDERS = [
   { key: 'price', name: 'מחיר לסרטון', desc: 'כמה אתה גובה על סרטון בודד. המספר הכי קל לשנות והכי מפחיד לגעת בו.', min: 400, max: 4000, step: 10, fmt: nis },
   { key: 'perMonth', name: 'כמה סרטונים בחודש', desc: 'כמה אתה מספיק בפועל — לא כמה היית רוצה. ככל שיותר, המנויים מתחלקים על יותר סרטונים.', min: 1, max: 30, step: 1, fmt: v => v + ' סרטונים' },
   { key: 'leadCost', name: 'עלות להביא לקוח אחד', desc: 'כמה פרסום עולה כדי שלקוח אחד יסגור. הוצאת 900 ₪ והגיעו 5? זה 180 ₪.', min: 0, max: 800, step: 10, fmt: nis },
-  { key: 'hours', name: 'שעות עבודה לסרטון', desc: 'זמן קשב אמיתי, לא זמן שהפרויקט פתוח. המערכת מציעה את מה שהיא מדדה אצלך.', min: 0.5, max: 20, step: 0.5, fmt: v => num(v) + ' שעות' },
+  { key: 'hours', name: 'שעות עבודה לסרטון', desc: 'זמן עבודה נטו אמיתי, לא זמן שהפרויקט פתוח. המערכת מציעה את מה שהיא מדדה אצלך.', min: 0.5, max: 20, step: 0.5, fmt: v => num(v) + ' שעות' },
   { key: 'rate', name: 'כמה השעה שלך שווה', desc: 'היעד שאתה קובע לעצמך. לא כסף שיוצא — רק בדיקה אם המחיר הוגן כלפיך.', min: 50, max: 800, step: 10, fmt: nis }
 ];
 

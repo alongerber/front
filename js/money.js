@@ -5,7 +5,7 @@
      1. כמה זמן ייקח הסרטון הבא, עם טווח ולא מספר אחד
      2. מה המחיר שאתה צריך לגבות, כמספר אחד
      3. כמה עולה ליד בכל ערוץ, ומה אחוז ההמרה שלו
-     4. הכנסה חוזרת — מי בריטיינר וכמה זה MRR
+     4. הכנסה חוזרת — מי בלקוח קבוע וכמה זה MRR
    ============================================================ */
 
 import { S, lineOf, monthlySubsILS } from './store.js';
@@ -48,7 +48,7 @@ export function forecast(productLineId = null) {
     return lo === hi ? measured[lo] : measured[lo] + (measured[hi] - measured[lo]) * (i - lo);
   };
 
-  // זמן קיר — כמה ימים עברו מפתיחה ועד מסירה. זה מה שמבטיחים ללקוח.
+  // זמן מהתחלה עד מסירה — כמה ימים עברו מפתיחה ועד מסירה. זה מה שמבטיחים ללקוח.
   const days = done.map(c => (c.deliveredAt - c.createdAt) / DAY).sort((a, b) => a - b);
   const qd = p => {
     const i = (days.length - 1) * p;
@@ -207,7 +207,7 @@ export async function refreshUsdRate({ force = false } = {}) {
    ============================================================ */
 
 /**
- * לקוח בריטיינר משלם כל חודש. במערכת הוא לקוח עם retainer:true
+ * לקוח בלקוח קבוע משלם כל חודש. במערכת הוא לקוח עם retainer:true
  * וסכום חודשי, ותאריך חידוש הבא.
  */
 export function retainers() {

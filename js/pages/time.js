@@ -27,7 +27,7 @@ function render(root) {
 
   root.append(el('div', { class: 'page-h' },
     el('h1', {}, 'זמן'),
-    el('div', { class: 'desc' }, 'התמחור מתבסס על זמן קשב — לא על זמן קיר'),
+    el('div', { class: 'desc' }, 'התמחור מתבסס על זמן עבודה נטו — לא על זמן מהתחלה עד מסירה'),
     el('div', { class: 'right' },
       cleanupButton(),
       el('button', { class: 'btn btn-sm', onclick: () => addEntryModal() }, '+ רשומה ידנית'),
@@ -70,7 +70,7 @@ function cleanupModal() {
     box.append(el('div', { class: 'small muted', style: { lineHeight: '1.7', marginBottom: '12px' } },
       'רשומות זמן נשחקות, והתמחור שלך נשען עליהן. ' +
       (inflated > 5 * MIN
-        ? `כרגע נראה שיש כאן עד ${dur(inflated)} של זמן קשב שלא באמת עבדת. `
+        ? `כרגע נראה שיש כאן עד ${dur(inflated)} של זמן עבודה נטו שלא באמת עבדת. `
         : '') +
       'עברתי על 30 הימים האחרונים ומצאתי את אלה:'));
 
@@ -154,7 +154,7 @@ function threeNumbers() {
   const gross = T.grossFocusMs(null, from, to);
   const deducted = Math.max(0, gross - focus);
   box.append(el('div', { class: 'stat y' },
-    lbl('זמן קשב היום', 'time.focus'),
+    lbl('זמן עבודה נטו היום', 'time.focus'),
     el('div', { class: 'val' }, focus ? dur(focus, true) : '0 שע\''),
     el('div', { class: 'sub' }, deducted > MIN
       ? `נגרעו ${dur(deducted, true)} שלא היית ליד המחשב`
@@ -178,7 +178,7 @@ function threeNumbers() {
   return box;
 }
 
-/* ================= דגימות ================= */
+/* ================= בדיקות ================= */
 
 function samplingCard() {
   const c = SM.cfg();
@@ -186,7 +186,7 @@ function samplingCard() {
   const conf = SM.confidence();
 
   card.append(el('div', { class: 'card-h' },
-    el('h3', { style: { display: 'flex', alignItems: 'center' } }, 'מדידה בדגימות', hintBadge('time.samples')),
+    el('h3', { style: { display: 'flex', alignItems: 'center' } }, 'בדיקות אקראיות', hintBadge('time.samples')),
     el('span', { class: 'sub' }, 'המערכת שואלת, אתה לוחץ כפתור. זה המספר שהתמחור נשען עליו.'),
     el('div', { class: 'right' },
       SM.openSample()
@@ -200,7 +200,7 @@ function samplingCard() {
 
   if (!c.enabled) {
     card.append(el('div', { class: 'alert warn' },
-      'הדגימות כבויות. בלעדיהן המדידה מסתמכת רק על הטיימר, שצריך לזכור להחליף.'));
+      'הבדיקות כבויות. בלעדיהן המדידה מסתמכת רק על הטיימר, שצריך לזכור להחליף.'));
     return card;
   }
 
@@ -210,7 +210,7 @@ function samplingCard() {
 
   card.append(el('div', { class: 'grid g3', style: { marginBottom: '13px' } },
     el('div', { class: 'stat' },
-      el('div', { class: 'lbl' }, 'כל דגימה שווה'),
+      el('div', { class: 'lbl' }, 'כל בדיקה שווה'),
       el('div', { class: 'val' }, w + ' דק\''),
       el('div', { class: 'sub' }, `${c.perDay} ביום · ${c.fromHour}:00–${c.toHour}:00`)),
     el('div', { class: 'stat' },
@@ -225,13 +225,13 @@ function samplingCard() {
 
   if (!week.byItem.length) {
     card.append(el('div', { class: 'empty' },
-      'עוד לא נאספו דגימות. השאלה הראשונה תקפוץ בשעות שהגדרת — גם מעל תוכנות אחרות, ' +
+      'עוד לא נאספו בדיקות. השאלה הראשונה תקפוץ בשעות שהגדרת — גם מעל תוכנות אחרות, ' +
       'אם אישרת התראות.'));
     return card;
   }
 
   card.append(el('div', { class: 'section', style: { marginTop: '0' } },
-    el('span', { class: 'bar' }), el('h2', {}, 'שבוע אחרון, לפי דגימות'), el('span', { class: 'line' })));
+    el('span', { class: 'bar' }), el('h2', {}, 'שבוע אחרון, לפי בדיקות'), el('span', { class: 'line' })));
 
   const total = week.byItem.reduce((a, x) => a + x.count, 0) + week.offCount;
   const rowFor = (label, count, ms, color) => {
@@ -240,7 +240,7 @@ function samplingCard() {
       el('div', { style: { display: 'flex', gap: '8px', fontSize: '13px', marginBottom: '3px' } },
         el('span', { style: { fontWeight: '600' } }, label),
         el('span', { class: 'muted small', style: { marginInlineStart: 'auto' } },
-          `${dur(ms, true)} · ${count} דגימות · ${Math.round(share * 100)}%`)),
+          `${dur(ms, true)} · ${count} בדיקות · ${Math.round(share * 100)}%`)),
       el('div', { class: 'bar' }, el('i', { style: { width: (share * 100) + '%', background: color } })));
   };
 
@@ -252,7 +252,7 @@ function samplingCard() {
   if (week.offCount) card.append(rowFor('לא עבודה', week.offCount, week.offMs, 'rgba(255,255,255,.22)'));
 
   if (week.guessRate > 0.25) card.append(el('div', { class: 'alert warn', style: { marginTop: '11px' } },
-    `${Math.round(week.guessRate * 100)}% מהדגימות לא נענו והמערכת ניחשה לפי הקודמת. ` +
+    `${Math.round(week.guessRate * 100)}% מהבדיקות לא נענו והמערכת ניחשה לפי הקודמת. ` +
     'המספרים עדיין שמישים, אבל פחות מדויקים.'));
 
   return card;
@@ -304,7 +304,7 @@ function timelineCard() {
 
   inner.append(track(focusSegs, dayFrom, span));
   if (waitSegs.length) {
-    inner.append(el('div', { class: 'tl-label' }, 'המתנה — זמן קיר, לא זמן קשב'));
+    inner.append(el('div', { class: 'tl-label' }, 'המתנה — זמן מהתחלה עד מסירה, לא זמן עבודה נטו'));
     inner.append(track(waitSegs, dayFrom, span));
   }
 
@@ -425,7 +425,7 @@ function weekCard() {
   if (!total) { card.append(el('div', { class: 'empty' }, 'עוד לא נרשמו שעות השבוע')); return card; }
 
   card.append(el('div', { class: 'tabular', style: { fontSize: '22px', fontWeight: '900', marginBottom: '10px' } },
-    dur(total, true), el('span', { class: 'small muted', style: { fontWeight: '400', marginInlineStart: '7px' } }, 'זמן קשב ב-7 ימים')));
+    dur(total, true), el('span', { class: 'small muted', style: { fontWeight: '400', marginInlineStart: '7px' } }, 'זמן עבודה נטו ב-7 ימים')));
 
   rows.slice(0, 8).forEach(r => {
     card.append(el('div', { style: { marginBottom: '8px', cursor: r.id ? 'pointer' : 'default' }, onclick: () => r.id && openItem(r.id) },
@@ -464,7 +464,7 @@ function avgCard() {
     card.append(el('div', { style: { marginBottom: '13px' } },
       el('div', { style: { fontWeight: '700' } }, line.name),
       el('div', { class: 'grid g3', style: { marginTop: '7px' } },
-        mini('ממוצע זמן קשב', dur(avg.avgMs, true)),
+        mini('ממוצע זמן עבודה נטו', dur(avg.avgMs, true)),
         mini('לפי ' + avg.count + ' מסירות', ''),
         mini('₪ לשעת עבודה', nis(perHour), perHour >= (s.settings.hourlyTarget || 250) ? '#3ddc84' : '#ff5a4d')
       )
@@ -499,7 +499,7 @@ function perItemCard() {
   const card = el('div', { class: 'card', style: { marginTop: '14px' } });
   card.append(el('div', { class: 'card-h' },
     el('h3', {}, 'שלושת המספרים לכל לקוח'),
-    el('span', { class: 'sub' }, 'תחומים מסומנים ב-◈ — שעות שהלכו לעסק ולא ללקוח')));
+    el('span', { class: 'sub' }, 'עבודה על העסק מסומנת ב-◈ — שעות שהלכו לעסק ולא ללקוח')));
 
   const clients = S().items.filter(i => (i.type === 'client' || i.type === 'bucket') && !i.archived)
     .map(c => ({ c, focus: T.focusMs(c.id), wall: T.wallMs(c.id), wait: T.waitMs(c.id), sm: SM.itemMs(c.id) }))
@@ -512,13 +512,13 @@ function perItemCard() {
   const th = (t, tip) => el('th', {}, el('span', { style: { display: 'inline-flex', alignItems: 'center' } }, t, hintBadge(tip)));
   const tb = el('table', { class: 'tb' },
     el('tr', {}, el('th', {}, 'לקוח'),
-      th('לפי דגימות', 'time.samples'), th('לפי הטיימר', 'time.focus'),
-      th('זמן קיר', 'time.wall'), th('המתנה', 'time.wait'),
+      th('לפי בדיקות', 'time.samples'), th('לפי הטיימר', 'time.focus'),
+      th('זמן מהתחלה עד מסירה', 'time.wall'), th('המתנה', 'time.wait'),
       el('th', {}, 'סכום'), th('₪/שעה', 'money.realHourly'), el('th', {}))
   );
   clients.forEach(({ c, focus, wall, wait }) => {
     const smMs = SM.itemMs(c.id), smN = SM.itemCount(c.id);
-    const best = smN >= 3 ? smMs : focus;         // דגימות מנצחות כשיש מספיק מהן
+    const best = smN >= 3 ? smMs : focus;         // בדיקות מנצחות כשיש מספיק מהן
     const perHour = best ? (c.amount || 0) / (best / HOUR) : 0;
     tb.append(el('tr', {},
       el('td', {
@@ -527,7 +527,7 @@ function perItemCard() {
       }, (c.type === 'bucket' ? '◈ ' : '') + c.title),
       el('td', {
         class: 'num', style: { color: smN ? '#a3e635' : '' },
-        'data-tip': smN ? `${smN} דגימות × ${Math.round(SM.sampleWeightMs() / MIN)} דקות` : 'עוד אין דגימות על הלקוח הזה'
+        'data-tip': smN ? `${smN} בדיקות × ${Math.round(SM.sampleWeightMs() / MIN)} דקות` : 'עוד אין בדיקות על הלקוח הזה'
       }, smN ? dur(smMs, true) : '—'),
       el('td', { class: 'num', style: { color: '#ffd400' } }, dur(focus, true)),
       el('td', { class: 'num muted' }, dur(wall, true)),

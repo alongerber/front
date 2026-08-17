@@ -875,3 +875,58 @@ body[data-mod="quick"] .view{padding:0;max-width:none}
 .qk-item:hover{background:rgba(255,255,255,.05);color:var(--t1)}
 .qk-item-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .qk-item-w{font-size:11px;color:var(--t4);margin-inline-start:auto;white-space:nowrap}
+
+/* ===================== סיור מודרך =====================
+   זרקור על אלמנט אחד, בועה עם משפט, ומעבר רך ביניהם.
+   הרקע הכהה נוצר מ-box-shadow ענק סביב הטבעת — ככה יש חור
+   אמיתי במקום שכבה שמכסה גם את מה שרוצים להראות. */
+body.tour-on{overflow:hidden}
+
+.tour-back{position:fixed;inset:0;z-index:900}
+
+.tour-ring{
+  position:fixed;z-index:901;border-radius:12px;pointer-events:none;
+  border:2px solid var(--yellow);
+  box-shadow:0 0 0 9999px rgba(0,0,0,.74), 0 0 22px rgba(255,212,0,.45);
+  transition:top .32s cubic-bezier(.4,0,.2,1),left .32s cubic-bezier(.4,0,.2,1),
+             width .32s cubic-bezier(.4,0,.2,1),height .32s cubic-bezier(.4,0,.2,1),
+             opacity .2s;
+}
+@media (prefers-reduced-motion:reduce){ .tour-ring{transition:none} }
+
+.tour-bubble{
+  position:fixed;z-index:902;background:#171715;color:var(--t1);
+  border:1px solid var(--line-2);border-radius:16px;padding:16px 17px;
+  box-shadow:0 24px 60px rgba(0,0,0,.62);
+  opacity:0;transform:translateY(7px);
+  transition:opacity .22s ease,transform .22s ease,top .3s ease,left .3s ease;
+}
+.tour-bubble.in{opacity:1;transform:none}
+.tour-bubble.center{
+  top:50%;left:50%;transform:translate(-50%,-50%);width:min(420px,calc(100vw - 28px));
+}
+.tour-bubble.center.in{transform:translate(-50%,-50%)}
+
+.tour-count{font-size:11.5px;color:var(--t4);margin-bottom:3px}
+.tour-title{font-size:17px;font-weight:800;margin-bottom:6px;color:var(--yellow)}
+.tour-text{margin:0;font-size:14px;line-height:1.72;color:var(--t2)}
+
+.tour-dots{display:flex;gap:5px;margin:13px 0 11px}
+.tour-dot{width:6px;height:6px;border-radius:99px;background:rgba(255,255,255,.16);transition:all .2s}
+.tour-dot.past{background:rgba(255,212,0,.42)}
+.tour-dot.on{width:19px;background:var(--yellow)}
+
+.tour-foot{display:flex;align-items:center;gap:7px}
+
+@media (max-width:900px){
+  .tour-bubble{padding:15px 15px calc(15px + env(safe-area-inset-bottom))}
+  .tour-title{font-size:16px}
+  .tour-text{font-size:13.5px}
+}
+
+/* כרטיס הסיור — ראשון במדריך, כי זו התשובה ל"לא הבנתי מה זה" */
+.tourcard{
+  border-color:rgba(255,212,0,.30);
+  background:linear-gradient(135deg,rgba(255,212,0,.07),transparent 60%);
+}
+.tourcard-t{display:flex;align-items:flex-start;gap:11px}

@@ -148,7 +148,7 @@ function floatBtn() {
   const open = FW.isOpen();
   return el('button', {
     class: 'btn btn-xs ' + (open ? 'btn-y' : ''),
-    'data-tip': 'time.floatWin',
+    'data-tip': 'time.floatWin', 'data-tour': 'float',
     onclick: async () => {
       try {
         if (FW.isOpen()) { FW.close(); toast('נסגר'); }
@@ -249,14 +249,15 @@ function renderTimerBar() {
       floatBtn(),
       auto || T.canClaimAutoWait() ? el('button', {
         class: 'btn btn-xs btn-y', 'data-keep-wait': true,
-        'data-tip': 'מחזיר את זמן ההמתנה לזמן קשב, כאילו לא זוהתה המתנה',
+        'data-tip': 'מחזיר את זמן ההמתנה לזמן עבודה נטו, כאילו לא זוהתה המתנה',
         onclick: () => {
           if (T.claimAutoWait()) { toast('הוחזר לעבודה', 'ok'); refresh(); }
           else toast('חלון הזמן לתיקון עבר', 'err');
         }
       }, 'זו הייתה עבודה') : null,
       el('button', {
-        class: 'btn btn-xs', 'data-tip': 'עוצר בלי לשכוח. חזרה תמשיך מאותו מספר.',
+        class: 'btn btn-xs', 'data-tour': 'pause',
+        'data-tip': 'עוצר בלי לשכוח. חזרה תמשיך מאותו מספר.',
         onclick: () => { T.pauseTimer(); toast('מושהה — הזמן נשמר'); }
       }, '⏸ השהה'),
       el('button', { class: 'btn btn-xs', onclick: openSwitcher }, 'החלף'),
@@ -277,7 +278,7 @@ function renderTimerBar() {
       el('span', { class: 'tb-dot' }),
       el('span', { class: 'tb-title' }, (it ? it.title : 'פריט') + ' — בהמתנה'),
       el('span', { class: 'tb-time', id: 'tb-clock' }, hms(Date.now() - w.since)),
-      el('span', { class: 'tb-kind' }, 'זמן קיר')
+      el('span', { class: 'tb-kind' }, 'כמה זמן זה מחכה')
     );
     bar.append(el('div', { class: 'tb-actions' },
       floatBtn(),
@@ -575,7 +576,7 @@ function absenceModal(p) {
   others.forEach(i => opt(i.title, i.business || 'עבודה',
     () => { T.resolveAbsence({ itemId: i.id, kind: 'work' }); closeModal(); refresh(); }));
   opt('למידה', 'קראתי, צפיתי, התעדכנתי', () => { T.resolveAbsence({ kind: 'learn' }); closeModal(); refresh(); });
-  opt('לא עבדתי', 'הפרק הזה לא נרשם כזמן קשב', () => { T.resolveAbsence({ kind: 'off', resume: false }); closeModal(); refresh(); });
+  opt('לא עבדתי', 'הפרק הזה לא נרשם כזמן עבודה נטו', () => { T.resolveAbsence({ kind: 'off', resume: false }); closeModal(); refresh(); });
 
   box.append(grid);
   modal({
@@ -593,11 +594,11 @@ function initAutoWaitUI() {
     banner('cf-wait', (row, close) => {
       row.append(el('span', { style: { fontWeight: '600' } }, '⏸ עברתי להמתנה'));
       row.append(el('span', { class: 'small muted' },
-        `${mins} דקות בלי מגע${it ? ' · ' + it.title : ''}. הזמן הזה לא נספר כזמן קשב. ` +
+        `${mins} דקות בלי מגע${it ? ' · ' + it.title : ''}. הזמן הזה לא נספר כזמן עבודה נטו. ` +
         'ברגע שתיגע במשהו זה יחזור לעבודה לבד.'));
       row.append(el('button', {
         class: 'btn btn-xs', 'data-keep-wait': true,
-        'data-tip': 'מחזיר את הזמן הזה לזמן קשב, כאילו לא זוהתה המתנה',
+        'data-tip': 'מחזיר את הזמן הזה לזמן עבודה נטו, כאילו לא זוהתה המתנה',
         onclick: () => {
           if (T.claimAutoWait()) { close(); toast('הוחזר לעבודה', 'ok'); refresh(); }
           else toast('חלון הזמן לתיקון עבר', 'err');

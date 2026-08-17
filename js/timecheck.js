@@ -148,7 +148,7 @@ export function fixAll(issues) {
   return safe.length;
 }
 
-/** כמה זמן קשב מזויף יש כאן — כדי להגיד לו למה זה משנה */
+/** כמה זמן עבודה נטו מזויף יש כאן — כדי להגיד לו למה זה משנה */
 export function inflatedMs(issues) {
   const s = S();
   let ms = 0;

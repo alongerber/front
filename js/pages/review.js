@@ -124,7 +124,7 @@ function numbers(d) {
   return el('div', { class: 'grid g4' },
     stat('נמסרו', String(d.delivered.length), d.delivered.length ? 'y' : '',
       d.delivered.length ? d.delivered.map(c => c.title).join(', ').slice(0, 40) : 'שבוע בלי מסירה'),
-    stat('זמן קשב', dur(d.focus, true), '',
+    stat('זמן עבודה נטו', dur(d.focus, true), '',
       `${dur(perDay, true)} ביום בממוצע` + (d.gross - d.focus > MIN ? ` · נגרעו ${dur(d.gross - d.focus, true)}` : '')),
     stat('נכנס', nis(d.income), d.income > d.spend ? 'g' : '',
       d.spend ? `יצא ${nis(d.spend)}` : 'בלי הוצאות רשומות'),
@@ -347,7 +347,7 @@ function localFacts(d) {
   if (d.drop.length) out.push(`${d.drop.length} פריטים לא זזו חודש. כנראה לא יקרו — שווה לנקות.`);
   if (d.sampleStats.counted) {
     const off = d.sampleStats.offCount;
-    if (off) out.push(`${Math.round(off / d.sampleStats.counted * 100)}% מהדגימות היו "לא עבודה". זה נורמלי, וטוב שזה נמדד.`);
+    if (off) out.push(`${Math.round(off / d.sampleStats.counted * 100)}% מהבדיקות היו "לא עבודה". זה נורמלי, וטוב שזה נמדד.`);
   }
   return out;
 }

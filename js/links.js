@@ -82,7 +82,7 @@ export function candidates(query = '', { exclude = null, limit = 8 } = {}) {
       else if (t.includes(q)) score = 60;
       else if (b.includes(q)) score = 40;
       if (score < 0) return null;
-      // לקוחות ותחומים קופצים ראשונים, ואחריהם מה שנגעת בו לאחרונה
+      // לקוחות ועבודה על העסק קופצים ראשונים, ואחריהם מה שנגעת בו לאחרונה
       if (i.type === 'client') score += 12;
       if (i.type === 'bucket') score += 8;
       score += Math.max(0, 10 - (now - (i.updatedAt || 0)) / (24 * HOUR));

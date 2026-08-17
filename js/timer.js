@@ -1,7 +1,7 @@
 /* ============================================================
    timer.js — מנוע הזמן
    טיימר אחד פעיל · החלפה בלחיצה · מצב המתנה · זיהוי חזרה לטאב
-   שלושה מספרים: זמן קיר · זמן קשב · זמן זמין
+   שלושה מספרים: זמן מהתחלה עד מסירה · זמן עבודה נטו · זמן זמין
    ============================================================ */
 
 import { S, update, uid, getItem } from './store.js';
@@ -259,7 +259,7 @@ function activePart(start, end, from, to) {
 }
 
 /**
- * זמן קשב — כמה באמת עבד (עבודה + למידה).
+ * זמן עבודה נטו — כמה באמת עבד (עבודה + למידה).
  * כשזיהוי הנוכחות פעיל, זמן שבו לא היית ליד המחשב נגרע לבד —
  * גם אם הטיימר המשיך לרוץ, וגם אם היית בוגאס ולא בלשונית הזאת.
  */
@@ -276,7 +276,7 @@ export function focusMs(itemId = null, from = 0, to = Infinity) {
   return ms;
 }
 
-/** זמן קשב בלי גריעת נוכחות — כדי להראות את ההפרש */
+/** זמן עבודה נטו בלי גריעת נוכחות — כדי להראות את ההפרש */
 export function grossFocusMs(itemId = null, from = 0, to = Infinity) {
   let ms = S().timeEntries.reduce((a, e) => {
     if (itemId && e.itemId !== itemId) return a;
@@ -303,7 +303,7 @@ export function waitMs(itemId = null, from = 0, to = Infinity) {
   return ms;
 }
 
-/** זמן קיר — כמה זמן הפרויקט פתוח */
+/** זמן מהתחלה עד מסירה — כמה זמן הפרויקט פתוח */
 export function wallMs(itemId) {
   const it = getItem(itemId);
   if (!it) return 0;
@@ -368,7 +368,7 @@ export function currentTodayMs() {
   return t.itemId ? itemTodayMs(t.itemId) : itemTodayMs(null, t.kind);
 }
 
-/** ממוצע זמן קשב לסרטון שנמסר */
+/** ממוצע זמן עבודה נטו לסרטון שנמסר */
 export function avgFocusPerDelivery(productLineId = null) {
   const done = S().items.filter(i => i.type === 'client' && i.deliveredAt &&
     (!productLineId || i.productLineId === productLineId));
@@ -379,7 +379,7 @@ export function avgFocusPerDelivery(productLineId = null) {
 
 /* ================= זיהוי המתנה אוטומטי =================
    הבעיה שהמערכת נבנתה בשבילה: נותנים משימה לקלוד, עוברים לטאב אחר,
-   והטיימר ממשיך לספור את זמן ההמתנה כזמן קשב. אז התמחור יוצא שגוי.
+   והטיימר ממשיך לספור את זמן ההמתנה כזמן עבודה נטו. אז התמחור יוצא שגוי.
 
    מה שאפשר לדעת בוודאות: אם הטאב פתוח מולך ולא נגעת בכלום כמה דקות —
    אתה לא עובד כאן. במקרה הזה הטיימר עובר להמתנה לבד, ואומר את זה.

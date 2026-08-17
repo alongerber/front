@@ -129,19 +129,27 @@ export async function syncNow({ quiet = false } = {}) {
   return run;
 }
 
-/** בדיקה מהירה שהצד השני מוגדר נכון, בלי לכתוב כלום */
+/**
+ * בדיקת חיבור. מריצה קריאה *וגם* כתיבה בפועל.
+ * בדיקה שרק קוראת יכולה לומר "מחובר" בזמן שהכתיבה שבורה —
+ * וזה כשל שמתגלה רק אחרי שכבר סמכת עליה.
+ */
 export async function test() {
   if (!token()) return { ok: false, msg: 'לא הוגדר טוקן' };
   try {
-    const r = await post({ mode: 'pull' });
+    const r = await post({ mode: 'probe' });
     const body = await r.json().catch(() => ({}));
     if (r.status === 501) return { ok: false, msg: body.hint || 'SYNC_TOKEN לא מוגדר בשרת' };
     if (r.status === 401) return { ok: false, msg: 'הטוקן כאן לא תואם את זה שבשרת' };
-    if (r.status === 503) return { ok: false, msg: body.hint || 'האחסון לא זמין' };
+    if (r.status === 503) return { ok: false, msg: body.error + ' — ' + (body.hint || '') };
     if (!r.ok) return { ok: false, msg: body.error || 'שגיאה ' + r.status };
-    const doc = body.doc || {};
-    const n = (doc.items || []).length;
-    return { ok: true, msg: n ? `מחובר. בענן יש ${n} פריטים.` : 'מחובר. הענן עוד ריק — הסנכרון הראשון ימלא אותו.' };
+    if (!body.canWrite) return { ok: false, msg: 'קריאה עובדת אבל כתיבה לא נבדקה — עדכן את השרת' };
+    const n = ((body.doc || {}).items || []).length;
+    return {
+      ok: true,
+      msg: n ? `מחובר, קריאה וכתיבה עובדות. בענן יש ${n} פריטים.`
+             : 'מחובר, קריאה וכתיבה עובדות. הענן עוד ריק — הסנכרון הראשון ימלא אותו.'
+    };
   } catch (e) {
     return { ok: false, msg: 'אין חיבור לנקודת הקצה: ' + e.message };
   }

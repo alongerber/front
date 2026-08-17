@@ -249,7 +249,11 @@ Blobs) · `api/sync.js` (Vercel Blob) · `js/sync.js` — הלקוח.
 ### להפעיל — Vercel
 
 1. **Storage → Create Database → Blob** → לחבר לפרויקט `front`.
-   זה יוצר `BLOB_READ_WRITE_TOKEN` לבד; לא נוגעים בו.
+   בממשק החדש החיבור עובד דרך OIDC ומוסיף `BLOB_STORE_ID` ו-
+   `BLOB_WEBHOOK_PUBLIC_KEY`, ולא בהכרח `BLOB_READ_WRITE_TOKEN`.
+   הקוד לא קורא לאף אחד מהם ישירות — הוא נשען על ה-SDK. אם
+   **בדוק חיבור** מדווח "כתיבה לאחסון נכשלה", זה הסימן שצריך
+   ליצור את `BLOB_READ_WRITE_TOKEN` ידנית ולפרסם מחדש.
 2. **הגדרות → סנכרון → 🔑 צור טוקן חדש** במערכת. הוא מועתק ללוח.
 3. **Settings → Environment Variables → `SYNC_TOKEN`** = אותו טוקן.
 4. **Deployments → Redeploy.** משתני סביבה נכנסים לתוקף רק בפרסום חדש.

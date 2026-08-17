@@ -2,7 +2,7 @@
    settings.js — הגדרות, גיבוי, התראות, סוגי פריטים
    ============================================================ */
 
-import { S, update, uid, addItem, patchItem, downloadBackup, importJSON, exportJSON, resetAll, loadSample, liveAttachmentIds } from '../store.js';
+import { S, update, uid, addItem, patchItem, downloadBackup, importJSON, mergeJSON, exportJSON, resetAll, loadSample, liveAttachmentIds } from '../store.js';
 import { el, ago, toast, modal, input, select, field, confirmBox, dur, num, DAY } from '../util.js';
 import * as A from '../attachments.js';
 import * as AB from '../autobackup.js';
@@ -510,7 +510,8 @@ function backupCard() {
     const f = e.target.files[0];
     if (!f) return;
     const text = await f.text();
-    confirmBox(`לייבא את "${f.name}"? כל מה שיש עכשיו במערכת יוחלף.`, async () => {
+
+    const run = async merge => {
       try {
         const parsed = JSON.parse(text);
         const files = parsed._files;
@@ -519,12 +520,36 @@ function backupCard() {
           const n = await A.importAll(files);
           if (n) toast(`שוחזרו ${n} קבצים`, 'ok');
         }
-        importJSON(JSON.stringify(parsed));
-        toast('יובא בהצלחה', 'ok');
+        if (merge) {
+          const r = mergeJSON(parsed);
+          toast(`מוזג: ${r.added} חדשים · ${r.updated} עודכנו`, 'ok');
+        } else {
+          importJSON(JSON.stringify(parsed));
+          toast('יובא בהצלחה — הכל הוחלף', 'ok');
+        }
         refresh();
       }
       catch (err) { toast('ייבוא נכשל: ' + err.message, 'err'); }
-    }, 'כן, החלף הכל');
+    };
+
+    /* שתי פעולות שונות לגמרי, ולכן שתי לחיצות שונות.
+       מיזוג הוא ברירת המחדל: הוא מה שרוצים כשמביאים רעיונות מהטלפון. */
+    modal({
+      title: 'ייבוא "' + f.name + '"',
+      body: el('div', {},
+        el('div', { style: { fontWeight: '700', marginBottom: '4px' } }, 'לצרף למה שיש, או להחליף הכל?'),
+        el('div', { class: 'small muted', style: { lineHeight: '1.7' } },
+          'צירוף מוסיף פריטים חדשים ומעדכן קיימים לפי מה שעודכן אחרון. ' +
+          'זה מה שרוצים כשמביאים רעיונות שנקלטו בטלפון. ' +
+          'שים לב: צירוף לא מוחק — מה שמחקת במכשיר אחר יחזור.'),
+        el('div', { class: 'small', style: { marginTop: '9px', color: 'var(--red)' } },
+          'החלפה מוחקת את כל מה שיש כאן עכשיו. זה נכון רק בשחזור אחרי אובדן.')),
+      actions: [
+        { label: 'ביטול' },
+        { label: 'החלף הכל', cls: 'btn-danger', onClick: () => { run(false); } },
+        { label: 'צרף למה שיש', cls: 'btn-y', onClick: () => { run(true); } }
+      ]
+    });
     file.value = '';
   });
 

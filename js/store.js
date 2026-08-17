@@ -653,6 +653,51 @@ export function importJSON(text) {
   replaceState(parsed);
 }
 
+/* ============================================================
+   מיזוג — לצרף גיבוי בלי למחוק את מה שיש
+   ------------------------------------------------------------
+   בלי זה, מי שקולט רעיונות בטלפון וייבא אותם למחשב מוחק את יום
+   העבודה שלו. איחוד לפי מזהה; בהתנגשות מנצח מי שעודכן אחרון.
+
+   מה שלא ממוזג, ובכוונה:
+     · הגדרות — הן של המכשיר (הרשאות, תיקיית גיבוי, התקנה)
+     · טיימר, המתנה ויומן נוכחות — מצב ריצה מקומי
+     · מחיקות — מיזוג לא מוחק. מה שנמחק במכשיר אחד יחזור.
+   ============================================================ */
+
+const MERGED = [
+  'items', 'timeEntries', 'samples', 'noteTags', 'savedViews',
+  'reviews', 'subscriptions', 'ledger', 'links', 'productLines'
+];
+
+const stampOf = r => r.updatedAt || r.deliveredAt || r.createdAt || r.at || r.start || 0;
+
+/** ממזג גיבוי לתוך המצב הקיים. מחזיר דוח: כמה נוספו וכמה עודכנו. */
+export function mergeJSON(text) {
+  const inc = typeof text === 'string' ? JSON.parse(text) : text;
+  if (!inc || typeof inc !== 'object' || !Array.isArray(inc.items))
+    throw new Error('הקובץ לא נראה כמו גיבוי של פרונט');
+
+  const report = { added: 0, updated: 0, kept: 0 };
+  update(s => {
+    MERGED.forEach(key => {
+      const mine = Array.isArray(s[key]) ? s[key] : [];
+      const theirs = Array.isArray(inc[key]) ? inc[key] : [];
+      if (!theirs.length) return;
+      const byId = new Map(mine.map(r => [r.id, r]));
+      theirs.forEach(r => {
+        if (!r || !r.id) return;
+        const cur = byId.get(r.id);
+        if (!cur) { byId.set(r.id, r); report.added++; return; }
+        if (stampOf(r) > stampOf(cur)) { byId.set(r.id, r); report.updated++; }
+        else report.kept++;
+      });
+      s[key] = Array.from(byId.values());
+    });
+  }, { label: 'מיזוג גיבוי' });
+  return report;
+}
+
 /**
  * טעינת נתוני הדוגמה: כל חותמות הזמן בקובץ נשמרות יחסית ל-sampleBaseTime,
  * וכאן מזיזים אותן כך שהדוגמה תמיד נראית "טרייה" ביום שבו טוענים אותה.

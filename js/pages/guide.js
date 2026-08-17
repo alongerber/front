@@ -236,7 +236,7 @@ const PAGES_INFO = [
 ];
 
 function pagesCard() {
-  const c = el('div', { class: 'card' });
+  const c = el('div', { class: 'card pagescard' });
   PAGES_INFO.forEach(([ic, name, desc, href]) => c.append(el('div', {
     style: { display: 'flex', gap: '10px', alignItems: 'baseline', padding: '6px 0', cursor: 'pointer' },
     onclick: () => go(href)

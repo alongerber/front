@@ -154,12 +154,16 @@ async function send(text, inputNode, skipLocal) {
     if (!r.ok) throw new Error(j.error || ('שגיאה ' + r.status));
     update(s => { s.chat.push({ role: 'assistant', text: j.text || '(תשובה ריקה)', at: Date.now() }); });
   } catch (e) {
+    /* אם השרת לא זמין, נציע את מה שכן יש כאן. ההתאמה לא הייתה
+       חזקה מספיק לענות בביטחון — אבל היא טובה מספיק להצעה. */
+    const near = KH.search(text, 2).filter(h => h.score >= 5).map(h => h.entry);
     update(s => {
       s.chat.push({
         role: 'assistant',
         text: 'לא הצלחתי להגיע לעוזר: ' + (e.message || e) +
           '\n\nבדוק ש-ANTHROPIC_API_KEY מוגדר במשתני הסביבה של האתר (ב-Vercel: Settings → Environment Variables · ב-Netlify: Site configuration → Environment variables), ושהאתר עלה מחדש אחרי ההגדרה. מקומית צריך vercel dev או netlify dev.' +
-          '\n\nבינתיים שאלות על המערכת עצמה — "איפה", "איך עושים" — נענות כאן גם בלי מפתח.'
+          '\n\nבינתיים שאלות על המערכת עצמה — "איפה", "איך עושים" — נענות כאן גם בלי מפתח.' +
+          (near.length ? '\n\nאולי התכוונת ל: ' + near.map(x => '"' + x.q[0] + '"').join(' · ') : '')
       });
     });
   } finally {

@@ -12,6 +12,7 @@ import { hintBadge } from '../help.js';
 import * as MO from '../money.js';
 import * as L from '../links.js';
 import { linkChips } from '../mentions.js';
+import * as B from '../brief.js';
 
 export function openItem(id) {
   const it = getItem(id);
@@ -23,6 +24,7 @@ export function openItem(id) {
     body.innerHTML = '';
     body.append(header(item));
     if (item.type === 'client') body.append(clientBlock(item, draw));
+    if (item.type === 'client') body.append(briefBlock(item, draw));
     body.append(progressBlock(item, draw));
     body.append(timeBlock(item));
     body.append(linksBlock(item, draw));
@@ -147,6 +149,159 @@ function clientBlock(c, draw) {
 }
 
 /* ---------- התקדמות ---------- */
+/* ============================================================
+   מה סוכם איתם — מהתכתבות לסדר
+   ------------------------------------------------------------
+   מדביקים לכאן שרשור וואטסאפ או סיכום שיחה, והמערכת מוציאה
+   מזה דרישות, מה שסוכם, כיוון קראייטיב, ומה עוד לא ברור.
+   הטקסט הגולמי נשמר תמיד — הסידור הוא שכבה מעליו ולא במקומו.
+   ============================================================ */
+
+function briefBlock(c, draw) {
+  const box = el('div', { class: 'sect brief' });
+  const sources = B.sourcesOf(c);
+  const brief = B.briefOf(c);
+
+  box.append(el('div', { class: 'sect-h' },
+    el('span', {}, '💬 מה סוכם איתם'),
+    el('span', { class: 'small muted' },
+      sources.length ? sources.length + ' התכתבויות' : 'הדבק שיחה וקבל סדר')));
+
+  /* --- הדבקה --- */
+  const ta = el('textarea', {
+    class: 'inp brief-in', rows: '3',
+    placeholder: 'הדבק כאן שרשור וואטסאפ, סיכום שיחה או מייל…'
+  });
+  const addBtn = el('button', {
+    class: 'btn btn-sm btn-y',
+    onclick: () => {
+      const v = ta.value.trim();
+      if (!v) { ta.focus(); return; }
+      const src = B.addSource(c.id, v);
+      ta.value = '';
+      toast(src.facts.isWhatsApp
+        ? `נשמר · ${src.facts.messages} הודעות · ${src.facts.speakers.join(', ')}`
+        : 'נשמר', 'ok');
+      draw(); refresh();
+    }
+  }, '+ הוסף');
+  box.append(ta, el('div', { class: 'row', style: { margin: '7px 0 4px' } }, addBtn,
+    sources.length ? el('button', {
+      class: 'btn btn-sm', onclick: async e => {
+        const b = e.target; b.disabled = true; b.textContent = 'קורא…';
+        const r = await B.organize(c.id);
+        b.disabled = false; b.textContent = '✨ תעשה סדר';
+        if (r.error) toast(r.error, 'err'); else { toast('סודר', 'ok'); draw(); refresh(); }
+      }
+    }, brief ? '✨ סדר מחדש' : '✨ תעשה סדר') : null));
+
+  /* --- מה הודבק --- */
+  sources.forEach(src => {
+    const f = src.facts || {};
+    const row = el('div', { class: 'brief-src' },
+      el('span', { class: 'brief-src-t' }, src.label),
+      el('span', { class: 'small muted' },
+        [f.money && f.money.length ? f.money.map(n => nis(n)).join(' · ') : null,
+         f.links && f.links.length ? f.links.length + ' קישורים' : null,
+         ago(src.at)].filter(Boolean).join(' · ')),
+      el('button', {
+        class: 'btn btn-xs', 'aria-label': 'הצג את הטקסט המקורי',
+        onclick: () => modal({
+          title: src.label,
+          body: el('pre', { class: 'brief-raw' }, src.text),
+          actions: ['spacer', { label: 'סגור' }]
+        })
+      }, '👁'),
+      el('button', {
+        class: 'btn btn-xs btn-danger', 'aria-label': 'מחק את ההתכתבות',
+        onclick: () => confirmBox('למחוק את "' + src.label + '"? הסידור לא ישתנה עד שתסדר מחדש.',
+          () => { B.removeSource(c.id, src.id); draw(); refresh(); })
+      }, '🗑')
+    );
+    box.append(row);
+  });
+
+  if (!brief) {
+    if (sources.length) box.append(el('div', { class: 'small muted', style: { marginTop: '7px', lineHeight: '1.7' } },
+      'הטקסט שמור. "תעשה סדר" יוציא ממנו דרישות, מה שסוכם, כיוון קראייטיב ומה שחסר.'));
+    return box;
+  }
+
+  /* --- הסידור --- */
+  const sec = (title, kids, sub) => {
+    const list = kids.filter(Boolean);
+    if (!list.length) return null;
+    return el('div', { class: 'brief-sec' },
+      el('div', { class: 'brief-sec-h' }, title,
+        sub ? el('span', { class: 'small muted' }, sub) : null),
+      ...list);
+  };
+  const quote = q => q ? el('div', { class: 'brief-q' }, '”' + q + '„') : null;
+  const line = (txt, extra) => el('div', { class: 'brief-line' },
+    el('div', { style: { flex: 1, minWidth: 0 } }, el('div', {}, txt), extra || null));
+
+  if (brief.summary) box.append(el('div', { class: 'brief-sum' }, brief.summary));
+
+  box.append(sec('מה הם ביקשו', (brief.requirements || []).map(r =>
+    line(r.text, quote(r.quote)))));
+
+  box.append(sec('מה סוכם', (brief.agreed || []).map(a => {
+    const act =
+      a.kind === 'price' && a.value ? el('button', {
+        class: 'btn btn-xs btn-y',
+        onclick: () => { const n = B.applyPrice(c.id, a.value); toast(n ? 'המחיר עודכן ל' + nis(n) : 'לא הצלחתי לקרוא מספר', n ? 'ok' : 'err'); draw(); refresh(); }
+      }, 'קבע כמחיר') :
+      a.kind === 'date' && a.value ? el('button', {
+        class: 'btn btn-xs btn-y',
+        onclick: () => { const ts = B.applyDate(c.id, a.value); toast(ts ? 'תאריך היעד עודכן ל' + dmy(ts) : 'לא הצלחתי לקרוא תאריך', ts ? 'ok' : 'err'); draw(); refresh(); }
+      }, 'קבע כיעד') : null;
+    return el('div', { class: 'brief-line' },
+      el('div', { style: { flex: 1, minWidth: 0 } }, el('div', {}, a.text), quote(a.quote)),
+      act);
+  })));
+
+  const cr = brief.creative || {};
+  const crRows = [
+    cr.tone ? line('טון: ' + cr.tone) : null,
+    cr.audience ? line('קהל: ' + cr.audience) : null,
+    (cr.must || []).length ? line('חייב: ' + cr.must.join(' · ')) : null,
+    (cr.avoid || []).length ? line('להימנע: ' + cr.avoid.join(' · ')) : null,
+    (cr.refs || []).length ? line('רפרנסים: ' + cr.refs.join(' · ')) : null
+  ];
+  box.append(sec('כיוון הקראייטיב', crRows));
+
+  box.append(sec('מה עוד לא ברור', (brief.questions || []).map(q =>
+    el('div', { class: 'brief-line' },
+      el('div', { style: { flex: 1, minWidth: 0 } }, q),
+      el('button', {
+        class: 'btn btn-xs',
+        onclick: () => { B.askFromBrief(c.id, q); toast('נוספה משימה לשאול', 'ok'); refresh(); }
+      }, '+ לשאול')))
+    , 'המערכת לא מנחשת תשובות'));
+
+  box.append(sec('מה לעשות', (brief.tasks || []).map(t =>
+    el('div', { class: 'brief-line' },
+      el('div', { style: { flex: 1, minWidth: 0 } },
+        t.text, t.urgent ? el('span', { class: 'pill pill-r', style: { marginInlineStart: '6px' } }, 'דחוף') : null),
+      el('button', {
+        class: 'btn btn-xs',
+        onclick: () => { B.taskFromBrief(c.id, t.text, t.urgent); toast('נוצרה משימה', 'ok'); refresh(); }
+      }, '+ משימה')))));
+
+  box.append(sec('דגלים אדומים', (brief.risks || []).map(r =>
+    el('div', { class: 'brief-line risk' }, '⚠︎ ' + r))));
+
+  box.append(el('div', { class: 'row', style: { marginTop: '10px' } },
+    el('span', { class: 'small muted' }, 'סודר ' + ago(brief.at) + ' מתוך ' + (brief.sourceCount || 1) + ' התכתבויות'),
+    el('button', {
+      class: 'btn btn-xs btn-danger', style: { marginInlineStart: 'auto' },
+      onclick: () => confirmBox('למחוק את הסידור? ההתכתבויות עצמן יישארו.',
+        () => { B.clearBrief(c.id); draw(); refresh(); })
+    }, '🗑 מחק סידור')));
+
+  return box;
+}
+
 function progressBlock(it, draw) {
   if (!['client', 'task'].includes(it.type)) return el('div');
   const p = progressOf(it);

@@ -345,7 +345,26 @@ function openTimerMenu(anchor) {
   if (t.itemId && !t.autoFrom) menu.append(row('⏳ ממתין לתשובה', 'זמן הקיר ימשיך לרוץ', () => {
     T.startWaiting(t.itemId); toast('הפריט בהמתנה');
   }));
-  menu.append(row('■ עצור', 'בלי לזכור להמשך', () => { T.stopTimer(); T.clearPaused(); toast('נעצר ונרשם'); }, 'danger'));
+  menu.append(row('■ עצור', 'נרשם ונסגר', () => { T.stopTimer(); T.clearPaused(); toast('נעצר ונרשם'); }));
+
+  /* --- מחיקה --- */
+  menu.append(el('div', { class: 'tb-mh' }, 'טעיתי'));
+  menu.append(row('🗑 בטל — אל תרשום את זה', 'שמת טיימר על הדבר הלא נכון', () => {
+    const t2 = T.discardTimer();
+    if (t2) { toast('בוטל. שום זמן לא נרשם.', 'ok'); refresh(); }
+  }, 'danger'));
+
+  const last = T.lastEntry();
+  if (last) {
+    const it2 = last.itemId ? getItem(last.itemId) : null;
+    const name = it2 ? it2.title : (T.KINDS[last.kind]?.name || 'זמן');
+    menu.append(row('🗑 מחק את הרשומה האחרונה',
+      name + ' · ' + dur(last.end - last.start, true),
+      () => {
+        const e = T.removeLastEntry();
+        if (e) { toast('נמחק. אפשר לבטל ב-Ctrl+Z.', 'ok'); refresh(); }
+      }, 'danger'));
+  }
 
   document.body.append(menu);
   const r = anchor.getBoundingClientRect();

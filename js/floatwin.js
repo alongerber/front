@@ -210,9 +210,13 @@ function render() {
         onclick: () => { if (T.resumePaused()) render(); }
       }, '▶ המשך'),
     e(doc, 'button', {
-      class: 'fw-mini', title: 'עוצר ושוכח. להשהיה יש כפתור נפרד.',
+      class: 'fw-mini', title: 'עוצר ורושם. להשהיה יש כפתור נפרד.',
       onclick: () => { T.stopTimer(); T.clearPaused(); render(); }
     }, '■ עצור'),
+    t ? e(doc, 'button', {
+      class: 'fw-mini del', title: 'טעיתי — אל תרשום את הזמן הזה בכלל',
+      onclick: () => { T.discardTimer(); render(); }
+    }, '🗑') : null,
     e(doc, 'button', {
       class: 'fw-mini', onclick: () => { window.focus(); }
     }, '↗')
@@ -292,6 +296,8 @@ function styleTag(doc) {
     .fw-mini.pause{border-color:rgba(255,159,67,.4);color:#ff9f43}
     .fw-mini.pause.on{background:#ff9f43;color:#000;border-color:#ff9f43;font-weight:700}
     .fw-mini.go{border-color:rgba(185,140,255,.55);color:#b98cff;font-weight:700}
+    .fw-mini.del{flex:0 0 34px;border-color:rgba(255,90,77,.35);color:#ff5a4d}
+    .fw-mini.del:hover{background:rgba(255,90,77,.16);border-color:#ff5a4d}
 
     /* סוג הזמן — לחיצה אחת, בלי לעצור */
     .fw-kinds{display:flex;gap:4px}

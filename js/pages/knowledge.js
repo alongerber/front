@@ -139,6 +139,15 @@ function row(x, isTop) {
     onclick: () => { patchItem(k.id, { archived: !k.archived }, (k.archived ? 'החזרה מהארכיון: ' : 'העברה לארכיון: ') + k.title); toast(k.archived ? 'הוחזר' : 'לארכיון'); refresh(); }
     , 'aria-label': k.archived ? 'שחזר מהארכיון' : 'לארכיון'
   }, k.archived ? '↩' : '🗄'));
+  /* מחיקה ישירות מהכרטיס. לינק שנכנס בטעות לא אמור לדרוש
+     פתיחת טופס כדי להיעלם. */
+  acts.append(el('button', {
+    class: 'btn btn-xs btn-danger', 'aria-label': 'מחק',
+    'data-tip': 'מוחק לגמרי. אפשר לבטל ב-Ctrl+Z.',
+    onclick: () => confirmBox('למחוק את "' + (k.title || 'הפריט') + '"?', () => {
+      removeItem(k.id); toast('נמחק. Ctrl+Z מחזיר.', 'ok'); refresh();
+    })
+  }, '🗑'));
   node.append(acts);
   return node;
 }

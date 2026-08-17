@@ -111,6 +111,37 @@ export function resumePaused() {
   return true;
 }
 
+/**
+ * זורק את הריצה הנוכחית בלי לרשום אותה.
+ * המקרה: שמת טיימר על משהו בטעות וגילית תוך כדי. "עצור" היה
+ * רושם את זה ואז היית צריך לחפש את הרשומה ולמחוק — כאן פשוט
+ * לא נרשם כלום.
+ */
+export function discardTimer() {
+  const t = S().timer;
+  if (!t) return null;
+  update(s => { s.timer = null; s.paused = null; }, { label: 'ביטול טיימר' });
+  emit();
+  return t;
+}
+
+/** הרשומה האחרונה שנסגרה — כדי להציע למחוק אותה בשם ולא בעיוורון */
+export function lastEntry() {
+  const es = S().timeEntries;
+  if (!es.length) return null;
+  return es.reduce((a, e) => (!a || e.end > a.end) ? e : a, null);
+}
+
+/** מוחק את הרשומה האחרונה. ניתן לביטול. */
+export function removeLastEntry() {
+  const e = lastEntry();
+  if (!e) return null;
+  update(s => { s.timeEntries = s.timeEntries.filter(x => x.id !== e.id); },
+    { label: 'מחיקת רשומת זמן' });
+  emit();
+  return e;
+}
+
 export const pausedInfo = () => S().paused;
 export function clearPaused() { update(s => { s.paused = null; }); emit(); }
 

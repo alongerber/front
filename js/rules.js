@@ -168,6 +168,7 @@ export function navCounts() {
         hasIdle ? !!s.settings.presenceEnabled : null,
         notifOK,
         hasPip ? !!s.settings.floatUsed : null,
+        !!s.settings.installed || (typeof matchMedia === 'function' && matchMedia('(display-mode: standalone)').matches),
         !!s.settings.autoBackupDir || !!s.settings.lastBackupAt,
         s.timeEntries.length > 0 || (s.samples || []).some(x => x.answeredAt)
       ];

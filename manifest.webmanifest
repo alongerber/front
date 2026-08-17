@@ -9,12 +9,54 @@
   "display": "standalone",
   "background_color": "#0a0a09",
   "theme_color": "#0a0a09",
+  "shortcuts": [
+    {
+      "name": "רעיון מהיר — הכתבה",
+      "short_name": "הכתב",
+      "description": "פותח מסך קליטה עם המיקרופון דולק",
+      "url": "./#/quick?mic=1",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%23ffd400'/%3E%3Cpath d='M256 96a48 48 0 0 1 48 48v112a48 48 0 0 1-96 0V144a48 48 0 0 1 48-48zm112 160a112 112 0 0 1-96 110.8V416h56v32H184v-32h56v-49.2A112 112 0 0 1 144 256h32a80 80 0 0 0 160 0z' fill='%230a0a09'/%3E%3C/svg%3E",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "רעיון מהיר — הקלדה",
+      "short_name": "כתוב",
+      "description": "פותח מסך קליטה ריק",
+      "url": "./#/quick"
+    },
+    {
+      "name": "החלף טיימר",
+      "short_name": "טיימר",
+      "description": "על מה אני עובד עכשיו",
+      "url": "./#/time"
+    }
+  ],
+  "share_target": {
+    "action": "./",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
   "icons": [
     {
       "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230a0a09'/%3E%3Cpath d='M144 384V128h224v58h-158v50h138v58h-138v90z' fill='%23ffd400'/%3E%3C/svg%3E",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%230a0a09'/%3E%3Cpath d='M144 384V128h224v58h-158v50h138v58h-138v90z' fill='%23ffd400'/%3E%3C/svg%3E",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
   ]
 }

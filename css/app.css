@@ -45,6 +45,7 @@ body[data-mod="settings"]  { --accent:#94a3b8; --accent-dim:rgba(148,163,184,.16
 body[data-mod="notes"]     { --accent:#a3e635; --accent-dim:rgba(163,230,53,.14) }
 body[data-mod="review"]    { --accent:#f472b6; --accent-dim:rgba(244,114,182,.14) }
 body[data-mod="guide"]     { --accent:#ffd400; --accent-dim:rgba(255,212,0,.13) }
+body[data-mod="quick"]     { --accent:#ffd400; --accent-dim:rgba(255,212,0,.13) }
 
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
@@ -759,3 +760,68 @@ table.tb td.num{font-variant-numeric:tabular-nums;text-align:left;direction:ltr}
   .color-grid{grid-template-columns:repeat(3,1fr)}
 }
 @media print{.nav,.topbar,.timerbar{display:none}.main{margin:0}}
+
+/* ===================== קליטה מהירה =====================
+   מסך אחד, יד אחת, בלי ניווט. נבנה לרגע שבו יש רעיון
+   באמצע פודקאסט והחלופה היא לרשום לעצמך בוואטסאפ. */
+body[data-mod="quick"] .nav,
+body[data-mod="quick"] .topbar,
+body[data-mod="quick"] .timerbar,
+body[data-mod="quick"] .capture-feedback{display:none}
+body[data-mod="quick"] .main{margin:0}
+body[data-mod="quick"] .view{padding:0;max-width:none}
+
+.qk{
+  min-height:100dvh;display:flex;flex-direction:column;gap:12px;
+  padding:16px 16px calc(16px + env(safe-area-inset-bottom));
+  max-width:620px;margin:0 auto;
+}
+.qk-h{display:flex;align-items:baseline;gap:10px}
+.qk-h h1{font-size:20px;font-weight:800;margin:0}
+.qk-h .btn{margin-inline-start:auto}
+
+.qk-field{
+  width:100%;background:#131312;color:var(--t1);
+  border:1px solid var(--line-2);border-radius:14px;
+  padding:14px;font-family:inherit;font-size:17px;line-height:1.6;
+  resize:none;min-height:30vh;flex:1;
+}
+.qk-field:focus{outline:none;border-color:var(--yellow)}
+.qk-field::placeholder{color:var(--t4)}
+
+.qk-guess{font-size:12.5px;color:var(--t3);min-height:18px;padding-inline-start:3px}
+.qk-guess-t{color:var(--yellow);font-weight:600}
+
+.qk-types{display:flex;gap:6px;flex-wrap:wrap}
+.qk-type{
+  background:transparent;border:1px solid var(--line-2);border-radius:20px;
+  padding:6px 12px;font-size:12.5px;color:var(--t3);
+  font-family:inherit;cursor:pointer;
+}
+.qk-type:hover{color:var(--t1);border-color:rgba(255,255,255,.3)}
+.qk-type.on{background:var(--yellow);color:#000;border-color:var(--yellow);font-weight:700}
+
+/* הכפתורים למטה — שם האגודל נמצא */
+.qk-foot{display:flex;gap:9px;margin-top:auto;padding-top:6px}
+.qk-mic,.qk-save{
+  border-radius:15px;font-family:inherit;font-size:16px;font-weight:700;
+  cursor:pointer;padding:17px 12px;border:1px solid var(--line-2);
+}
+.qk-mic{flex:1;background:#131312;color:var(--t1)}
+.qk-mic:hover{border-color:rgba(255,255,255,.32)}
+.qk-mic.on{background:#ff5a4d;border-color:#ff5a4d;color:#fff;animation:pulse 1.6s infinite}
+.qk-save{flex:1;background:var(--yellow);border-color:var(--yellow);color:#000}
+.qk-save:active{transform:scale(.98)}
+
+.qk-note{font-size:12px;color:var(--t4);line-height:1.6;text-align:center}
+
+.qk-recent{display:flex;flex-direction:column;gap:2px}
+.qk-recent-h{font-size:11px;color:var(--t4);margin:4px 0 2px}
+.qk-item{
+  display:flex;gap:9px;align-items:baseline;width:100%;text-align:start;
+  background:transparent;border:0;border-radius:9px;padding:8px 9px;
+  color:var(--t2);font-family:inherit;font-size:13px;cursor:pointer;
+}
+.qk-item:hover{background:rgba(255,255,255,.05);color:var(--t1)}
+.qk-item-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qk-item-w{font-size:11px;color:var(--t4);margin-inline-start:auto;white-space:nowrap}

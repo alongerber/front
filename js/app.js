@@ -27,6 +27,7 @@ import tools from './pages/tools.js';
 import assistant from './pages/assistant.js';
 import review from './pages/review.js';
 import guide from './pages/guide.js';
+import quick from './pages/quick.js';
 import settings from './pages/settings.js';
 
 /* ================= עמודים ================= */
@@ -44,7 +45,9 @@ const PAGES = {
   'tools':     { title: 'כלים',    icon: '⚙',  color: '#94a3b8', mod: tools },
   'assistant': { title: 'עוזר',    icon: '✦',  color: '#e879f9', mod: assistant },
   'settings':  { title: 'הגדרות',  icon: '⚙︎', color: '#94a3b8', mod: settings },
-  'guide':     { title: 'מדריך',   icon: '?',  color: '#ffd400', mod: guide, badge: 'guide' }
+  'guide':     { title: 'מדריך',   icon: '?',  color: '#ffd400', mod: guide, badge: 'guide' },
+  // לא בניווט — מגיעים אליו מקיצור הדרך של מסך הבית, משיתוף, או ב-Ctrl+K
+  'quick':     { title: 'רעיון מהיר', icon: '⚡', color: '#ffd400', mod: quick, hidden: true }
 };
 // #/decisions → עמוד המשימות עם הפילטר הנכון
 const ALIAS = { 'decisions': 'tasks?f=decision', 'ideas': 'tasks?f=idea' };
@@ -106,6 +109,7 @@ function buildNav() {
   const { path } = parseHash();
   box.innerHTML = '';
   Object.entries(PAGES).forEach(([key, p]) => {
+    if (p.hidden) return;
     const n = counts[p.badge] || 0;
     box.append(el('button', {
       class: 'nav-link' + (key === path ? ' active' : ''),
@@ -710,7 +714,48 @@ export function openItem(id) {
 
 /* ================= אתחול ================= */
 
+/* שיתוף ממערכת ההפעלה נוחת על ./?title=&text=&url= (Web Share Target).
+   מעבירים אותו לעמוד הקליטה המהירה ומנקים את הכתובת, כדי שרענון
+   לא יקלוט את אותו דבר פעמיים. */
+function handleShare() {
+  const q = new URLSearchParams(location.search);
+  if (!q.get('text') && !q.get('url') && !q.get('title')) return false;
+  const to = new URLSearchParams();
+  ['title', 'text', 'url'].forEach(k => { if (q.get(k)) to.set(k, q.get(k)); });
+  history.replaceState(null, '', location.pathname);
+  location.hash = '#/quick?' + to.toString();
+  return true;
+}
+
+/* ---------- התקנה על מסך הבית ----------
+   בלי זה כל הרעיון של "רעיון מהיר" לא עובד: אין אייקון, אין קיצור דרך,
+   ואין לאן לשתף. כרום נותן את ההזדמנות פעם אחת — תופסים אותה ושומרים. */
+let installPrompt = null;
+export const canInstall = () => !!installPrompt;
+export const isInstalled = () =>
+  matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+
+export async function promptInstall() {
+  if (!installPrompt) return 'unavailable';
+  const ev = installPrompt;
+  installPrompt = null;
+  ev.prompt();
+  const { outcome } = await ev.userChoice;
+  if (outcome === 'accepted') update(s => { s.settings.installed = true; });
+  return outcome;
+}
+
 function init() {
+  handleShare();
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; });
+  window.addEventListener('appinstalled', () => {
+    installPrompt = null;
+    update(s => { s.settings.installed = true; });
+    toast('פרונט על מסך הבית. לחיצה ארוכה על האייקון → "הכתב".', 'ok');
+  });
+  // רישום ה-Service Worker כבר בהתחלה — בלעדיו אין מסך בית, אין שיתוף ואין עבודה בלי רשת
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => { });
+
   // ניווט
   window.addEventListener('hashchange', renderPage);
   $('#menu-toggle').addEventListener('click', () => $('#nav').classList.toggle('open'));

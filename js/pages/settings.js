@@ -13,6 +13,7 @@ import * as FW from '../floatwin.js';
 import * as T from '../timer.js';
 import * as MO from '../money.js';
 import * as notify from '../notify.js';
+import * as SY from '../sync.js';
 import { lineEditor } from './pipeline.js';
 import { refresh } from '../app.js';
 
@@ -27,9 +28,120 @@ function render(root) {
   ));
 
   root.append(el('div', { class: 'grid g2' },
-    el('div', {}, samplingCard(), bucketsCard(), backupCard(), notifyCard()),
+    el('div', {}, samplingCard(), bucketsCard(), syncCard(), backupCard(), notifyCard()),
     el('div', {}, generalCard(), typesCard(), dangerCard())
   ));
+}
+
+/* ============================================================
+   סנכרון בין מחשב לטלפון
+   ------------------------------------------------------------
+   זה המקום היחיד שבו הנתונים יוצאים מהמכשיר, ולכן הכרטיס אומר
+   את זה בפירוש ולא מסתיר את זה מאחורי מתג.
+   ============================================================ */
+
+function syncCard() {
+  const s = S();
+  const card = el('div', { class: 'card' });
+  card.append(el('div', { class: 'card-h' },
+    el('h3', {}, 'סנכרון בין מחשב לטלפון'),
+    el('span', { class: 'sub' }, s.settings.syncEnabled ? 'פעיל' : 'מכובה')));
+
+  card.append(el('div', { class: 'small muted', style: { lineHeight: '1.75', marginBottom: '11px' } },
+    'בלי זה, כל דפדפן שומר את הנתונים אצלו בלבד — ומה שנקלט בטלפון לא מגיע למחשב. ' +
+    'עם זה, כל מכשיר דוחף את המצב שלו למקום אחד בענן וקורא ממנו את של האחרים. ' +
+    'לכל רשומה בנפרד: מי שעודכן אחרון מנצח, וגם מחיקות עוברות.'));
+
+  card.append(el('div', { class: 'advice', style: { marginBottom: '12px' } },
+    el('div', { style: { fontWeight: '700' } }, 'שים לב מה זה משנה'),
+    el('div', { class: 'small', style: { marginTop: '4px', lineHeight: '1.7' } },
+      'היום הנתונים שלך לא יוצאים מהמחשבים שלך. ברגע שהסנכרון פעיל הם יושבים גם באחסון ' +
+      'של האתר, מוגנים בטוקן שרק אתה מחזיק. קבצים מצורפים מהפנקס נשארים מקומיים — הם כבדים.')));
+
+  /* --- הטוקן --- */
+  const tok = el('input', {
+    class: 'inp', type: 'password', value: SY.token(),
+    placeholder: 'הטוקן — אותו אחד שבמשתני הסביבה',
+    oninput: e => SY.setToken(e.target.value)
+  });
+
+  card.append(field('טוקן הסנכרון', tok,
+    'אותה מחרוזת בדיוק צריכה לשבת ב-SYNC_TOKEN במשתני הסביבה של האתר, ובכל מכשיר שאתה מסנכרן. ' +
+    'היא נשמרת בדפדפן הזה ולא נכנסת לגיבויים ולא לסנכרון עצמו.'));
+
+  card.append(el('div', { class: 'row', style: { marginBottom: '11px', flexWrap: 'wrap' } },
+    el('button', {
+      class: 'btn btn-sm',
+      onclick: () => {
+        const t = SY.suggestToken();
+        tok.value = t; SY.setToken(t);
+        navigator.clipboard?.writeText(t).then(
+          () => toast('טוקן חדש נוצר והועתק. הדבק אותו ב-SYNC_TOKEN באתר.', 'ok'),
+          () => toast('טוקן חדש נוצר. העתק אותו מהשדה.', 'ok'));
+        refresh();
+      }
+    }, '🔑 צור טוקן חדש'),
+    SY.token() ? el('button', {
+      class: 'btn btn-sm',
+      onclick: () => navigator.clipboard?.writeText(SY.token()).then(
+        () => toast('הועתק', 'ok'), () => toast('העתקה נכשלה', 'err'))
+    }, 'העתק') : null,
+    el('button', {
+      class: 'btn btn-sm',
+      onclick: async e => {
+        const b = e.target; const was = b.textContent;
+        b.disabled = true; b.textContent = 'בודק…';
+        const r = await SY.test();
+        b.disabled = false; b.textContent = was;
+        toast(r.msg, r.ok ? 'ok' : 'err');
+      }
+    }, 'בדוק חיבור')
+  ));
+
+  /* --- המתג --- */
+  const on = el('input', {
+    type: 'checkbox', checked: !!s.settings.syncEnabled,
+    style: { width: '15px', height: '15px', accentColor: '#ffd400', cursor: 'pointer' },
+    onchange: e => {
+      if (e.target.checked && !SY.token()) {
+        e.target.checked = false;
+        toast('קודם צריך טוקן', 'err');
+        return;
+      }
+      update(st => { st.settings.syncEnabled = e.target.checked; });
+      if (e.target.checked) { SY.start(); SY.syncNow(); } else SY.stop();
+      refresh();
+    }
+  });
+  card.append(el('label', { class: 'row', style: { cursor: 'pointer', marginBottom: '11px' } },
+    on, el('span', {}, 'סנכרון פעיל')));
+
+  /* --- מצב --- */
+  const st = SY.getStatus();
+  const last = s.settings.syncLastAt;
+  const line = el('div', { class: 'small', id: 'sync-status', style: { lineHeight: '1.7' } });
+  const paint = x => {
+    line.innerHTML = '';
+    const color = x.state === 'error' ? 'var(--red)' : x.state === 'ok' ? 'var(--green)' : 'var(--t3)';
+    line.append(el('span', { style: { color, fontWeight: '600' } },
+      x.state === 'busy' ? 'מסנכרן…' : x.state === 'error' ? '✗ ' + x.msg : x.state === 'ok' ? '✓ ' + x.msg : 'לא סונכרן בפעם הזאת'));
+    if (last) line.append(el('span', { class: 'muted' }, ' · אחרון לפני ' + ago(last)));
+  };
+  paint(st);
+  SY.onStatus(paint);
+  card.append(line);
+
+  card.append(el('div', { class: 'row', style: { marginTop: '11px' } },
+    el('button', {
+      class: 'btn btn-sm btn-y', disabled: !s.settings.syncEnabled,
+      onclick: async () => { await SY.syncNow(); refresh(); }
+    }, '↻ סנכרן עכשיו')));
+
+  if (!s.settings.syncEnabled) card.append(el('div', { class: 'small muted', style: { marginTop: '9px', lineHeight: '1.7' } },
+    'שלושה צעדים: צור טוקן כאן → הדבק אותו ב-SYNC_TOKEN במשתני הסביבה של האתר ופרסם מחדש → ' +
+    'הדלק את המתג. במכשיר השני מדביקים את אותו טוקן ומדליקים.'));
+
+  return card;
 }
 
 /* ---------- תצוגה מקדימה לקישורים ---------- */

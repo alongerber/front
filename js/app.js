@@ -14,6 +14,7 @@ import * as sampleUI from './sampleui.js';
 import * as P from './presence.js';
 import * as FW from './floatwin.js';
 import * as notify from './notify.js';
+import * as SY from './sync.js';
 
 import home from './pages/home.js';
 import pipeline from './pages/pipeline.js';
@@ -795,7 +796,11 @@ function init() {
   });
 
   // מצב
-  subscribe(() => { renderTimerBar(); syncUndoBtn(); });
+  subscribe(() => { renderTimerBar(); syncUndoBtn(); SY.nudge(); });
+
+  // סנכרון בין המחשב לטלפון. מכובה עד שמגדירים טוקן.
+  SY.start();
+  window.addEventListener('front:synced', () => refresh());
   T.onTick(() => { renderTimerBar(); refresh(); });
 
   // נוכחות והתראות

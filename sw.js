@@ -8,7 +8,7 @@
    בנוסף — מטמון בסיסי, כדי שהמערכת תיפתח גם בלי רשת.
    ============================================================ */
 
-const CACHE = 'front-v2';
+const CACHE = 'front-v3';
 const SHELL = [
   './', './index.html', './css/app.css', './manifest.webmanifest',
   './js/app.js', './js/store.js', './js/util.js', './js/timer.js',
@@ -17,7 +17,8 @@ const SHELL = [
   './js/presence.js', './js/floatwin.js', './js/money.js', './js/links.js',
   './js/mentions.js', './js/voice.js', './js/linkpreview.js', './js/previewcard.js',
   './js/attachments.js', './js/autobackup.js', './js/timecheck.js', './js/palette.js', './js/api.js',
-  './js/onboarding.js', './js/pages/quick.js', './js/pages/home.js', './js/pages/guide.js'
+  './js/onboarding.js', './js/sync.js',
+  './js/pages/quick.js', './js/pages/home.js', './js/pages/guide.js'
 ];
 
 self.addEventListener('install', e => {

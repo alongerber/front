@@ -169,6 +169,7 @@ export function navCounts() {
         notifOK,
         hasPip ? !!s.settings.floatUsed : null,
         !!s.settings.installed || (typeof matchMedia === 'function' && matchMedia('(display-mode: standalone)').matches),
+        !!s.settings.syncEnabled && !!localStorage.getItem('front.syncToken'),
         !!s.settings.autoBackupDir || !!s.settings.lastBackupAt,
         s.timeEntries.length > 0 || (s.samples || []).some(x => x.answeredAt)
       ];

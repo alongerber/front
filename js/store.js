@@ -79,6 +79,11 @@ export function defaultState() {
       linkPreview: true,          // למשוך כותרת, תיאור ותמונה לכל לינק שמדביקים
       linkSummary: true,          // ולבקש גם משפט סיכום בעברית (עולה גרושים)
 
+      /* סנכרון בין מחשב לטלפון. מכובה עד שמגדירים טוקן —
+         ראה js/sync.js ו-lib/sync.js. */
+      syncEnabled: false,
+      syncLastAt: null,
+
       /* מדידת זמן בדגימות — המערכת שואלת "מה אתה עושה עכשיו?"
          בזמנים אקראיים, ומספרת. ראה sampling.js */
       sampling: {
@@ -149,6 +154,11 @@ export function defaultState() {
       { id: uid('l'), title: 'Meta Ads',     url: 'https://adsmanager.facebook.com',         desc: 'ניהול הקמפיינים' },
       { id: uid('l'), title: 'Netlify',      url: 'https://app.netlify.com',                 desc: 'האחסון של כל הדפים' }
     ],
+
+    /* מצב הסנכרון. knownIds = המזהים שהשרת הכיר בסנכרון האחרון;
+       כל מזהה שהיה שם ואיננו כאן — נמחק במכשיר הזה. ככה מחיקות
+       עוברות בלי לתייג כל קריאת מחיקה בקוד. */
+    syncMeta: { knownIds: [], lastAt: 0, rev: 0, settingsAt: 0 },
 
     // מצב ריצה
     timer: null,                 // {itemId,startedAt,kind}
@@ -224,6 +234,8 @@ function migrate(s) {
   out.settings = Object.assign({}, d.settings, s.settings || {});
   out.settings.notifications = Object.assign({}, d.settings.notifications, (s.settings || {}).notifications || {});
   out.settings.sampling = Object.assign({}, d.settings.sampling, (s.settings || {}).sampling || {});
+  out.syncMeta = Object.assign({}, d.syncMeta, s.syncMeta || {});
+  if (!Array.isArray(out.syncMeta.knownIds)) out.syncMeta.knownIds = [];
   for (const k of ['productLines', 'itemTypes', 'items', 'timeEntries', 'subscriptions', 'ledger', 'links', 'waiting', 'chat', 'noteTags', 'samples', 'presenceLog', 'savedViews', 'reviews']) {
     if (!Array.isArray(out[k])) out[k] = d[k];
   }
@@ -665,7 +677,9 @@ export function importJSON(text) {
      · מחיקות — מיזוג לא מוחק. מה שנמחק במכשיר אחד יחזור.
    ============================================================ */
 
-const MERGED = [
+/* אותם אוספים משמשים גם למיזוג ידני וגם לסנכרון — הם אלה שיש
+   בהם רשומות עם מזהה. הגדרות ומצב ריצה מטופלים בנפרד. */
+export const SYNCED = [
   'items', 'timeEntries', 'samples', 'noteTags', 'savedViews',
   'reviews', 'subscriptions', 'ledger', 'links', 'productLines'
 ];
@@ -680,7 +694,7 @@ export function mergeJSON(text) {
 
   const report = { added: 0, updated: 0, kept: 0 };
   update(s => {
-    MERGED.forEach(key => {
+    SYNCED.forEach(key => {
       const mine = Array.isArray(s[key]) ? s[key] : [];
       const theirs = Array.isArray(inc[key]) ? inc[key] : [];
       if (!theirs.length) return;
@@ -696,6 +710,94 @@ export function mergeJSON(text) {
     });
   }, { label: 'מיזוג גיבוי' });
   return report;
+}
+
+/* ============================================================
+   סנכרון — מה נשלח, ומה נעשה עם מה שחוזר
+   ------------------------------------------------------------
+   שאר הלוגיקה בצד השרת (lib/sync.js) ובצד הלקוח (js/sync.js).
+   כאן רק ההמרה בין המצב המקומי לצורה שמסתנכרנת.
+   ============================================================ */
+
+/* הגדרות שהן של העסק ולכן משותפות. כל השאר — הרשאות, תיקיית
+   גיבוי, התקנה, מצב ההדרכה — הן של המכשיר ולא מסתנכרנות. */
+export const SHARED_SETTINGS = [
+  'ownerName', 'businessName', 'hourlyTarget', 'workHoursPerDay', 'dayStartHour',
+  'usdRate', 'usdRateAuto', 'leadSlaMinutes', 'decisionStaleDays', 'autoWaitMinutes',
+  'idleAskMinutes', 'longAbsenceHours', 'timerNudgeHours', 'linkPreview', 'linkSummary'
+];
+
+/** מה נשלח לשרת: האוספים, ההגדרות המשותפות, ומה שנמחק כאן. */
+export function syncSnapshot() {
+  const s = state;
+  const out = {};
+  SYNCED.forEach(k => { out[k] = Array.isArray(s[k]) ? s[k] : []; });
+
+  out.settings = {};
+  SHARED_SETTINGS.forEach(k => { if (s.settings[k] !== undefined) out.settings[k] = s.settings[k]; });
+
+  // מזהים שהשרת הכיר ואיננו כאן = נמחקו במכשיר הזה
+  const live = new Set();
+  SYNCED.forEach(k => (s[k] || []).forEach(r => r && r.id && live.add(r.id)));
+  const deleted = {};
+  (s.syncMeta.knownIds || []).forEach(id => { if (!live.has(id)) deleted[id] = now(); });
+
+  return { state: out, deleted, settingsAt: s.syncMeta.settingsAt || 0 };
+}
+
+/**
+ * מיזוג המסמך שחזר מהשרת לתוך המצב המקומי.
+ * אותו כלל בשני הכיוונים: לכל רשומה, מי שעודכן אחרון מנצח.
+ * מצבה מנצחת רק אם היא מאוחרת מהעדכון האחרון של הרשומה.
+ */
+export function applySyncDoc(doc) {
+  if (!doc || typeof doc !== 'object') return null;
+  const report = { added: 0, updated: 0, removed: 0 };
+  const tombs = doc.deleted || {};
+
+  update(s => {
+    SYNCED.forEach(key => {
+      const mine = Array.isArray(s[key]) ? s[key] : [];
+      const theirs = Array.isArray(doc[key]) ? doc[key] : [];
+      const byId = new Map();
+      mine.forEach(r => r && r.id && byId.set(r.id, r));
+      theirs.forEach(r => {
+        if (!r || !r.id) return;
+        const cur = byId.get(r.id);
+        if (!cur) { byId.set(r.id, r); report.added++; }
+        else if (stampOf(r) > stampOf(cur)) { byId.set(r.id, r); report.updated++; }
+      });
+      // מחיקות שהגיעו ממכשיר אחר
+      for (const [id, ts] of Object.entries(tombs)) {
+        const r = byId.get(id);
+        if (r && ts > stampOf(r)) { byId.delete(id); report.removed++; }
+      }
+      s[key] = Array.from(byId.values());
+    });
+
+    // הגדרות משותפות — רק אם החותמת של השרת חדשה יותר
+    if ((doc.settingsAt || 0) > (s.syncMeta.settingsAt || 0)) {
+      SHARED_SETTINGS.forEach(k => {
+        if (doc.settings && doc.settings[k] !== undefined) s.settings[k] = doc.settings[k];
+      });
+      s.syncMeta.settingsAt = doc.settingsAt || 0;
+    }
+
+    // מה שהשרת מכיר עכשיו — הבסיס לזיהוי המחיקה הבאה
+    const known = new Set();
+    SYNCED.forEach(k => (s[k] || []).forEach(r => r && r.id && known.add(r.id)));
+    s.syncMeta.knownIds = Array.from(known);
+    s.syncMeta.lastAt = now();
+    s.syncMeta.rev = doc.rev || 0;
+  }, { silent: true });
+
+  subs.forEach(f => f(state));
+  return report;
+}
+
+/** מסמנים שההגדרות המשותפות שונו כאן, כדי שינצחו בסנכרון הבא */
+export function touchSharedSettings() {
+  update(s => { s.syncMeta.settingsAt = now(); }, { silent: true });
 }
 
 /**

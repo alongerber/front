@@ -10,6 +10,8 @@ import { callAssistant } from '../api.js';
 import { unitEconomics, rankedKnowledge, dueRoutines, actionQueue, measuredHoursPerVideo } from '../brain.js';
 import { refresh, go } from '../app.js';
 import { hintBadge } from '../help.js';
+import * as KH from '../knowhow.js';
+import * as TOUR from '../tour.js';
 
 export default { render };
 
@@ -21,7 +23,8 @@ function render(root) {
   root.append(el('div', { class: 'page-h' },
     el('h1', {}, 'עוזר'),
     el('div', { class: 'desc' },
-      'שני דברים שונים: מנוע הכללים רץ תמיד ולא עולה כלום. הצ\'אט עולה — ומקבל את כל התמונה.',
+      'שאל אותו על העסק — או על המערכת עצמה: "איפה מדליקים סנכרון", "מחקתי בטעות". ' +
+      'שאלות על המערכת נענות כאן במקום, בלי לשלוח שום דבר החוצה.',
       hintBadge('assist.cost')),
     el('div', { class: 'right' },
       el('button', { class: 'btn btn-sm', onclick: () => { update(st => { st.chat = []; }); refresh(); } }, 'נקה שיחה'))
@@ -42,22 +45,24 @@ function render(root) {
   const card = el('div', { class: 'card', style: { marginTop: '14px' } });
   card.append(el('div', { class: 'card-h' },
     el('h3', { style: { display: 'flex', alignItems: 'center' } }, 'צ\'אט', hintBadge('assist.context')),
-    el('span', { class: 'sub' }, 'אסטרטגיה, תמחור, החלטות · מקבל את הנתונים שלך')));
+    el('span', { class: 'sub' }, 'העסק והמערכת · מקבל את הנתונים שלך')));
 
   const chat = el('div', { class: 'chat' });
   const msgs = s.chat || [];
   if (!msgs.length) {
-    chat.append(el('div', { class: 'msg sys' }, 'העוזר מקבל את כל הנתונים במערכת. שאל אותו משהו אמיתי.'));
+    chat.append(el('div', { class: 'msg sys' },
+      'שאלות על המערכת ("איך מוחקים זמן שנרשם בטעות?") נענות מיד ובחינם. ' +
+      'שאלות על העסק הולכות לקלוד עם כל הנתונים שלך.'));
     const sugg = el('div', { style: { display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '6px' } });
     [
+      'שמתי טיימר על הדבר הלא נכון, איך מוחקים?',
+      'איפה מדליקים סנכרון עם הטלפון?',
       'לפי המספרים שלי — להעלות מחיר או להוריד זמן?',
-      'האם למכור את הסוכנת הקולית בנפרד או ביחד עם הסרטונים?',
-      'איפה הזמן שלי הולך לאיבוד?',
       'מה הדבר הכי חשוב שאני לא עושה עכשיו?'
     ].forEach(q => sugg.append(el('button', { class: 'btn btn-xs', onclick: () => send(q) }, q)));
     chat.append(sugg);
   }
-  msgs.forEach(m => chat.append(el('div', { class: 'msg ' + (m.role === 'user' ? 'me' : 'ai') }, m.text)));
+  msgs.forEach((m, i) => chat.append(msgNode(m, i)));
   card.append(chat);
 
   const inp = el('input', { class: 'inp', placeholder: 'שאל את העוזר…', style: { flex: 1 } });
@@ -67,19 +72,72 @@ function render(root) {
     el('button', { class: 'btn btn-y', onclick: () => send(inp.value, inp) }, 'שלח')));
 
   card.append(el('div', { class: 'small muted', style: { marginTop: '9px' } },
-    'הצ\'אט עובד רק אחרי שהעלית את האתר (Vercel או Netlify) והגדרת ANTHROPIC_API_KEY במשתני הסביבה. ראה README.'));
+    'שאלות על המערכת עובדות תמיד, גם בלי אינטרנט. שאלות על העסק דורשות ' +
+    'ANTHROPIC_API_KEY במשתני הסביבה של האתר. ראה README.'));
   root.append(card);
   setTimeout(() => { chat.scrollTop = chat.scrollHeight; }, 30);
 }
 
+/* ============================================================
+   הודעה בצ'אט
+   ------------------------------------------------------------
+   תשובה על המערכת שווה הרבה פחות אם היא רק טקסט. "הגדרות →
+   סנכרון" זה עדיין ניווט שאתה צריך לעשות, אז הכפתור עושה אותו.
+   ============================================================ */
+
+function msgNode(m) {
+  const node = el('div', { class: 'msg ' + (m.role === 'user' ? 'me' : 'ai') }, m.text);
+  if (m.role === 'user') return node;
+
+  const acts = [];
+  if (m.go) acts.push(el('button', { class: 'btn btn-xs btn-y', onclick: () => go(m.go) }, 'קח אותי לשם'));
+  if (m.tour) acts.push(el('button', { class: 'btn btn-xs', onclick: () => TOUR.start(m.tour) }, '▶ הראה לי'));
+  if (m.local && m.q) {
+    acts.push(el('button', {
+      class: 'btn btn-xs', title: 'אם לא לזה התכוונת',
+      onclick: () => send(m.q, null, true)
+    }, 'לא לזה התכוונתי'));
+  }
+  if (acts.length) node.append(el('div', { class: 'msg-acts' }, ...acts));
+  return node;
+}
+
 /* ================= שליחה ================= */
 
-async function send(text, inputNode) {
+/* skipLocal — כשהוא לחץ "לא לזה התכוונתי": אותה שאלה, הפעם לקלוד. */
+async function send(text, inputNode, skipLocal) {
   text = String(text || '').trim();
   if (!text || sending) return;
   sending = true;
   if (inputNode) inputNode.value = '';
-  update(s => { s.chat.push({ role: 'user', text, at: Date.now() }); });
+
+  if (skipLocal) {
+    /* השאלה כבר בהיסטוריה. מסירים את התשובה המקומית שלא קלעה,
+       כדי שהשיחה תסתיים בשאלה שלו ולא בתשובה שנדחתה. */
+    update(s => {
+      for (let i = s.chat.length - 1; i >= 0; i--) {
+        if (s.chat[i].local && s.chat[i].q === text) { s.chat.splice(i, 1); break; }
+      }
+    });
+  } else {
+    update(s => { s.chat.push({ role: 'user', text, at: Date.now() }); });
+  }
+
+  /* ---- תשובה מקומית על המערכת ----
+     מיידית, בלי רשת, בלי מפתח, ובלי סיכוי שתומצא כאן פונקציה
+     שלא קיימת. answer() מחזיר null כשההתאמה לא חד-משמעית. */
+  const known = skipLocal ? null : KH.answer(text);
+  if (known) {
+    update(s => {
+      s.chat.push({
+        role: 'assistant', text: known.a, at: Date.now(),
+        go: known.go || null, tour: known.tour || null, local: true, q: text
+      });
+    });
+    sending = false;
+    refresh();
+    return;
+  }
   refresh();
 
   const chatEl = document.querySelector('.chat');
@@ -100,7 +158,8 @@ async function send(text, inputNode) {
       s.chat.push({
         role: 'assistant',
         text: 'לא הצלחתי להגיע לעוזר: ' + (e.message || e) +
-          '\n\nבדוק ש-ANTHROPIC_API_KEY מוגדר במשתני הסביבה של האתר (ב-Vercel: Settings → Environment Variables · ב-Netlify: Site configuration → Environment variables), ושהאתר עלה מחדש אחרי ההגדרה. מקומית צריך vercel dev או netlify dev.'
+          '\n\nבדוק ש-ANTHROPIC_API_KEY מוגדר במשתני הסביבה של האתר (ב-Vercel: Settings → Environment Variables · ב-Netlify: Site configuration → Environment variables), ושהאתר עלה מחדש אחרי ההגדרה. מקומית צריך vercel dev או netlify dev.' +
+          '\n\nבינתיים שאלות על המערכת עצמה — "איפה", "איך עושים" — נענות כאן גם בלי מפתח.'
       });
     });
   } finally {

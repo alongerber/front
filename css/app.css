@@ -460,6 +460,8 @@ table.tb td.num{font-variant-numeric:tabular-nums;text-align:left;direction:ltr}
 .msg.me{align-self:flex-start;background:var(--yellow);color:#000;border-bottom-left-radius:4px}
 .msg.ai{align-self:flex-end;background:var(--card-2);border:1px solid var(--line);border-bottom-right-radius:4px}
 .msg.sys{align-self:center;background:transparent;color:var(--t3);font-size:12px;max-width:100%}
+/* כפתורי פעולה מתחת לתשובה — "קח אותי לשם" במקום לחפש לבד */
+.msg-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;padding-top:9px;border-top:1px solid var(--line)}
 
 /* התראות מנוע כללים */
 .alert{

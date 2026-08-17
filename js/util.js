@@ -25,6 +25,18 @@ export function el(tag, attrs = {}, ...children) {
     if (c == null || c === false) continue;
     n.append(c instanceof Node ? c : document.createTextNode(String(c)));
   }
+
+  /* כפתור שכל תוכנו אייקון הוא כפתור אילם לקורא מסך. רובם כבר
+     מחזיקים הסבר ב-title או ב-data-tip — ממחזרים אותו לתווית
+     במקום לדרוש aria-label בכל קריאה בקוד. */
+  if ((tag === 'button' || tag === 'a') && !n.getAttribute('aria-label')) {
+    const txt = (n.textContent || '').trim();
+    if (txt.length <= 2 && !/[א-תa-zA-Z0-9]/.test(txt)) {
+      const alt = n.getAttribute('title') || attrs['data-tip'];
+      // מפתח של מפת ההסברים (help.js) הוא לא טקסט לאדם
+      if (alt && !/^[a-z]+\.[a-zA-Z]+$/.test(alt)) n.setAttribute('aria-label', alt);
+    }
+  }
   return n;
 }
 

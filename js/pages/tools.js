@@ -27,7 +27,7 @@ function render(root) {
         el('div', { class: 'small muted', style: { marginTop: '3px' } }, l.desc || ''),
         el('div', { class: 'small', style: { marginTop: '6px', color: 'rgba(255,255,255,.28)', direction: 'ltr', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, l.url)
       ),
-      el('button', { class: 'btn btn-xs', onclick: () => form(l) }, '✎')
+      el('button', { class: 'btn btn-xs', onclick: () => form(l), 'aria-label': 'עריכה' }, '✎')
     ));
     card.append(el('div', { style: { marginTop: '11px' } },
       el('a', { class: 'btn btn-sm btn-y', href: l.url, target: '_blank', rel: 'noopener' }, 'פתח ↗')));

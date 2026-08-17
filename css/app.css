@@ -743,6 +743,56 @@ table.tb td.num{font-variant-numeric:tabular-nums;text-align:left;direction:ltr}
   .capture-feedback{padding:0 13px}
   .g2{grid-template-columns:minmax(0,1fr)}
   .tb-title{max-width:26vw}
+
+  /* ---- מגע ----
+     אצבע היא לא עכבר. הרף המקובל הוא 44px; כאן 36-40 כפשרה בין
+     "אפשר לפגוע" לבין "הסרגל לא תופס חצי מסך". נמדד ב-mobile-audit. */
+  .btn-xs{padding:9px 12px;font-size:12.5px;min-height:38px}
+  .btn-sm{padding:9px 13px;font-size:13px;min-height:38px}
+  .btn{min-height:42px}
+  .iconbtn{padding:9px 11px;min-width:42px;min-height:42px}
+  .icon-sq{min-width:38px;min-height:38px}
+  .chip,.pill{min-height:30px;display:inline-flex;align-items:center}
+  input[type=checkbox]{width:22px !important;height:22px !important}
+  .nav-link{padding:12px 11px}
+  /* הסרגל גדל כדי להכיל כפתורי מגע. חייב לעבור דרך --bar-h ולא
+     דרך height קבוע, אחרת ה-topbar ה-sticky נצמד לגובה הישן ומכסה. */
+  :root{--bar-h:58px}
+  .timerbar{padding:7px 12px}
+  .qk-type{padding:9px 14px;font-size:13px;min-height:38px}
+
+  /* ---- קריאוּת ----
+     10px על מסך טלפון זה לא טקסט, זו החלטה לא לקרוא אותו. */
+  .hint-badge{font-size:12px;min-width:20px;min-height:20px}
+  .small,.sub,.lbl,.muted.small{font-size:12.5px}
+  /* מספיק ספציפי כדי לנצח את הכללים המקוריים (.stat .lbl וכו') */
+  body .stat .lbl,body .stat .sub,body .card-h .sub,body .section .sub,
+  body .pill,body .chip,body .col-h .ct,body .ccard .cb,body .tl-label,
+  body .tl-seg .s2,body .tl-hour,body .tag-count,body .note-tag,body .note-rem,
+  body .lp-site,body .kscore,body .step-n.sm,body .qk-recent-h,body .qk-item-w,
+  body .note-done-sep,body .sl-d,body .tb-run,body .tb-note,body th,
+  body .nav-hint,body .nav-sub{font-size:12px}
+
+  /* ---- מגע, סבב שני: מה שנשאר אחרי המדידה הראשונה ---- */
+  .pill,.chip{min-height:34px;padding-inline:11px}
+  input[type=checkbox]{width:30px !important;height:30px !important}
+  select,.inp{min-height:42px}
+  .cf .cf-x,.btn-xs.btn-danger,button.btn-xs{min-width:38px}
+  .qk-item{padding:11px 10px;min-height:44px}
+  .act{min-height:44px;display:flex;align-items:center}
+  /* תגיות הפנקס, ימי השבוע בהגדרות, ו-x של ההתראות */
+  .tag-pill{min-height:34px;padding-inline:12px;display:inline-flex;align-items:center}
+  .chip-b,.chip-x{min-height:32px;min-width:32px}
+  .cf .cf-x{min-width:38px;min-height:38px;font-size:19px}
+  /* קישור בכותרת של כרטיס כלים — שטח לחיצה סביר בלי לשבור שורת טקסט */
+  .card a[target="_blank"]{display:inline-block;padding:7px 0;min-height:34px}
+
+  /* ---- קריאוּת, סבב שני ---- */
+  body table.tb th,body table.tb th span,body .tl-seg{font-size:12px}
+
+  /* אחרונים: x של התראה, ותג התזכורת בפנקס */
+  .a-x{min-width:38px;min-height:38px;font-size:19px}
+  .note-rem{min-height:32px;padding-inline:10px;display:inline-flex;align-items:center}
   /* בסרגל צר נשאר מה שחייב: מה רץ, כמה, והכפתורים. הרצף וההערה יורדים. */
   .tb-run,.tb-note,.tb-kind{display:none}
   .timerbar{gap:7px;padding:0 12px;overflow-x:auto;scrollbar-width:none}

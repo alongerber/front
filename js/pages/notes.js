@@ -135,8 +135,20 @@ function composer() {
   return box;
 }
 
+/* תווית מפורשת לכל אייקון. ה-tip לפעמים מפתח למפת ההסברים
+   ('notes.pin') ולא טקסט לאדם, ולכן הוא לא יכול לשמש כתווית. */
+const ICON_LABELS = {
+  '☑': 'רשימה חדשה', '🖼': 'העלה תמונה', '📎': 'צרף מסמך',
+  '📌': 'בטל נעיצה', '📍': 'נעץ', '🎨': 'צבע רקע',
+  '⏰': 'תזכורת', '🏷': 'תגיות', '🗄': 'ארכיון', '🗑': 'מחק'
+};
+
 function iconBtn(txt, tip, onclick) {
-  return el('button', { class: 'icon-sq', 'data-tip': tip, onclick }, txt);
+  const human = tip && !/^[a-z]+\.[a-zA-Z]+$/.test(tip) ? tip : null;
+  return el('button', {
+    class: 'icon-sq', 'data-tip': tip, onclick,
+    'aria-label': ICON_LABELS[txt] || human || txt
+  }, txt);
 }
 
 function quickNew(kind, opts = {}) {
@@ -186,8 +198,7 @@ function searchRow() {
       }, '★ ' + v.name),
       el('button', {
         class: 'chip-x', 'data-tip': 'מחק תצוגה שמורה',
-        onclick: () => { removeSavedView(v.id); refresh(); }
-      }, '×')));
+        onclick: () => { removeSavedView(v.id); refresh(); }, 'aria-label': 'הסר' }, '×')));
   });
 
   suggestions().slice(0, 8).forEach(sg => chips.append(el('button', {
@@ -478,11 +489,11 @@ function editor(id, opts = {}) {
         const im = el('img', { class: 'att-thumb', alt: a.name });
         A.blobUrl(a.id).then(u => { if (u) im.src = u; });
         attWrap.append(el('div', { class: 'att' }, im,
-          el('button', { class: 'att-x', 'data-tip': 'הסר', onclick: () => { atts = atts.filter(x => x.id !== a.id); drawAtts(); } }, '×')));
+          el('button', { class: 'att-x', 'data-tip': 'הסר', onclick: () => { atts = atts.filter(x => x.id !== a.id); drawAtts(); }, 'aria-label': 'הסר' }, '×')));
       } else {
         attWrap.append(el('div', { class: 'att file' },
           el('button', { class: 'file-chip', onclick: () => openAttachment(a) }, '📎 ' + a.name),
-          el('button', { class: 'att-x', 'data-tip': 'הסר', onclick: () => { atts = atts.filter(x => x.id !== a.id); drawAtts(); } }, '×')));
+          el('button', { class: 'att-x', 'data-tip': 'הסר', onclick: () => { atts = atts.filter(x => x.id !== a.id); drawAtts(); }, 'aria-label': 'הסר' }, '×')));
       }
     });
   }
@@ -909,8 +920,7 @@ function tagManager() {
           class: 'btn btn-xs btn-danger',
           onclick: () => confirmBox(
             `למחוק את "${t.name}"? הפתקים עצמם יישארו — רק הנושא יוסר מהם.`,
-            () => { removeNoteTag(t.id); draw(); refresh(); })
-        }, '×')
+            () => { removeNoteTag(t.id); draw(); refresh(); }), 'aria-label': 'הסר' }, '×')
       ));
     });
     box.append(el('button', {

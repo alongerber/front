@@ -135,8 +135,7 @@ export function linkChips(itemId, { onChange, onOpen } = {}) {
     }, it.title),
     outgoing ? el('button', {
       class: 'lc-x', 'data-tip': 'הסר קישור',
-      onclick: () => { L.removeLink(itemId, it.id); draw(); onChange && onChange(); }
-    }, '×') : null
+      onclick: () => { L.removeLink(itemId, it.id); draw(); onChange && onChange(); }, 'aria-label': 'הסר' }, '×') : null
   );
 
   draw();

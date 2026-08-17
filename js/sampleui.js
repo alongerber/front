@@ -84,7 +84,7 @@ function askInPage(sm) {
   }, 'אחר…'));
 
   row.append(el('span', { class: 'small muted' }, hhmm(sm.at)));
-  row.append(el('button', { class: 'cf-x', onclick: () => box.innerHTML = '' }, '×'));
+  row.append(el('button', { class: 'cf-x', onclick: () => box.innerHTML = '', 'aria-label': 'הסר' }, '×'));
   box.append(row);
 }
 

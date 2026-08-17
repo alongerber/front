@@ -78,6 +78,7 @@ export function micButton(field, { el: mk, toast, size = 'btn-xs' } = {}) {
   const btn = mk('button', {
     class: 'btn ' + size + ' mic',
     'data-tip': 'voice.dictate',
+    'aria-label': 'הכתבה קולית',
     type: 'button'
   }, '🎤');
 

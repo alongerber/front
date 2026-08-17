@@ -140,7 +140,8 @@ function clientCard(c, stage, line) {
     el('button', {
       class: 'btn btn-xs ' + (running ? 'btn-y' : ''), style: { flex: 1 },
       onclick: () => { T.startTimer(c.id); refresh(); }
-    }, running ? '● רץ' : '▶'),
+        , 'aria-label': running ? 'הטיימר רץ' : 'התחל טיימר'
+}, running ? '● רץ' : '▶'),
     el('button', {
       class: 'btn btn-xs', 'data-tip': 'pipe.next',
       onclick: () => {
@@ -152,6 +153,7 @@ function clientCard(c, stage, line) {
         if (next.name.includes('מסירה')) patchItem(c.id, { deliveredAt: Date.now() });
         refresh();
       }
+      , 'aria-label': 'העבר לשלב הבא'
     }, '←')
   );
   card.append(acts);

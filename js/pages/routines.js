@@ -61,8 +61,7 @@ function section(title, rows, emptyText, quiet, tip) {
     });
     row.append(el('button', {
       class: 'btn btn-xs ' + (quiet ? '' : 'btn-y'),
-      onclick: () => { completeRoutine(r.id); toast('בוצע', 'ok'); refresh(); }
-    }, '✓'));
+      onclick: () => { completeRoutine(r.id); toast('בוצע', 'ok'); refresh(); }, 'aria-label': 'סמן כבוצע' }, '✓'));
     row.append(el('div', { style: { flex: 1, minWidth: 0, cursor: 'pointer' }, onclick: () => form(r) },
       el('div', { style: { fontWeight: '600' } }, r.title),
       el('div', { class: 'small muted' },

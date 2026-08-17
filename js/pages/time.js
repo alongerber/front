@@ -534,7 +534,7 @@ function perItemCard() {
       el('td', { class: 'num', style: { color: '#5aa9ff' } }, wait ? dur(wait, true) : '—'),
       el('td', { class: 'num' }, c.amount ? nis(c.amount) : '—'),
       el('td', { class: 'num', style: { color: perHour ? (perHour >= rate ? '#3ddc84' : '#ff5a4d') : '' } }, perHour ? nis(perHour) : '—'),
-      el('td', {}, el('button', { class: 'btn btn-xs', onclick: () => { T.startTimer(c.id); refresh(); } }, '▶'))
+      el('td', {}, el('button', { class: 'btn btn-xs', onclick: () => { T.startTimer(c.id); refresh(); }, 'aria-label': 'התחל טיימר' }, '▶'))
     ));
   });
   card.append(tb);

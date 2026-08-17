@@ -251,8 +251,7 @@ function timeBlock(it) {
       el('span', { class: 'tabular' }, dur(e.end - e.start)),
       el('button', {
         class: 'btn btn-xs', style: { padding: '0 6px' },
-        onclick: () => { T.removeEntry(e.id); toast('נמחק'); refresh(); closeModal(); }
-      }, '×')
+        onclick: () => { T.removeEntry(e.id); toast('נמחק'); refresh(); closeModal(); }, 'aria-label': 'הסר' }, '×')
     )));
     box.append(list);
   }

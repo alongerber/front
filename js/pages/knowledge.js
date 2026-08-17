@@ -137,6 +137,7 @@ function row(x, isTop) {
   acts.append(el('button', {
     class: 'btn btn-xs', 'data-tip': 'know.archive',
     onclick: () => { patchItem(k.id, { archived: !k.archived }, (k.archived ? 'החזרה מהארכיון: ' : 'העברה לארכיון: ') + k.title); toast(k.archived ? 'הוחזר' : 'לארכיון'); refresh(); }
+    , 'aria-label': k.archived ? 'שחזר מהארכיון' : 'לארכיון'
   }, k.archived ? '↩' : '🗄'));
   node.append(acts);
   return node;

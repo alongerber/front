@@ -294,8 +294,7 @@ function actionRow(e, rank) {
     }, running ? '● רץ' : 'התחל'));
     meta.append(el('button', {
       class: 'btn btn-xs', title: 'לשלב הבא',
-      onclick: () => { nextStage(it); }
-    }, '←'));
+      onclick: () => { nextStage(it); }, 'aria-label': 'הבא' }, '←'));
   } else if (e.kind === 'task') {
     meta.append(el('button', {
       class: 'btn btn-xs ' + (running ? 'btn-y' : ''),
@@ -415,8 +414,7 @@ function dayPlanCard() {
     }, running ? '● רץ' : 'התחל'));
     meta.append(el('button', {
       class: 'btn btn-xs', title: 'הסר מהיום',
-      onclick: () => { savePlan(plan.blocks.filter((_, i) => i !== idx)); refresh(); }
-    }, '×'));
+      onclick: () => { savePlan(plan.blocks.filter((_, i) => i !== idx)); refresh(); }, 'aria-label': 'הסר' }, '×'));
     row.append(meta);
     list.append(row);
   });

@@ -67,7 +67,7 @@ function renderTasks(root) {
       t.priority === 'high' ? el('span', { class: 'pill pill-r', 'data-tip': 'task.priority' }, 'דחוף') : null,
       t.dueDate ? el('span', { class: 'pill ' + (late ? 'pill-r' : '') }, dmy(t.dueDate)) : null,
       T.focusMs(t.id) ? el('span', { class: 'pill' }, Math.round(T.focusMs(t.id) / 60000) + ' דק\'') : null,
-      el('button', { class: 'btn btn-xs ' + (running ? 'btn-y' : ''), onclick: () => { T.startTimer(t.id); refresh(); } }, running ? '● רץ' : '▶')
+      el('button', { class: 'btn btn-xs ' + (running ? 'btn-y' : ''), 'aria-label': running ? 'הטיימר רץ' : 'התחל טיימר', onclick: () => { T.startTimer(t.id); refresh(); } }, running ? '● רץ' : '▶')
     ));
   });
   root.append(card);

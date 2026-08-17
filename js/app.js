@@ -518,7 +518,7 @@ function banner(cls, build) {
   box.innerHTML = '';
   const row = el('div', { class: 'cf ' + cls });
   build(row, () => { if (box.firstChild === row) box.innerHTML = ''; });
-  row.append(el('button', { class: 'cf-x', onclick: () => box.innerHTML = '' }, '×'));
+  row.append(el('button', { class: 'cf-x', onclick: () => box.innerHTML = '', 'aria-label': 'הסר' }, '×'));
   box.append(row);
   return row;
 }
@@ -648,7 +648,7 @@ function showFeedback(result, item) {
         '✦ ' + item.preview.title.slice(0, 40)));
   }
 
-  row.append(el('button', { class: 'cf-x', onclick: () => box.innerHTML = '' }, '×'));
+  row.append(el('button', { class: 'cf-x', onclick: () => box.innerHTML = '', 'aria-label': 'הסר' }, '×'));
   box.append(row);
   clearTimeout(showFeedback._t);
   showFeedback._t = setTimeout(() => { if (box.firstChild === row) box.innerHTML = ''; }, 14000);

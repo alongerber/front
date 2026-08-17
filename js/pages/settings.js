@@ -876,6 +876,7 @@ function typesCard() {
           update(st => st.itemTypes.push({ id: id.replace(/\s/g, '_'), name, icon: '•', color: '#5aa9ff' }));
           toast('נוסף', 'ok'); refresh();
         }
+        , 'aria-label': 'הוסף סוג פריט'
       }, '+')
     )));
 

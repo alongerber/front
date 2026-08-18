@@ -13,6 +13,7 @@ import * as MO from '../money.js';
 import * as L from '../links.js';
 import { linkChips } from '../mentions.js';
 import * as B from '../brief.js';
+import * as DL from '../delivery.js';
 
 export function openItem(id) {
   const it = getItem(id);
@@ -86,8 +87,8 @@ function clientBlock(c, draw) {
       class: 'btn btn-xs ' + (st.id === c.stageId ? 'btn-y' : ''),
       onclick: () => {
         moveToStage(c.id, st.id);
-        if (st.name.includes('תשלום') && !c.paidAt) patchItem(c.id, { paidAt: Date.now(), amount: c.amount || line.pricing?.unit });
-        if (st.name.includes('מסירה')) patchItem(c.id, { deliveredAt: Date.now() });
+        const r = DL.onStageChange(c.id, st);
+        if (r.followups.length) toast(`${r.followups.length} משימות מעקב נוצרו — יום 3, 14 ו-30`, 'ok');
         draw(); refresh();
       }
     }, st.name));
@@ -143,6 +144,35 @@ function clientBlock(c, draw) {
     });
     box.append(el('div', { class: 'row', style: { marginTop: '9px' } },
       field('סכום לחודש', amt), field('חידוש הבא', dt)));
+  }
+
+  /* ---- הסרטון שנמסר ----
+     מופיע רק אחרי מסירה, כי לפניה אין מה לשים כאן. בלעדיו
+     המשימה "מה קרה עם הסרטון?" בעוד שבועיים מתחילה בחיפוש. */
+  if (c.deliveredAt) {
+    box.append(el('div', { class: 'hr' }));
+    const url = input({ type: 'url', placeholder: 'הדבק כאן את הקישור לסרטון הסופי', value: c.deliveredAsset || '' });
+    url.addEventListener('change', () => {
+      DL.setAsset(c.id, url.value);
+      toast(url.value.trim() ? 'הקישור נשמר' : 'הקישור הוסר', 'ok');
+      draw(); refresh();
+    });
+    const row = el('div', { style: { display: 'flex', gap: '6px', alignItems: 'center' } }, url);
+    if (c.deliveredAsset) row.append(el('a', {
+      class: 'btn btn-sm', href: c.deliveredAsset, target: '_blank', rel: 'noopener'
+    }, '↗ פתח'));
+    box.append(el('div', { class: 'small muted', style: { marginBottom: '6px' } },
+      'הסרטון שנמסר · נמסר ' + ago(c.deliveredAt)));
+    box.append(row);
+
+    const fu = DL.followupsOf(c.id);
+    if (fu.length) {
+      const openFu = fu.filter(t => !t.done);
+      box.append(el('div', { class: 'small muted', style: { marginTop: '8px' } },
+        openFu.length
+          ? `מעקב: ${openFu.map(t => 'יום ' + t.followup.day).join(' · ')} — יופיעו לבד במשימות`
+          : 'כל משימות המעקב בוצעו'));
+    }
   }
 
   return box;

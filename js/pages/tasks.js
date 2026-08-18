@@ -9,10 +9,12 @@ import { scoreTask } from '../brain.js';
 import { refresh, openItem } from '../app.js';
 import { decideModal } from './home.js';
 import { hintBadge, labelWithHint } from '../help.js';
+import * as D from '../delivery.js';
 
 export default { render };
 
 let showDone = false;
+let showScheduled = false;
 
 function render(root, params) {
   const s = S();
@@ -41,7 +43,9 @@ function render(root, params) {
 function renderTasks(root) {
   const s = S();
   const all = s.items.filter(i => i.type === 'task' && !i.archived);
-  const open = all.filter(t => !t.done).map(t => ({ t, ...scoreTask(t) })).sort((a, b) => b.score - a.score);
+  const open = all.filter(t => !t.done && !D.isScheduled(t))
+    .map(t => ({ t, ...scoreTask(t) })).sort((a, b) => b.score - a.score);
+  const later = D.scheduled();
   const done = all.filter(t => t.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0));
 
   const card = el('div', { class: 'card' });
@@ -49,12 +53,15 @@ function renderTasks(root) {
     el('h3', { style: { display: 'flex', alignItems: 'center' } }, 'פתוחות', hintBadge('task.why')),
     el('span', { class: 'sub' }, open.length ? `${open.length} · הדחוף למעלה` : '')));
   if (!open.length) card.append(el('div', { class: 'empty' },
-    'אין משימות פתוחות. כתוב משהו בשורת הקלט למעלה — המערכת תסווג לבד.'));
+    later.length
+      ? `אין מה לעשות עכשיו. ${later.length} ${later.length === 1 ? 'משימה ממתינה' : 'משימות ממתינות'} לתאריך שלהן — למטה.`
+      : 'אין משימות פתוחות. כתוב משהו בשורת הקלט למעלה — המערכת תסווג לבד.'));
 
   open.forEach(({ t, why }) => {
     const client = t.clientId ? getItem(t.clientId) : null;
     const running = T.activeTimer() && T.activeTimer().itemId === t.id;
     const late = t.dueDate && t.dueDate < Date.now();
+    const asset = client && client.deliveredAsset;
     card.append(el('div', { style: { display: 'flex', gap: '10px', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid rgba(255,255,255,.05)' } },
       el('input', {
         type: 'checkbox', style: { width: '17px', height: '17px', accentColor: '#ffd400', cursor: 'pointer' },
@@ -64,6 +71,16 @@ function renderTasks(root) {
         el('div', { style: { fontWeight: '600' } }, t.title),
         el('div', { class: 'small muted' }, why + (client ? ` · ${client.title}` : ''))
       ),
+      /* משימת מעקב אחרי מסירה — הסרטון עצמו במרחק לחיצה,
+         אחרת "מה קרה עם הסרטון?" מתחיל בחיפוש בדרייב */
+      t.followup && asset ? el('a', {
+        class: 'btn btn-xs', href: asset, target: '_blank', rel: 'noopener',
+        title: 'הסרטון שנמסר', onclick: e => e.stopPropagation()
+      }, '↗ הסרטון') : null,
+      t.followup && client && !asset ? el('button', {
+        class: 'btn btn-xs', title: 'אין קישור לסרטון שנמסר',
+        onclick: () => openItem(client.id)
+      }, '+ קישור') : null,
       t.priority === 'high' ? el('span', { class: 'pill pill-r', 'data-tip': 'task.priority' }, 'דחוף') : null,
       t.dueDate ? el('span', { class: 'pill ' + (late ? 'pill-r' : '') }, dmy(t.dueDate)) : null,
       T.focusMs(t.id) ? el('span', { class: 'pill' }, Math.round(T.focusMs(t.id) / 60000) + ' דק\'') : null,
@@ -71,6 +88,37 @@ function renderTasks(root) {
     ));
   });
   root.append(card);
+
+  /* ---- מתוזמנות ----
+     מנגנון שמסתיר דברים בלי דרך לראות אותם הוא בור. */
+  if (later.length) {
+    const c3 = el('div', { class: 'card', style: { marginTop: '14px' } });
+    c3.append(el('div', { class: 'card-h' },
+      el('h3', {}, 'מתוזמנות'),
+      el('span', { class: 'sub' },
+        `${later.length} · יופיעו לבד. הקרובה ${dmy(later[0].snoozeUntil)}`),
+      el('div', { class: 'right' }, el('button', {
+        class: 'btn btn-xs', onclick: () => { showScheduled = !showScheduled; refresh(); }
+      }, showScheduled ? 'הסתר' : 'הצג'))));
+    if (showScheduled) later.forEach(t => {
+      const client = t.clientId ? getItem(t.clientId) : null;
+      c3.append(el('div', { style: { display: 'flex', gap: '9px', padding: '8px 0', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,.05)' } },
+        el('span', { class: 'pill' }, dmy(t.snoozeUntil)),
+        el('div', { style: { flex: 1, minWidth: 0, cursor: 'pointer' }, onclick: () => form(t, 'task') },
+          el('div', {}, t.title),
+          client ? el('div', { class: 'small muted' }, client.title) : null),
+        el('button', {
+          class: 'btn btn-xs', title: 'להביא את זה להיום',
+          onclick: () => { D.release(t.id); toast('הועברה לפתוחות', 'ok'); refresh(); }
+        }, 'הצג עכשיו'),
+        el('button', {
+          class: 'btn btn-xs btn-danger', 'aria-label': 'מחק משימה',
+          onclick: () => confirmBox('למחוק את "' + t.title + '"?', () => { removeItem(t.id); refresh(); })
+        }, '🗑')
+      ));
+    });
+    root.append(c3);
+  }
 
   if (done.length) {
     const c2 = el('div', { class: 'card', style: { marginTop: '14px' } });

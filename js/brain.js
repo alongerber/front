@@ -65,17 +65,23 @@ export function scoreTask(t) {
   return { score, why: why.join(' · ') };
 }
 
+/* פריט שמחכה לתאריך עתידי פשוט לא ברשימה.
+   קודם זה היה מימוש בהנחתת ניקוד, וזה לא הספיק: משימה של
+   "לשאול בעוד שבועיים" עדיין הופיעה, רק נמוך. רשימה שיש בה
+   דברים שאי אפשר לעשות היום היא רשימה שמפסיקים לסמוך עליה. */
+const waiting = i => !!(i.snoozeUntil && i.snoozeUntil > now());
+
 /** הרשימה המרכזית של הבית — ממוינת לפי דחיפות, מערבבת סוגים */
 export function actionQueue(limit = 7) {
   const s = S();
   const out = [];
 
-  s.items.filter(i => i.type === 'client' && !i.archived && !i.deliveredAt).forEach(c => {
+  s.items.filter(i => i.type === 'client' && !i.archived && !i.deliveredAt && !waiting(i)).forEach(c => {
     const r = scoreClient(c);
     out.push({ item: c, score: r.score, why: r.why, stuck: r.stuck, kind: 'client' });
   });
 
-  s.items.filter(i => i.type === 'task' && !i.archived && !i.done).forEach(t => {
+  s.items.filter(i => i.type === 'task' && !i.archived && !i.done && !waiting(i)).forEach(t => {
     const r = scoreTask(t);
     out.push({ item: t, score: r.score, why: r.why, kind: 'task' });
   });

@@ -153,7 +153,9 @@ export function navCounts() {
     routines: dueRoutines().filter(r => r.missCount < 2).length,
     knowledge: s.items.filter(i => i.type === 'knowledge' && !i.archived && i.status === 'new').length,
     decisions: s.items.filter(i => i.type === 'decision' && !i.archived && i.status === 'open').length,
-    tasks: s.items.filter(i => i.type === 'task' && !i.archived && !i.done).length,
+    // משימה שממתינה לתאריך עתידי אינה "פתוחה" — התגית חייבת להסכים עם העמוד
+    tasks: s.items.filter(i => i.type === 'task' && !i.archived && !i.done &&
+      !(i.snoozeUntil && i.snoozeUntil > now())).length,
     notes: s.items.filter(i =>
       i.type === 'note' && !i.archived && i.reminderAt && !i.reminderDone && i.reminderAt <= now()).length,
     // חידושים בשלושת הימים הקרובים — תגית שמופיעה רק אחרי שאיחרת מופיעה מאוחר מדי

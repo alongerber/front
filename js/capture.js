@@ -7,6 +7,7 @@
 import { S, addItem, patchItem, getItem, lineOf, moveToStage } from './store.js';
 import { DAY } from './util.js';
 import { callAssistant } from './api.js';
+import * as D from './delivery.js';
 
 const URL_RE = /(https?:\/\/[^\s]+|www\.[^\s]+|[a-z0-9-]+\.(netlify\.app|com|co\.il|io|ai|org|net)(\/[^\s]*)?)/i;
 
@@ -204,14 +205,14 @@ export function commit(result) {
     if (!c) return null;
     if (result.action === 'paid') {
       const line = lineOf(c.productLineId);
-      const payStage = line.stages.find(s => s.name.includes('תשלום'));
-      patchItem(c.id, { paidAt: Date.now(), amount: c.amount || line.pricing?.unit || 0 });
+      const payStage = line.stages.find(D.isPayStage);
+      D.markPaid(c.id);
       if (payStage) moveToStage(c.id, payStage.id);
     } else if (result.action === 'stage') {
       moveToStage(c.id, result.stageId);
       const line = lineOf(c.productLineId);
       const st = line.stages.find(s => s.id === result.stageId);
-      if (st && st.name.includes('מסירה')) patchItem(c.id, { deliveredAt: Date.now() });
+      D.onStageChange(c.id, st);
     }
     return c;
   }

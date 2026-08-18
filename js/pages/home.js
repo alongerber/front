@@ -10,6 +10,7 @@ import { actionQueue, fillerSuggestions, topKnowledge, completeRoutine, currentP
 import { runRules } from '../rules.js';
 import { refresh, openItem, openSwitcher, go } from '../app.js';
 import { hintBadge } from '../help.js';
+import * as D from '../delivery.js';
 
 export default { render, tick };
 
@@ -332,9 +333,8 @@ function nextStage(c) {
   const next = line.stages[i + 1];
   if (!next) { toast('זה השלב האחרון'); return; }
   moveToStage(c.id, next.id);
-  if (next.name.includes('תשלום') && !c.paidAt) patchItem(c.id, { paidAt: Date.now(), amount: c.amount || line.pricing?.unit });
-  if (next.name.includes('מסירה')) patchItem(c.id, { deliveredAt: Date.now() });
-  toast(`${c.title} → ${next.name}`, 'ok');
+  const r = D.onStageChange(c.id, next);
+  toast(`${c.title} → ${next.name}` + (r.followups.length ? ` · ${r.followups.length} משימות מעקב נוצרו` : ''), 'ok');
   refresh();
 }
 

@@ -9,6 +9,7 @@ import * as T from '../timer.js';
 import { progressOf, scoreClient } from '../brain.js';
 import { refresh, openItem } from '../app.js';
 import { hintBadge } from '../help.js';
+import * as D from '../delivery.js';
 
 export default { render };
 
@@ -55,10 +56,8 @@ function render(root, params) {
         const c = getItem(id);
         if (!c || c.stageId === stage.id) return;
         moveToStage(id, stage.id);
-        if (stage.name.includes('תשלום') && !c.paidAt)
-          patchItem(id, { paidAt: Date.now(), amount: c.amount || line.pricing?.unit || 0 });
-        if (stage.name.includes('מסירה')) patchItem(id, { deliveredAt: Date.now() });
-        toast(`${c.title} → ${stage.name}`, 'ok');
+        const r = D.onStageChange(id, stage);
+        toast(`${c.title} → ${stage.name}` + (r.followups.length ? ` · ${r.followups.length} משימות מעקב נוצרו` : ''), 'ok');
         refresh();
       }
     });
@@ -149,8 +148,8 @@ function clientCard(c, stage, line) {
         const next = line.stages[i + 1];
         if (!next) { toast('שלב אחרון'); return; }
         moveToStage(c.id, next.id);
-        if (next.name.includes('תשלום') && !c.paidAt) patchItem(c.id, { paidAt: Date.now(), amount: c.amount || line.pricing?.unit });
-        if (next.name.includes('מסירה')) patchItem(c.id, { deliveredAt: Date.now() });
+        const r = D.onStageChange(c.id, next);
+        if (r.followups.length) toast(`נמסר · ${r.followups.length} משימות מעקב נוצרו`, 'ok');
         refresh();
       }
       , 'aria-label': 'העבר לשלב הבא'

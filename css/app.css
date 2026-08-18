@@ -461,6 +461,23 @@ table.tb td.num{font-variant-numeric:tabular-nums;text-align:left;direction:ltr}
 .msg.ai{align-self:flex-end;background:var(--card-2);border:1px solid var(--line);border-bottom-right-radius:4px}
 .msg.sys{align-self:center;background:transparent;color:var(--t3);font-size:12px;max-width:100%}
 /* כפתורי פעולה מתחת לתשובה — "קח אותי לשם" במקום לחפש לבד */
+/* ===================== תיבת הנכנס =====================
+   שורה שנקראת בלי לפתוח כלום: מי, כמה, ומה יקרה בלחיצה. */
+.inbox-row{
+  display:flex;gap:11px;align-items:flex-start;
+  padding:11px 0;border-bottom:1px solid rgba(255,255,255,.05);
+}
+.inbox-row.dim{opacity:.5}
+.inbox-kind{
+  width:30px;height:30px;flex:0 0 30px;border-radius:9px;
+  display:grid;place-items:center;font-size:15px;margin-top:1px;
+}
+.inbox-acts{display:flex;gap:5px;align-items:center;flex-wrap:wrap;flex:0 0 auto}
+@media (max-width:620px){
+  .inbox-row{flex-wrap:wrap}
+  .inbox-acts{width:100%;justify-content:flex-end}
+}
+
 /* שורת שעון ההפקה — נתון משמאל, פעולות מימין, ונשברת יפה בנייד */
 .clockrow{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;margin-top:4px}
 .clockrow > div:first-child{flex:1 1 210px;min-width:0}

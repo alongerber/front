@@ -141,6 +141,11 @@ export function defaultState() {
     // תנועות כסף שנרשמות ידנית (הכנסה נרשמת אוטומטית כשלקוח מגיע לשלב תשלום)
     ledger: [],
 
+    /* תיבת הנכנס — כל מה שנוצר אוטומטית ממתין כאן לאישור.
+       חייב להיות באוספים המסונכרנים: ה-webhook כותב לענן,
+       והדפדפן מושך משם. ראה js/inbox.js */
+    inbox: [],
+
     // חיפושים שמורים — שאילתה שהופכת לכפתור קבוע ברצועה
     savedViews: [],
 
@@ -247,7 +252,7 @@ function migrate(s) {
   out.settings.sampling = Object.assign({}, d.settings.sampling, (s.settings || {}).sampling || {});
   out.syncMeta = Object.assign({}, d.syncMeta, s.syncMeta || {});
   if (!Array.isArray(out.syncMeta.knownIds)) out.syncMeta.knownIds = [];
-  for (const k of ['productLines', 'itemTypes', 'items', 'timeEntries', 'subscriptions', 'ledger', 'links', 'waiting', 'chat', 'noteTags', 'samples', 'presenceLog', 'savedViews', 'reviews']) {
+  for (const k of ['productLines', 'itemTypes', 'items', 'timeEntries', 'subscriptions', 'ledger', 'links', 'waiting', 'chat', 'noteTags', 'samples', 'presenceLog', 'savedViews', 'reviews', 'inbox']) {
     if (!Array.isArray(out[k])) out[k] = d[k];
   }
   // סוגי פריטים שנוספו בגרסאות מאוחרות יותר — משלימים בלי לגעת במה שהמשתמש ערך
@@ -873,7 +878,7 @@ export function importJSON(text) {
    בהם רשומות עם מזהה. הגדרות ומצב ריצה מטופלים בנפרד. */
 export const SYNCED = [
   'items', 'timeEntries', 'samples', 'noteTags', 'savedViews',
-  'reviews', 'subscriptions', 'ledger', 'links', 'productLines'
+  'reviews', 'subscriptions', 'ledger', 'links', 'productLines', 'inbox'
 ];
 
 const stampOf = r => r.updatedAt || r.deliveredAt || r.createdAt || r.at || r.start || 0;

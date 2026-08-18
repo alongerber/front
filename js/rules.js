@@ -7,6 +7,7 @@ import { S, monthMoney, lineOf, stageOf } from './store.js';
 import { MIN, HOUR, DAY, dur, nis, ago, startOfDay } from './util.js';
 import { activeTimer, elapsed, focusMs, avgFocusPerDelivery, availableToday } from './timer.js';
 import { dueRoutines, unitEconomics, deliveredThisMonth } from './brain.js';
+import * as IN from './inbox.js';
 import * as CL from './clock.js';
 
 const now = () => Date.now();
@@ -17,6 +18,19 @@ export function runRules() {
   const st = s.settings;
   const out = [];
   const push = (id, level, text, action) => out.push({ id, level, text, action });
+
+  /* --- תיבת הנכנס ---
+     ראשונה ברשימה בכוונה: תשלום שנקלט ולא אושר הוא לקוח שממתין
+     ולא יודע את זה. */
+  const inbox = IN.pending();
+  if (inbox.length) {
+    const money = inbox.filter(r => r.kind === 'payment').length;
+    push('inbox', money ? 'bad' : 'warn',
+      money
+        ? (money === 1 ? 'התקבל תשלום שממתין לאישור' : `${money} תשלומים ממתינים לאישור`)
+        : `${inbox.length} ${inbox.length === 1 ? 'דבר ממתין' : 'דברים ממתינים'} בנכנס`,
+      { type: 'goto', href: '#/inbox' });
+  }
 
   /* --- לידים ללא מענה --- */
   const leadStageNames = ['ליד', 'שיחת מכירה'];
@@ -170,6 +184,7 @@ export function navCounts() {
   const q = s.items.filter(i => i.type === 'production' && !i.archived && !i.deliveredAt).length;
   return {
     pipeline: q,
+    inbox: IN.count(),
     routines: dueRoutines().filter(r => r.missCount < 2).length,
     knowledge: s.items.filter(i => i.type === 'knowledge' && !i.archived && i.status === 'new').length,
     decisions: s.items.filter(i => i.type === 'decision' && !i.archived && i.status === 'open').length,

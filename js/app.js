@@ -30,11 +30,13 @@ import review from './pages/review.js';
 import guide from './pages/guide.js';
 import quick from './pages/quick.js';
 import settings from './pages/settings.js';
+import inbox from './pages/inbox.js';
 
 /* ================= עמודים ================= */
 
 const PAGES = {
   '':          { title: 'בית',     icon: '◆',  color: '#ffd400', mod: home },
+  'inbox':     { title: 'נכנס',    icon: '⇥',  color: '#22d3ee', mod: inbox, badge: 'inbox' },
   'pipeline':  { title: 'צינור',   icon: '▤',  color: '#5aa9ff', mod: pipeline, badge: 'pipeline' },
   'time':      { title: 'זמן',     icon: '◷',  color: '#b98cff', mod: time },
   'money':     { title: 'כסף',     icon: '₪',  color: '#3ddc84', mod: money, badge: 'money' },

@@ -12,6 +12,7 @@ import { refresh, go } from '../app.js';
 import { hintBadge } from '../help.js';
 import * as KH from '../knowhow.js';
 import * as TOUR from '../tour.js';
+import * as P from '../production.js';
 
 export default { render };
 
@@ -185,12 +186,17 @@ export function snapshot() {
 
   const clients = s.items.filter(i => i.type === 'client' && !i.archived).map(c => ({
     שם: c.title, עסק: c.business || '', קו: lineOf(c.productLineId).name,
-    שלב: stageOf(c).name, בשלב: ago(c.stageSince || c.createdAt),
-    סכום: c.amount || 0,
-    שולם: !!c.paidAt, נמסר: !!c.deliveredAt,
-    זמן_קשב: dur(T.focusMs(c.id)), זמן_קיר: dur(T.wallMs(c.id)),
-    המתנה: T.waitMs(c.id) ? dur(T.waitMs(c.id)) : null,
-    יעד: c.dueDate ? new Date(c.dueDate).toLocaleDateString('he-IL') : null
+    סכום: c.amount || 0, שולם: !!c.paidAt,
+    לקוח_קבוע: !!c.retainer, סכום_חודשי: c.retainer ? (c.monthlyAmount || c.amount) : null,
+    זמן_קשב_כולל: dur(P.sumOverClient(c.id, id => T.focusMs(id))),
+    הפקות: P.productionsOf(c.id).map(p => ({
+      שם: P.label(p),
+      שלב: stageOf(p).name, בשלב: ago(p.stageSince || p.createdAt),
+      נמסר: p.deliveredAt ? new Date(p.deliveredAt).toLocaleDateString('he-IL') : null,
+      יעד: p.dueDate ? new Date(p.dueDate).toLocaleDateString('he-IL') : null,
+      זמן_קשב: dur(T.focusMs(p.id)), זמן_קיר: dur(T.wallMs(p.id)),
+      המתנה: T.waitMs(p.id) ? dur(T.waitMs(p.id)) : null
+    }))
   }));
 
   return {

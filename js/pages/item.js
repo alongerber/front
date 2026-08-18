@@ -14,6 +14,7 @@ import * as L from '../links.js';
 import { linkChips } from '../mentions.js';
 import * as B from '../brief.js';
 import * as DL from '../delivery.js';
+import * as P from '../production.js';
 
 export function openItem(id) {
   const it = getItem(id);
@@ -24,15 +25,17 @@ export function openItem(id) {
     if (!item) { closeModal(); return; }
     body.innerHTML = '';
     body.append(header(item));
+    if (item.type === 'client') body.append(productionsBlock(item, draw));
     if (item.type === 'client') body.append(clientBlock(item, draw));
     if (item.type === 'client') body.append(briefBlock(item, draw));
+    if (item.type === 'production') body.append(prodBlock(item, draw));
     body.append(progressBlock(item, draw));
     body.append(timeBlock(item));
     body.append(linksBlock(item, draw));
     body.append(actions(item, draw));
   };
   draw();
-  modal({ title: it.title, body, wide: true });
+  modal({ title: it.type === 'production' ? P.label(it) : it.title, body, wide: true });
 }
 
 /* ---------- קישורים ---------- */
@@ -58,11 +61,22 @@ function header(it) {
     el('span', { class: 'pill', style: { background: meta.color + '22', color: meta.color } }, meta.icon + ' ' + meta.name)
   );
   if (it.type === 'client') {
+    box.append(el('span', { class: 'pill' }, lineOf(it.productLineId).name));
+    if (it.amount) box.append(el('span', { class: 'pill pill-y' }, nis(it.retainer ? (it.monthlyAmount || it.amount) : it.amount)));
+    if (it.retainer) box.append(el('span', { class: 'pill' }, 'לקוח קבוע'));
+    const n = P.productionsOf(it.id).length;
+    box.append(el('span', { class: 'pill' }, n === 1 ? 'הפקה אחת' : n + ' הפקות'));
+  }
+  if (it.type === 'production') {
+    const cl = P.clientOf(it);
     const line = lineOf(it.productLineId), st = stageOf(it);
+    if (cl) box.append(el('span', {
+      class: 'pill', style: { cursor: 'pointer' },
+      onclick: () => { closeModal(); setTimeout(() => openItem(cl.id), 120); }
+    }, '👤 ' + cl.title));
     box.append(el('span', { class: 'pill' }, line.name));
     box.append(el('span', { class: 'pill pill-y' }, st.name));
     box.append(el('span', { class: 'pill' }, ago(it.stageSince || it.createdAt) + ' בשלב'));
-    if (it.amount) box.append(el('span', { class: 'pill' }, nis(it.amount)));
     if (it.dueDate) box.append(el('span', { class: 'pill ' + (it.dueDate < Date.now() ? 'pill-r' : '') }, 'יעד ' + dmy(it.dueDate)));
   }
   box.append(el('span', { class: 'pill' }, 'נוצר ' + ago(it.createdAt)));
@@ -78,23 +92,8 @@ function header(it) {
 
 /* ---------- לקוח: מעבר שלבים ---------- */
 function clientBlock(c, draw) {
-  const line = lineOf(c.productLineId);
   const box = el('div', { style: { marginBottom: '15px' } });
-  box.append(el('div', { class: 'small muted', style: { marginBottom: '6px' } }, 'שלב'));
-  const row = el('div', { style: { display: 'flex', gap: '5px', flexWrap: 'wrap' } });
-  line.stages.forEach(st => {
-    row.append(el('button', {
-      class: 'btn btn-xs ' + (st.id === c.stageId ? 'btn-y' : ''),
-      onclick: () => {
-        moveToStage(c.id, st.id);
-        const r = DL.onStageChange(c.id, st);
-        if (r.followups.length) toast(`${r.followups.length} משימות מעקב נוצרו — יום 3, 14 ו-30`, 'ok');
-        draw(); refresh();
-      }
-    }, st.name));
-  });
-  box.append(row);
-  if (c.phone) box.append(el('div', { style: { marginTop: '9px' } },
+  if (c.phone) box.append(el('div', { style: { marginTop: '0' } },
     el('a', { class: 'btn btn-sm', href: 'tel:' + c.phone }, '☎ ' + c.phone),
     el('a', { class: 'btn btn-sm', style: { marginInlineStart: '5px' }, href: 'https://wa.me/972' + c.phone.replace(/\D/g, '').replace(/^0/, ''), target: '_blank', rel: 'noopener' }, 'WhatsApp')
   ));
@@ -123,7 +122,10 @@ function clientBlock(c, draw) {
       patchItem(c.id, {
         retainer: e.target.checked,
         monthlyAmount: c.monthlyAmount || c.amount || lineOf(c.productLineId).pricing?.bundle || 0,
-        nextRenewalAt: c.nextRenewalAt || MO.nextRenewalDate()
+        nextRenewalAt: c.nextRenewalAt || MO.nextRenewalDate(),
+        // מכאן נספרת ההכנסה החוזרת בכל חודש
+        retainerStartedAt: e.target.checked ? (c.retainerStartedAt || Date.now()) : c.retainerStartedAt,
+        retainerEndedAt: e.target.checked ? null : Date.now()
       }, 'שינוי לקוח קבוע');
       draw(); refresh();
     }
@@ -146,26 +148,112 @@ function clientBlock(c, draw) {
       field('סכום לחודש', amt), field('חידוש הבא', dt)));
   }
 
+  return box;
+}
+
+/* ============================================================
+   הפקות הלקוח
+   ------------------------------------------------------------
+   הלקוח הוא מי שמשלם; ההפקה היא העבודה. לקוח סטוץ יראה כאן
+   שורה אחת, ולקוח בחבילה ארבע — עם שלב ותאריך יעד לכל אחת.
+   ============================================================ */
+
+function productionsBlock(c, draw) {
+  const box = el('div', { class: 'sect' });
+  const list = P.productionsOf(c.id);
+
+  box.append(el('div', { class: 'sect-h' },
+    el('span', { style: { display: 'flex', alignItems: 'center' } }, '🎬 הפקות', hintBadge('pipe.prods')),
+    el('button', {
+      class: 'btn btn-xs btn-y',
+      onclick: () => {
+        const p = P.addProduction(c.id);
+        toast(p ? 'נוספה הפקה' : 'לא הצלחתי', p ? 'ok' : 'err');
+        draw(); refresh();
+      }
+    }, '+ הפקה')));
+
+  if (!list.length) {
+    box.append(el('div', { class: 'small muted' },
+      'אין הפקה. בלי הפקה הלקוח לא מופיע בצינור ואי אפשר למדוד עליו זמן.'));
+    return box;
+  }
+
+  list.forEach(pr => {
+    const st = stageOf(pr);
+    const late = pr.dueDate && pr.dueDate < Date.now() && !pr.deliveredAt;
+    box.append(el('div', {
+      style: { display: 'flex', gap: '8px', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid rgba(255,255,255,.05)' }
+    },
+      el('div', { style: { flex: 1, minWidth: 0, cursor: 'pointer' }, onclick: () => { closeModal(); setTimeout(() => openItem(pr.id), 120); } },
+        el('div', { style: { fontWeight: '600' } }, P.label(pr)),
+        el('div', { class: 'small muted' },
+          pr.deliveredAt ? 'נמסר ' + dmy(pr.deliveredAt) : st.name + ' · ' + ago(pr.stageSince || pr.createdAt) + ' בשלב')),
+      pr.dueDate && !pr.deliveredAt
+        ? el('span', { class: 'pill ' + (late ? 'pill-r' : '') }, late ? 'איחור' : dmy(pr.dueDate)) : null,
+      T.focusMs(pr.id) ? el('span', { class: 'pill' }, dur(T.focusMs(pr.id), true)) : null,
+      el('button', {
+        class: 'btn btn-xs', 'aria-label': 'התחל טיימר על ההפקה',
+        onclick: () => { T.startTimer(pr.id); refresh(); }
+      }, '▶')
+    ));
+  });
+
+  return box;
+}
+
+/* ============================================================
+   ההפקה עצמה — שלב, מסירה, והקישור לסרטון
+   ============================================================ */
+
+function prodBlock(pr, draw) {
+  const line = lineOf(pr.productLineId);
+  const box = el('div', { style: { marginBottom: '15px' } });
+
+  box.append(el('div', { class: 'small muted', style: { marginBottom: '6px' } }, 'שלב'));
+  const row = el('div', { style: { display: 'flex', gap: '5px', flexWrap: 'wrap' } });
+  line.stages.forEach(st => {
+    row.append(el('button', {
+      class: 'btn btn-xs ' + (st.id === pr.stageId ? 'btn-y' : ''),
+      onclick: () => {
+        moveToStage(pr.id, st.id);
+        const r = DL.onStageChange(pr.id, st);
+        if (r.paid) toast('התשלום נרשם', 'ok');
+        if (r.followups.length) toast(`${r.followups.length} משימות מעקב נוצרו`, 'ok');
+        draw(); refresh();
+      }
+    }, st.name));
+  });
+  box.append(row);
+
+  /* תאריך יעד — של ההפקה הזאת בלבד */
+  const due = input({ type: 'date', value: pr.dueDate ? dateInput(pr.dueDate) : '' });
+  due.addEventListener('change', () => {
+    patchItem(pr.id, { dueDate: due.value ? new Date(due.value + 'T18:00').getTime() : null }, 'שינוי תאריך יעד');
+    draw(); refresh();
+  });
+  box.append(el('div', { class: 'row', style: { marginTop: '10px' } }, field('תאריך יעד', due)));
+
   /* ---- הסרטון שנמסר ----
      מופיע רק אחרי מסירה, כי לפניה אין מה לשים כאן. בלעדיו
      המשימה "מה קרה עם הסרטון?" בעוד שבועיים מתחילה בחיפוש. */
-  if (c.deliveredAt) {
+  if (pr.deliveredAt) {
     box.append(el('div', { class: 'hr' }));
-    const url = input({ type: 'url', placeholder: 'הדבק כאן את הקישור לסרטון הסופי', value: c.deliveredAsset || '' });
+    const url = input({ type: 'url', placeholder: 'הדבק כאן את הקישור לסרטון הסופי', value: pr.deliveredAsset || '' });
     url.addEventListener('change', () => {
-      DL.setAsset(c.id, url.value);
+      DL.setAsset(pr.id, url.value);
       toast(url.value.trim() ? 'הקישור נשמר' : 'הקישור הוסר', 'ok');
       draw(); refresh();
     });
-    const row = el('div', { style: { display: 'flex', gap: '6px', alignItems: 'center' } }, url);
-    if (c.deliveredAsset) row.append(el('a', {
-      class: 'btn btn-sm', href: c.deliveredAsset, target: '_blank', rel: 'noopener'
+    const r2 = el('div', { style: { display: 'flex', gap: '6px', alignItems: 'center' } }, url);
+    if (pr.deliveredAsset) r2.append(el('a', {
+      class: 'btn btn-sm', href: pr.deliveredAsset, target: '_blank', rel: 'noopener'
     }, '↗ פתח'));
     box.append(el('div', { class: 'small muted', style: { marginBottom: '6px' } },
-      'הסרטון שנמסר · נמסר ' + ago(c.deliveredAt)));
-    box.append(row);
+      'הסרטון שנמסר · נמסר ' + ago(pr.deliveredAt)));
+    box.append(r2);
 
-    const fu = DL.followupsOf(c.id);
+    const fu = DL.followupsOf(pr.id);
     if (fu.length) {
       const openFu = fu.filter(t => !t.done);
       box.append(el('div', { class: 'small muted', style: { marginTop: '8px' } },
@@ -358,7 +446,7 @@ function progressBlock(it, draw) {
   box.append(slider);
 
   // צ'קליסט
-  if (it.type === 'client') {
+  if (it.type === 'production') {
     const list = el('div', { style: { marginTop: '11px' } });
     (it.checklist || []).forEach(c => {
       list.append(el('label', { class: 'chk' + (c.done ? ' done' : '') },
@@ -484,6 +572,7 @@ function edit(it) {
   closeModal();
   setTimeout(() => {
     if (it.type === 'client') import('./pipeline.js').then(m => m.clientForm(it));
+    else if (it.type === 'production') { const c = P.clientOf(it); if (c) import('./pipeline.js').then(m => m.clientForm(c)); }
     else if (it.type === 'knowledge') import('./knowledge.js').then(m => m.form(it));
     else if (it.type === 'routine') import('./routines.js').then(m => m.form(it));
     else import('./tasks.js').then(m => m.form(it, it.type));

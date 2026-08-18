@@ -2,7 +2,7 @@
    settings.js — הגדרות, גיבוי, התראות, סוגי פריטים
    ============================================================ */
 
-import { S, update, uid, addItem, patchItem, downloadBackup, importJSON, mergeJSON, exportJSON, resetAll, loadSample, liveAttachmentIds } from '../store.js';
+import { S, update, uid, addItem, patchItem, downloadBackup, importJSON, mergeJSON, exportJSON, resetAll, loadSample, liveAttachmentIds, snapshotInfo, restoreSnapshot, downloadSnapshot } from '../store.js';
 import { el, ago, toast, modal, input, select, field, confirmBox, dur, num, DAY } from '../util.js';
 import * as A from '../attachments.js';
 import * as AB from '../autobackup.js';
@@ -29,7 +29,7 @@ function render(root) {
 
   root.append(el('div', { class: 'grid g2' },
     el('div', {}, samplingCard(), bucketsCard(), syncCard(), backupCard(), notifyCard()),
-    el('div', {}, generalCard(), typesCard(), dangerCard())
+    el('div', {}, generalCard(), typesCard(), migrationCard(), dangerCard())
   ));
 }
 
@@ -894,6 +894,65 @@ function typesCard() {
         }, '×')
     ));
   });
+  return card;
+}
+
+/* ============================================================
+   העותק שלפני המיגרציה
+   ------------------------------------------------------------
+   המערכת כתבה עותק מלא לפני שהפרידה את ההפקה מהלקוח. הכרטיס
+   הזה קיים כדי שאפשר יהיה למשוך אותו — רשת ביטחון שאין דרך
+   להשתמש בה היא רק תחושה.
+   ============================================================ */
+
+function migrationCard() {
+  const snap = snapshotInfo();
+  const rep = S().settings.migrationReport;
+  if (!snap && !rep) return null;
+
+  const card = el('div', { class: 'card', style: { marginBottom: '14px' } });
+  card.append(el('div', { class: 'card-h' },
+    el('h3', {}, 'הפרדת ההפקה מהלקוח'),
+    el('span', { class: 'sub' }, rep && rep.at ? 'רצה ' + ago(rep.at) : '')));
+
+  if (rep) {
+    card.append(el('div', { class: 'small', style: { marginBottom: '10px', lineHeight: '1.8' } },
+      `${rep.clients} לקוחות · ${rep.productions} הפקות נוצרו · ` +
+      `${rep.entries} רשומות זמן הועברו` +
+      (rep.samples ? ` · ${rep.samples} דגימות` : '') +
+      (rep.waiting ? ` · ${rep.waiting} בהמתנה` : '')));
+  }
+
+  if (!snap) {
+    card.append(el('div', { class: 'small muted' }, 'העותק כבר לא קיים בדפדפן הזה.'));
+    return card;
+  }
+
+  card.append(el('div', { class: 'small muted', style: { marginBottom: '10px', lineHeight: '1.7' } },
+    `יש עותק של המצב שלפני: ${snap.items} פריטים · ${snap.entries} רשומות זמן · ${snap.kb} KB. ` +
+    'הורדה נותנת לך אותו כקובץ, בדיוק כפי שהיה. חזרה זורקת את מה שקרה מאז ' +
+    'ומריצה את ההמרה מחדש על נתונים נקיים.'));
+  card.append(el('div', { style: { display: 'flex', gap: '7px', flexWrap: 'wrap' } },
+    el('button', {
+      class: 'btn',
+      title: 'הנתונים הישנים בדיוק כפי שהיו, כקובץ',
+      onclick: () => {
+        const n = downloadSnapshot();
+        toast(n ? 'ירד ' + n : 'אין עותק', n ? 'ok' : 'err');
+      }
+    }, '↓ הורד את העותק'),
+    el('button', {
+      class: 'btn btn-danger',
+      onclick: () => confirmBox(
+        'לחזור לנתונים שלפני ההפרדה? כל מה שעשית מאז — הפקות שנוספו, ' +
+        'רשומות זמן ומשימות חדשות — יימחק, והנתונים הישנים יוחזרו ויומרו מחדש. ' +
+        'אם אתה רק רוצה את הנתונים הישנים בידיים — הורד את העותק במקום.',
+        () => {
+          if (restoreSnapshot()) { toast('הנתונים הישנים חזרו והומרו מחדש', 'ok'); location.hash = '#/'; refresh(); }
+          else toast('השחזור נכשל — העותק לא תקין', 'err');
+        },
+        'כן, החזר')
+    }, '↩ חזור לנתונים שלפני')));
   return card;
 }
 

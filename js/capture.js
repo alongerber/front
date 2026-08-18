@@ -8,6 +8,7 @@ import { S, addItem, patchItem, getItem, lineOf, moveToStage } from './store.js'
 import { DAY } from './util.js';
 import { callAssistant } from './api.js';
 import * as D from './delivery.js';
+import * as P from './production.js';
 
 const URL_RE = /(https?:\/\/[^\s]+|www\.[^\s]+|[a-z0-9-]+\.(netlify\.app|com|co\.il|io|ai|org|net)(\/[^\s]*)?)/i;
 
@@ -203,16 +204,19 @@ export function commit(result) {
   if (result.type === 'client-update') {
     const c = getItem(result.clientId);
     if (!c) return null;
+    /* התשלום נרשם על הלקוח, השלב זז על ההפקה. אם ללקוח כמה
+       הפקות — הפעילה הראשונה, כי זו זו שעובדים עליה עכשיו. */
+    const prod = P.productionsOf(c.id).find(x => !x.deliveredAt) || P.productionsOf(c.id)[0];
     if (result.action === 'paid') {
       const line = lineOf(c.productLineId);
       const payStage = line.stages.find(D.isPayStage);
       D.markPaid(c.id);
-      if (payStage) moveToStage(c.id, payStage.id);
-    } else if (result.action === 'stage') {
-      moveToStage(c.id, result.stageId);
+      if (prod && payStage) moveToStage(prod.id, payStage.id);
+    } else if (result.action === 'stage' && prod) {
+      moveToStage(prod.id, result.stageId);
       const line = lineOf(c.productLineId);
       const st = line.stages.find(s => s.id === result.stageId);
-      D.onStageChange(c.id, st);
+      D.onStageChange(prod.id, st);
     }
     return c;
   }

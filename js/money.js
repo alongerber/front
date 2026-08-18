@@ -20,7 +20,7 @@ const now = () => Date.now();
    1. כמה ייקח הסרטון הבא
    ============================================================ */
 
-/** השעות שהושקעו בלקוח, מהמקור האמין ביותר שיש עליו */
+/** השעות שהושקעו בהפקה, מהמקור האמין ביותר שיש עליה */
 export function clientHours(c) {
   const n = sampleCount(c.id);
   if (n >= 3) return { hours: sampleMs(c.id) / HOUR, source: 'samples', n };
@@ -36,7 +36,7 @@ export function clientHours(c) {
  */
 export function forecast(productLineId = null) {
   const s = S();
-  const done = s.items.filter(i => i.type === 'client' && i.deliveredAt &&
+  const done = s.items.filter(i => i.type === 'production' && i.deliveredAt &&
     (!productLineId || i.productLineId === productLineId));
 
   const measured = done.map(c => clientHours(c)).filter(Boolean).map(x => x.hours).sort((a, b) => a - b);
@@ -85,7 +85,7 @@ export function requiredPrice(productLineId = null) {
 
   // מעט מסירות = המנויים מתחלקים על מעט ראשים והמחיר "הנדרש" קופץ.
   // זה נכון מתמטית, אבל צריך לומר את זה במפורש ולא להציג כעובדה.
-  const deliveredCount = s.items.filter(i => i.type === 'client' && i.deliveredAt &&
+  const deliveredCount = s.items.filter(i => i.type === 'production' && i.deliveredAt &&
     i.deliveredAt > now() - 90 * DAY).length;
 
   const subsPerVideo = monthlySubsILS() / perMonth;
@@ -106,7 +106,7 @@ export function requiredPrice(productLineId = null) {
 /** ממוצע מסירות לחודש לפי שלושת החודשים האחרונים, ולא רק החודש הנוכחי */
 export function deliveredPerMonthAvg() {
   const s = S();
-  const done = s.items.filter(i => i.type === 'client' && i.deliveredAt &&
+  const done = s.items.filter(i => i.type === 'production' && i.deliveredAt &&
     i.deliveredAt > now() - 90 * DAY);
   if (!done.length) return 0;
   const span = Math.max(1, (now() - Math.min(...done.map(c => c.deliveredAt))) / (30 * DAY));

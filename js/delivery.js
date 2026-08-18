@@ -23,6 +23,7 @@
    ============================================================ */
 
 import { S, getItem, patchItem, addItem, lineOf } from './store.js';
+import { clientOf } from './production.js';
 
 const DAY = 86400000;
 const now = () => Date.now();
@@ -51,35 +52,45 @@ export const FOLLOWUPS = [
     day: 30,
     title: c => `להציע ל${c.title} את החבילה החודשית`,
     note: 'חודש. הוא כבר יודע אם זה עבד לו. אם כן — עכשיו זה קל, ' +
-      'ובעוד חודש הוא כבר שכח.'
+      'ובעוד חודש הוא כבר שכח.',
+    // ללקוח שכבר בחבילה זו משימה שגויה, לא משימה מיותרת
+    skipIfRetainer: true
   }
 ];
 
-/** המשימות שכבר נוצרו ללקוח הזה — כדי לא ליצור אותן פעמיים */
-export const followupsOf = clientId =>
-  S().items.filter(i => i.type === 'task' && i.followup && i.followup.clientId === clientId);
+/** המשימות שכבר נוצרו להפקה הזאת — כדי לא ליצור אותן פעמיים */
+export const followupsOf = productionId =>
+  S().items.filter(i => i.type === 'task' && i.followup && i.followup.productionId === productionId);
+
+/** כל משימות המעקב של לקוח, על פני כל הפקותיו */
+export const followupsOfClient = clientId =>
+  S().items.filter(i => i.type === 'task' && i.followup && i.clientId === clientId);
 
 /**
- * יוצר את שלוש המשימות. אידמפוטנטי: יום שכבר קיים מדולג,
+ * יוצר את משימות המעקב להפקה. אידמפוטנטי: יום שכבר קיים מדולג,
  * כי מסירה חוזרת אחרי סבב תיקונים לא אמורה להכפיל את הרשימה.
  * מחזיר את מה שנוצר בפועל.
  */
-export function scheduleFollowups(clientId, from = now()) {
-  const c = getItem(clientId);
-  if (!c || c.type !== 'client') return [];
+export function scheduleFollowups(productionId, from = now()) {
+  const p = getItem(productionId);
+  if (!p || p.type !== 'production') return [];
+  const c = clientOf(p);
+  if (!c) return [];
 
-  const existing = new Set(followupsOf(clientId).map(t => t.followup.day));
+  const existing = new Set(followupsOf(productionId).map(t => t.followup.day));
   const made = [];
 
   FOLLOWUPS.forEach(f => {
     if (existing.has(f.day)) return;
+    if (f.skipIfRetainer && c.retainer) return;
     made.push(addItem({
       type: 'task',
       title: f.title(c),
       note: f.note,
-      clientId,
+      clientId: c.id,
+      productionId,
       snoozeUntil: from + f.day * DAY,
-      followup: { clientId, day: f.day }
+      followup: { productionId, clientId: c.id, day: f.day }
     }));
   });
 
@@ -90,10 +101,11 @@ export function scheduleFollowups(clientId, from = now()) {
    2. הנקודה היחידה שקובעת "שולם" ו"נמסר"
    ============================================================ */
 
-/* איזה שלב אומר "שולם" ואיזה אומר "נמסר".
-   כרגע לפי השם, כמו שהיה — אבל במקום אחד ולא בחמישה. */
-export const isPayStage = st => !!st && st.name.includes('תשלום');
-export const isDeliverStage = st => !!st && st.name.includes('מסירה');
+/* איזה שלב אומר "שולם" ואיזה אומר "נמסר" — לפי סימון מפורש
+   על השלב, לא לפי השם. שינוי שם שלב כבר לא משתיק את רישום
+   התשלום, וזה היה באג שמחכה לרגע הכי גרוע. */
+export const isPayStage = st => !!st && st.mark === 'paid';
+export const isDeliverStage = st => !!st && st.mark === 'delivered';
 
 /**
  * מסמן תשלום. לא דורס תשלום קיים — התאריך הראשון הוא הנכון,
@@ -114,14 +126,14 @@ export function markPaid(clientId, at = now()) {
  * מסמן מסירה — ויוצר את שלוש משימות המעקב.
  * מחזיר {delivered, followups} כדי שהממשק יוכל לומר מה קרה.
  */
-export function markDelivered(clientId, at = now()) {
-  const c = getItem(clientId);
-  if (!c) return { delivered: false, followups: [] };
+export function markDelivered(productionId, at = now()) {
+  const p = getItem(productionId);
+  if (!p || p.type !== 'production') return { delivered: false, followups: [] };
 
-  const first = !c.deliveredAt;
-  if (first) patchItem(clientId, { deliveredAt: at });
+  const first = !p.deliveredAt;
+  if (first) patchItem(productionId, { deliveredAt: at });
 
-  return { delivered: first, followups: scheduleFollowups(clientId, c.deliveredAt || at) };
+  return { delivered: first, followups: scheduleFollowups(productionId, p.deliveredAt || at) };
 }
 
 /**
@@ -129,9 +141,11 @@ export function markDelivered(clientId, at = now()) {
  * מסכי המעבר יתנהגו בדיוק אותו דבר.
  * מחזיר {paid, delivered, followups} — כדי שהמסך יוכל להגיד מה קרה.
  */
-export function onStageChange(clientId, stage) {
-  const paid = isPayStage(stage) ? markPaid(clientId) : false;
-  const d = isDeliverStage(stage) ? markDelivered(clientId) : { delivered: false, followups: [] };
+export function onStageChange(productionId, stage) {
+  const p = getItem(productionId);
+  if (!p) return { paid: false, delivered: false, followups: [] };
+  const paid = isPayStage(stage) && p.clientId ? markPaid(p.clientId) : false;
+  const d = isDeliverStage(stage) ? markDelivered(productionId) : { delivered: false, followups: [] };
   return { paid, delivered: d.delivered, followups: d.followups };
 }
 
@@ -167,8 +181,8 @@ export function release(taskId) {
    לפני שאתה יכול לכתוב הודעה — וזה בדיוק החיכוך שגורם לדחות.
    ============================================================ */
 
-export function setAsset(clientId, url) {
+export function setAsset(productionId, url) {
   const v = String(url || '').trim();
-  patchItem(clientId, { deliveredAsset: v || null }, 'עדכון הקישור לסרטון');
+  patchItem(productionId, { deliveredAsset: v || null }, 'עדכון הקישור לסרטון');
   return v;
 }

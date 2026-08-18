@@ -6,10 +6,11 @@
 import { S, update, uid, addItem, patchItem, getItem, lineOf, stageOf, moveToStage, checklistFromLine, removeItem } from '../store.js';
 import { el, nis, ago, dur, dmy, dateInput, toast, modal, closeModal, input, select, field, textarea, confirmBox, MIN, DAY } from '../util.js';
 import * as T from '../timer.js';
-import { progressOf, scoreClient } from '../brain.js';
+import { progressOf, scoreProduction } from '../brain.js';
 import { refresh, openItem } from '../app.js';
 import { hintBadge } from '../help.js';
 import * as D from '../delivery.js';
+import * as P from '../production.js';
 
 export default { render };
 
@@ -31,20 +32,31 @@ function render(root, params) {
     )
   ));
 
-  const clients = s.items.filter(i => i.type === 'client' && !i.archived && i.productLineId === line.id);
-  const active = clients.filter(c => !c.deliveredAt);
+  /* בצינור יושבות הפקות, לא לקוחות. לקוח בחבילה מופיע פעם
+     אחת לכל סרטון, כי זו העבודה שצריך לעשות. */
+  const prods = s.items.filter(i => i.type === 'production' && !i.archived && i.productLineId === line.id);
+  const active = prods.filter(c => !c.deliveredAt);
 
-  // סיכום
+  /* שווי פתוח לפי לקוחות ולא לפי הפקות — אחרת חבילה של ארבעה
+     סרטונים נספרת ארבע פעמים והמספר משקר כלפי מעלה. */
+  const openClients = new Map();
+  active.forEach(pr => {
+    const c = P.clientOf(pr);
+    if (c && !openClients.has(c.id)) openClients.set(c.id, c);
+  });
+  const openValue = [...openClients.values()]
+    .reduce((a, c) => a + (Number(c.retainer ? (c.monthlyAmount || c.amount) : c.amount) || 0), 0);
+
   root.append(el('div', { class: 'grid g4', style: { marginBottom: '14px' } },
     stat('בצינור', String(active.length), ''),
-    stat('שווי פתוח', nis(active.reduce((a, c) => a + (Number(c.amount) || 0), 0)), 'y', 'pipe.value'),
-    stat('תקועים', String(active.filter(c => scoreClient(c).stuck).length), active.some(c => scoreClient(c).stuck) ? 'r' : '', 'pipe.stuck'),
-    stat('נמסרו', String(clients.filter(c => c.deliveredAt).length), 'g')
+    stat('שווי פתוח', nis(openValue), 'y', 'pipe.value'),
+    stat('תקועים', String(active.filter(c => scoreProduction(c).stuck).length), active.some(c => scoreProduction(c).stuck) ? 'r' : '', 'pipe.stuck'),
+    stat('נמסרו', String(prods.filter(c => c.deliveredAt).length), 'g')
   ));
 
   const pipe = el('div', { class: 'pipe' });
   line.stages.forEach(stage => {
-    const inStage = clients.filter(c => c.stageId === stage.id && !c.deliveredAt);
+    const inStage = prods.filter(c => c.stageId === stage.id && !c.deliveredAt);
     const col = el('div', {
       class: 'col',
       ondragover: e => { e.preventDefault(); col.classList.add('over'); },
@@ -57,7 +69,7 @@ function render(root, params) {
         if (!c || c.stageId === stage.id) return;
         moveToStage(id, stage.id);
         const r = D.onStageChange(id, stage);
-        toast(`${c.title} → ${stage.name}` + (r.followups.length ? ` · ${r.followups.length} משימות מעקב נוצרו` : ''), 'ok');
+        toast(`${P.label(c)} → ${stage.name}` + (r.followups.length ? ` · ${r.followups.length} משימות מעקב נוצרו` : ''), 'ok');
         refresh();
       }
     });
@@ -70,7 +82,7 @@ function render(root, params) {
 
     inStage
       .sort((a, b) => (a.stageSince || 0) - (b.stageSince || 0))
-      .forEach(c => col.append(clientCard(c, stage, line)));
+      .forEach(c => col.append(prodCard(c, stage, line)));
 
     if (!inStage.length) col.append(el('div', { class: 'small muted', style: { textAlign: 'center', padding: '10px 0' } }, '—'));
     pipe.append(col);
@@ -78,18 +90,19 @@ function render(root, params) {
   root.append(pipe);
 
   // נמסרו
-  const done = clients.filter(c => c.deliveredAt).sort((a, b) => b.deliveredAt - a.deliveredAt);
+  const done = prods.filter(c => c.deliveredAt).sort((a, b) => b.deliveredAt - a.deliveredAt);
   if (done.length) {
     const card = el('div', { class: 'card', style: { marginTop: '16px' } });
     card.append(el('div', { class: 'card-h' }, el('h3', {}, 'נמסרו'), el('span', { class: 'sub' }, done.length + ' פריטים')));
     const tb = el('table', { class: 'tb' },
-      el('tr', {}, el('th', {}, 'לקוח'), el('th', {}, 'עסק'), el('th', {}, 'סכום'), el('th', {}, 'זמן עבודה נטו'), el('th', {}, 'זמן מהתחלה עד מסירה'), el('th', {}, 'נמסר'), el('th', {}))
+      el('tr', {}, el('th', {}, 'הפקה'), el('th', {}, 'עסק'), el('th', {}, 'סכום'), el('th', {}, 'זמן עבודה נטו'), el('th', {}, 'זמן מהתחלה עד מסירה'), el('th', {}, 'נמסר'), el('th', {}))
     );
     done.slice(0, 25).forEach(c => {
+      const cl = P.clientOf(c);
       tb.append(el('tr', {},
-        el('td', { style: { cursor: 'pointer', fontWeight: '600' }, onclick: () => openItem(c.id) }, c.title),
-        el('td', { class: 'muted' }, c.business || '—'),
-        el('td', { class: 'num' }, nis(c.amount)),
+        el('td', { style: { cursor: 'pointer', fontWeight: '600' }, onclick: () => openItem(c.id) }, P.label(c)),
+        el('td', { class: 'muted' }, (cl && cl.business) || '—'),
+        el('td', { class: 'num' }, nis(cl ? cl.amount : 0)),
         el('td', { class: 'num' }, dur(T.focusMs(c.id), true)),
         el('td', { class: 'num muted' }, dur(T.wallMs(c.id), true)),
         el('td', { class: 'muted small' }, dmy(c.deliveredAt)),
@@ -107,8 +120,8 @@ function stat(lbl, val, cls, tip) {
     el('div', { class: 'val' }, val));
 }
 
-function clientCard(c, stage, line) {
-  const r = scoreClient(c);
+function prodCard(c, stage, line) {
+  const r = scoreProduction(c);
   const p = progressOf(c);
   const running = T.activeTimer() && T.activeTimer().itemId === c.id;
   const waiting = T.isWaiting(c.id);
@@ -119,14 +132,15 @@ function clientCard(c, stage, line) {
     ondragend: () => card.classList.remove('dragging')
   });
 
-  card.append(el('div', { class: 'cn', style: { cursor: 'pointer' }, onclick: () => openItem(c.id) }, c.title));
-  if (c.business) card.append(el('div', { class: 'cb' }, c.business));
+  const cl = P.clientOf(c);
+  card.append(el('div', { class: 'cn', style: { cursor: 'pointer' }, onclick: () => openItem(c.id) }, P.label(c)));
+  if (cl && cl.business) card.append(el('div', { class: 'cb' }, cl.business));
 
   if (p.total) card.append(el('div', { class: 'bar', style: { marginTop: '7px' } }, el('i', { style: { width: (p.value * 100) + '%' } })));
 
   const meta = el('div', { class: 'cm' });
   meta.append(el('span', { class: 'pill ' + (r.stuck ? 'pill-r' : '') }, ago(c.stageSince || c.createdAt)));
-  if (c.amount) meta.append(el('span', { class: 'pill pill-y' }, nis(c.amount)));
+  if (cl && cl.amount) meta.append(el('span', { class: 'pill pill-y' }, nis(cl.retainer ? (cl.monthlyAmount || cl.amount) : cl.amount)));
   if (c.dueDate) {
     const left = c.dueDate - Date.now();
     meta.append(el('span', { class: 'pill ' + (left < 0 ? 'pill-r' : left < 2 * DAY ? 'pill-y' : '') },
@@ -182,10 +196,17 @@ export function clientForm(existing, lineId) {
   const fNote = textarea({ placeholder: 'מה הוא רוצה, מה סיכמתם' }, c.note || '');
   fNote.value = c.note || '';
 
+  /* שלב ותאריך יעד שייכים להפקה ולא ללקוח. בלקוח חדש הם קובעים
+     את ההפקה הראשונה; בעריכת לקוח קיים הם לא מוצגים כאן, כי
+     ללקוח עשויות להיות כמה הפקות ואי אפשר לדעת על איזו דיברת. */
   const body = el('div', {},
     el('div', { class: 'row' }, field('שם', fTitle), field('עסק', fBiz)),
-    el('div', { class: 'row' }, field('סוג העבודה', fLine), field('שלב', fStage)),
-    el('div', { class: 'row' }, field('סכום ₪', fAmount), field('תאריך יעד', fDue)),
+    existing
+      ? field('סוג העבודה', fLine)
+      : el('div', { class: 'row' }, field('סוג העבודה', fLine), field('שלב', fStage)),
+    existing
+      ? field('סכום ₪', fAmount)
+      : el('div', { class: 'row' }, field('סכום ₪', fAmount), field('תאריך יעד לסרטון הראשון', fDue)),
     el('div', { class: 'row' }, field('טלפון', fPhone), field('עלות מדיה ₪', fMedia, 'נזקף ללקוח הזה')),
     field('הערה', fNote)
   );
@@ -205,20 +226,24 @@ export function clientForm(existing, lineId) {
             title: fTitle.value.trim() || 'ללא שם',
             business: fBiz.value.trim(),
             productLineId: fLine.value,
-            stageId: fStage.value,
             amount: Number(fAmount.value) || 0,
-            dueDate: fDue.value ? new Date(fDue.value).getTime() : null,
             phone: fPhone.value.trim(),
             mediaCost: Number(fMedia.value) || 0,
             note: fNote.value
           };
           if (existing) {
-            if (existing.stageId !== data.stageId) data.stageSince = Date.now();
             patchItem(existing.id, data);
+            if (existing.title !== data.title) P.renameProductions(existing.id, data.title);
+            toast('נשמר', 'ok');
           } else {
-            addItem(Object.assign({ type: 'client' }, data));
+            const c2 = addItem(Object.assign({ type: 'client' }, data));
+            // לקוח בלי הפקה לא מופיע בשום מקום שבו עובדים
+            P.addProduction(c2.id, {
+              stageId: fStage.value,
+              dueDate: fDue.value ? new Date(fDue.value).getTime() : null
+            });
+            toast('נוצר לקוח והפקה ראשונה', 'ok');
           }
-          toast('נשמר', 'ok');
           refresh();
         }
       }
@@ -284,7 +309,8 @@ export function lineEditor() {
 
       // שלבים
       card.append(el('div', { class: 'small muted', style: { margin: '4px 0 8px' } },
-        'שלבים — גרור לסדר מחדש.'));
+        'שלבים — גרור לסדר מחדש. העמודה האחרונה אומרת למערכת מה השלב מסמן: ' +
+        'מעבר לשלב שסומן "שולם" רושם את התשלום, ו"נמסר" פותח את משימות המעקב.'));
 
       const list = el('div', {});
       line.stages.forEach((st, idx) => {
@@ -318,7 +344,26 @@ export function lineEditor() {
         sla.addEventListener('change', () => update(s => {
           s.productLines.find(x => x.id === line.id).stages.find(y => y.id === st.id).sla = Number(sla.value);
         }));
-        row.append(nm, pr, sla, el('button', {
+        /* מה השלב אומר למערכת. קודם זה נוחש משם השלב, ואז שינוי
+           שם היה מפסיק לרשום תשלום בלי להגיד מילה. */
+        const mk = select([
+          { value: '', label: '—' },
+          { value: 'paid', label: 'שולם' },
+          { value: 'delivered', label: 'נמסר' }
+        ], st.mark || '');
+        mk.style.width = '92px'; mk.style.flex = '0 0 92px';
+        mk.setAttribute('aria-label', 'מה השלב מסמן');
+        mk.setAttribute('data-tip', 'pipe.mark');
+        mk.addEventListener('change', () => {
+          update(s2 => {
+            const l = s2.productLines.find(x => x.id === line.id);
+            // סימון הוא ייחודי בקו — שני שלבי "נמסר" הם מסירה כפולה
+            if (mk.value) l.stages.forEach(y => { if (y.mark === mk.value) y.mark = null; });
+            l.stages.find(y => y.id === st.id).mark = mk.value || null;
+          });
+          draw(); refresh();
+        });
+        row.append(nm, pr, sla, mk, el('button', {
           class: 'btn btn-xs btn-danger',
           onclick: () => {
             if (line.stages.length <= 1) { toast('צריך לפחות שלב אחד', 'err'); return; }

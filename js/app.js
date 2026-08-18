@@ -396,7 +396,7 @@ function openNoteBox(cur) {
 function openReassign() {
   const s = S();
   const cands = [
-    ...s.items.filter(i => i.type === 'client' && !i.archived && !i.deliveredAt),
+    ...s.items.filter(i => i.type === 'production' && !i.archived && !i.deliveredAt),
     ...s.items.filter(i => i.type === 'bucket' && !i.archived),
     ...s.items.filter(i => i.type === 'task' && !i.archived && !i.done).slice(0, 8)
   ];
@@ -423,7 +423,7 @@ function openReassign() {
       refresh();
     }
   },
-    el('span', { class: 'act-rank' }, c.type === 'client' ? '👤' : c.type === 'bucket' ? '◈' : '✓'),
+    el('span', { class: 'act-rank' }, c.type === 'production' ? '🎬' : c.type === 'bucket' ? '◈' : '✓'),
     el('div', { class: 'act-main' },
       el('div', { class: 'act-title' }, c.title),
       el('div', { class: 'act-why' }, dur(T.itemTodayMs(c.id), true) + ' היום'))
@@ -476,7 +476,7 @@ const shortT = s => (s || '').length > 18 ? s.slice(0, 17) + '…' : (s || '');
 export function openSwitcher() {
   const s = S();
   const cands = [
-    ...s.items.filter(i => i.type === 'client' && !i.archived && !i.deliveredAt),
+    ...s.items.filter(i => i.type === 'production' && !i.archived && !i.deliveredAt),
     ...s.items.filter(i => i.type === 'bucket' && !i.archived),
     ...s.items.filter(i => i.type === 'task' && !i.archived && !i.done).slice(0, 8),
     ...s.items.filter(i => i.type === 'knowledge' && !i.archived && i.status !== 'done').slice(0, 5)
@@ -500,7 +500,7 @@ export function openSwitcher() {
         }
       },
         el('span', { class: 'act-rank' },
-          c.type === 'client' ? '👤' : c.type === 'knowledge' ? '📚' : c.type === 'bucket' ? '◈' : '✓'),
+          c.type === 'production' ? '🎬' : c.type === 'knowledge' ? '📚' : c.type === 'bucket' ? '◈' : '✓'),
         el('div', { class: 'act-main' },
           el('div', { class: 'act-title' }, c.title),
           el('div', { class: 'act-why' },
@@ -588,7 +588,7 @@ function absenceModal(p) {
   ));
 
   const others = [
-    ...s.items.filter(i => i.type === 'client' && !i.archived && !i.deliveredAt),
+    ...s.items.filter(i => i.type === 'production' && !i.archived && !i.deliveredAt),
     ...s.items.filter(i => i.type === 'task' && !i.archived && !i.done).slice(0, 6)
   ].slice(0, 10);
 

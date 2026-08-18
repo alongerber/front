@@ -3,7 +3,10 @@
    הכל נשען על ארבעה מושגים: מה אתה מוכר · שלבים · פריטים · רשומות זמן
    ============================================================ */
 
+import { migrateToProductions, ensureProductions } from './migrations.js';
+
 const KEY = 'front.v1';
+const SNAP_KEY = 'front.v1.pre-productions';
 const MIN = 60000, HOUR = 3600000, DAY = 86400000;
 
 export const uid = (p = 'i') =>
@@ -17,15 +20,17 @@ function defaultStages() {
   // priority: כמה השלב "צועק". ליד תמיד מנצח הפקה — גם אם ההפקה ממתינה ימים.
   // sla: אחרי כמה דקות בשלב זה נחשב תקוע.
   return [
-    { id: uid('st'), name: 'פרסום',       priority: 4,  sla: 3 * 24 * 60 },
-    { id: uid('st'), name: 'ליד',          priority: 10, sla: 120 },
-    { id: uid('st'), name: 'שיחת מכירה',  priority: 9,  sla: 24 * 60 },
-    { id: uid('st'), name: 'תשלום',        priority: 8,  sla: 2 * 24 * 60 },
-    { id: uid('st'), name: 'אפיון',        priority: 7,  sla: 24 * 60 },
-    { id: uid('st'), name: 'יצירה',        priority: 6,  sla: 3 * 24 * 60 },
-    { id: uid('st'), name: 'סבב תיקונים',  priority: 7,  sla: 24 * 60 },
-    { id: uid('st'), name: 'אישור',        priority: 8,  sla: 24 * 60 },
-    { id: uid('st'), name: 'מסירה',        priority: 9,  sla: 4 * 60 }
+    // mark: מה השלב אומר למערכת. קודם זה נוחש מהשם בחמישה מקומות,
+    // ואז שינוי שם שלב היה מפסיק לרשום תשלום בשקט.
+    { id: uid('st'), name: 'פרסום',       priority: 4,  sla: 3 * 24 * 60, mark: null },
+    { id: uid('st'), name: 'ליד',          priority: 10, sla: 120,        mark: null },
+    { id: uid('st'), name: 'שיחת מכירה',  priority: 9,  sla: 24 * 60,    mark: null },
+    { id: uid('st'), name: 'תשלום',        priority: 8,  sla: 2 * 24 * 60, mark: 'paid' },
+    { id: uid('st'), name: 'אפיון',        priority: 7,  sla: 24 * 60,    mark: null },
+    { id: uid('st'), name: 'יצירה',        priority: 6,  sla: 3 * 24 * 60, mark: null },
+    { id: uid('st'), name: 'סבב תיקונים',  priority: 7,  sla: 24 * 60,    mark: null },
+    { id: uid('st'), name: 'אישור',        priority: 8,  sla: 24 * 60,    mark: null },
+    { id: uid('st'), name: 'מסירה',        priority: 9,  sla: 4 * 60,     mark: 'delivered' }
   ];
 }
 
@@ -35,7 +40,7 @@ export function defaultState() {
     name: 'סרטונים',
     color: '#ffd400',
     stages: defaultStages(),
-    pricing: { unit: 1290, bundle: 4200, bundleQty: 4, deliveryDays: 7 },
+    pricing: { unit: 1290, bundle: 3890, bundleQty: 4, deliveryDays: 7 },
     estHours: 4 // הערכה התחלתית לשעות קשב לפריט; מתעדכן מהמדידה בפועל
   };
 
@@ -67,6 +72,9 @@ export function defaultState() {
       lastAutoBackupAt: null,
       bucketsSeeded: false,       // נקבע ל-true אחרי זריעה חד-פעמית, כדי שמחיקה תישאר מחיקה
       renamedTypes: false,        // שינוי שמות חד-פעמי מז'רגון לשפה פשוטה
+      productionsMigrated: false, // הפרדת ההפקה מהלקוח — רצה פעם אחת
+      migrationReport: null,      // {at, clients, productions, entries, ...} — האימות שזה עבד
+      bundlePriceFixed: false,    // עדכון חד-פעמי של מחיר החבילה
       onboarded: false,           // ההדרכה בפעם הראשונה
       installed: false,           // הותקן על מסך הבית — בלי זה אין "רעיון מהיר" בטלפון
       floatUsed: false,           // האם נפתח החלון הצף אי פעם
@@ -102,6 +110,7 @@ export function defaultState() {
 
     itemTypes: [
       { id: 'client',    name: 'לקוח',   icon: '👤', color: '#ffd400', system: true },
+      { id: 'production', name: 'הפקה',  icon: '🎬', color: '#ffb400', system: true },
       { id: 'task',      name: 'משימה',  icon: '✓',  color: '#5aa9ff', system: true },
       { id: 'knowledge', name: 'ידע',    icon: '📚', color: '#b98cff', system: true },
       { id: 'decision',  name: 'החלטה',  icon: '⚖️', color: '#ff9f43', system: true },
@@ -264,7 +273,135 @@ function migrate(s) {
 
   if (!out.productLines.length) out.productLines = d.productLines;
   out.productLines.forEach(p => { if (!Array.isArray(p.stages) || !p.stages.length) p.stages = defaultStages(); });
+
+  /* סימון השלב, פעם אחת, לפי השם שהיה — ומכאן הקוד קורא רק את
+     הסימון. אפשר לשנות שם שלב בלי לשבור את רישום התשלום. */
+  out.productLines.forEach(l => l.stages.forEach(st => {
+    if (st.mark !== undefined) return;
+    st.mark = st.name.includes('תשלום') ? 'paid' : st.name.includes('מסירה') ? 'delivered' : null;
+  }));
+
+  /* מחיר החבילה עודכן. רק אם הוא עדיין המחיר הישן — מי ששינה בעצמו, שלו נשאר. */
+  if (!out.settings.bundlePriceFixed) {
+    out.settings.bundlePriceFixed = true;
+    out.productLines.forEach(l => {
+      if (l.pricing && l.pricing.bundle === 4200) l.pricing.bundle = 3890;
+    });
+  }
+
+  runProductionMigration(out);
+  /* אינווריאנט: לכל לקוח יש הפקה. לקוח בלי הפקה לא מופיע בצינור
+     ואי אפשר למדוד עליו זמן — והוא בדיוק מה שיגיע מטלפון שעדיין
+     לא עודכן. נוצר רק למי שמעולם לא היה לו, כדי שמחיקה מכוונת
+     של הפקה תישאר מחיקה. */
+  ensureProductions(out);
   return out;
+}
+
+/* ============================================================
+   הפרדת ההפקה מהלקוח — המיגרציה, והרשת מתחתיה
+   ------------------------------------------------------------
+   שני תנאים שאלון הציב, ושניהם נכונים:
+     · העותק נכתב ומאומת לפני שנוגעים בשורה אחת. נכשל — עוצרים.
+     · יש כפתור שמשתמש בעותק. רשת ביטחון שאי אפשר למשוך אותה
+       היא רק תחושה.
+   ============================================================ */
+
+/** כותב עותק ומיד קורא אותו חזרה. false = אל תמשיך. */
+function writeSnapshot(state) {
+  /* עותק קיים לא נדרס. אחרת טעינת נתוני דוגמה אחרי המיגרציה
+     הייתה מחליפה את רשת הביטחון האמיתית בעותק של הדוגמה. */
+  try { if (localStorage.getItem(SNAP_KEY)) return true; } catch { /* ננסה לכתוב */ }
+  let json;
+  try { json = JSON.stringify(state); } catch (e) { console.error('העותק נכשל בהמרה', e); return false; }
+  try {
+    localStorage.setItem(SNAP_KEY, json);
+    const back = localStorage.getItem(SNAP_KEY);
+    // אימות אמיתי: לא רק שהכתיבה לא זרקה, אלא שמה שחזר הוא מה שנכתב
+    if (!back || back.length !== json.length) return false;
+    const parsed = JSON.parse(back);
+    return Array.isArray(parsed.items) && parsed.items.length === state.items.length;
+  } catch (e) {
+    console.error('כתיבת העותק נכשלה', e);
+    return false;
+  }
+}
+
+function runProductionMigration(out) {
+  if (out.settings.productionsMigrated) return;
+  if (!out.items.some(i => i.type === 'client')) {
+    // אין מה להמיר — מסמנים ומדלגים, בלי לבזבז עותק
+    out.settings.productionsMigrated = true;
+    return;
+  }
+  if (!writeSnapshot(out)) {
+    console.error('פרונט: לא הצלחתי לכתוב עותק לפני המיגרציה. המיגרציה לא רצה.');
+    if (typeof window !== 'undefined')
+      window.dispatchEvent(new CustomEvent('front:migration-blocked'));
+    return;                                   // המצב נשאר כפי שהיה
+  }
+  const report = migrateToProductions(out);
+  out.settings.productionsMigrated = true;
+  out.settings.migrationReport = Object.assign({ at: now() }, report);
+}
+
+/** האם יש עותק שאפשר לחזור אליו, וכמה גדול הוא */
+export function snapshotInfo() {
+  try {
+    const raw = localStorage.getItem(SNAP_KEY);
+    if (!raw) return null;
+    const j = JSON.parse(raw);
+    return {
+      items: Array.isArray(j.items) ? j.items.length : 0,
+      entries: Array.isArray(j.timeEntries) ? j.timeEntries.length : 0,
+      kb: Math.round(raw.length / 1024)
+    };
+  } catch { return null; }
+}
+
+/**
+ * חזרה לנתונים שלפני המיגרציה.
+ *
+ * שים לב מה זה עושה ומה לא: כל מה שקרה אחרי המיגרציה נזרק,
+ * והנתונים הישנים חוזרים — ואז המיגרציה רצה עליהם מחדש, נקייה.
+ * זה מתקן מצב שבו המיגרציה עיוותה משהו, או שנעשה בלגן אחריה.
+ *
+ * מה שזה לא עושה: להשאיר את המערכת בצורה הישנה. הממשק כולו
+ * מדבר בהפקות, ולהחזיר מצב שהוא לא יודע להציג זו רשת ביטחון
+ * שמפילה אותך רחוק יותר. מי שרוצה את הנתונים הישנים כמות שהם
+ * מוריד אותם כקובץ — ראה downloadSnapshot.
+ *
+ * מחזיר true אם הצליח.
+ */
+export function restoreSnapshot() {
+  const raw = localStorage.getItem(SNAP_KEY);
+  if (!raw) return false;
+  let parsed;
+  try { parsed = JSON.parse(raw); } catch { return false; }
+  if (!parsed || !Array.isArray(parsed.items)) return false;
+
+  parsed.settings = Object.assign({}, parsed.settings, {
+    productionsMigrated: false,      // שתרוץ מחדש על נתונים נקיים
+    migrationReport: null
+  });
+  state = migrate(parsed);
+  persist();
+  subs.forEach(f => f(state));
+  return true;
+}
+
+/** מוריד את העותק הגולמי כקובץ — הנתונים הישנים בדיוק כפי שהיו */
+export function downloadSnapshot() {
+  const raw = localStorage.getItem(SNAP_KEY);
+  if (!raw) return null;
+  const d = new Date();
+  const name = `front-lifney-hafakot-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.json`;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([raw], { type: 'application/json' }));
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  return name;
 }
 
 let saveTimer = null;
@@ -402,6 +539,15 @@ export function addItem(partial) {
     item.retainer = !!item.retainer;             // משלם כל חודש?
     if (item.retainer && !item.nextRenewalAt) item.nextRenewalAt = t;
   }
+  if (item.type === 'production') {
+    const line = state.productLines.find(p => p.id === item.productLineId) || state.productLines[0];
+    item.productLineId = line.id;
+    if (!item.stageId) item.stageId = line.stages[0].id;
+    if (!item.stageSince) item.stageSince = t;
+    if (!Array.isArray(item.checklist)) item.checklist = checklistFromLine(line, item.stageId);
+    if (typeof item.manualProgress !== 'number') item.manualProgress = 0;
+    if (typeof item.seq !== 'number') item.seq = 1;
+  }
   if (item.type === 'knowledge') {
     item.status = item.status || 'new';
     item.lastTouched = item.lastTouched || t;
@@ -446,16 +592,22 @@ export function patchItem(id, patch, label) {
 export function removeItem(id) {
   const it = getItem(id);
   const label = 'מחיקת ' + (it && it.title ? `"${it.title}"` : 'הפריט');
+  /* מחיקת לקוח גוררת את ההפקות שלו. הפקה יתומה היא כרטיס בצינור
+     בלי שם ובלי בעלים — גרוע יותר מלא למחוק בכלל. */
+  const kids = (it && it.type === 'client')
+    ? state.items.filter(x => x.type === 'production' && x.clientId === id).map(x => x.id) : [];
+  const gone = new Set([id, ...kids]);
   update(s => {
-    s.items = s.items.filter(x => x.id !== id);
-    s.timeEntries = s.timeEntries.filter(e => e.itemId !== id);
-    s.waiting = s.waiting.filter(w => w.itemId !== id);
-    s.samples = s.samples.filter(x => x.itemId !== id);
+    s.items = s.items.filter(x => !gone.has(x.id));
+    s.timeEntries = s.timeEntries.filter(e => !gone.has(e.itemId));
+    s.waiting = s.waiting.filter(w => !gone.has(w.itemId));
+    s.samples = s.samples.filter(x => !gone.has(x.itemId));
     // קישורים שהצביעו לפריט שנמחק — מנקים, שלא יישארו צ'יפים ריקים
     s.items.forEach(i => {
-      if (Array.isArray(i.links) && i.links.includes(id)) i.links = i.links.filter(x => x !== id);
+      if (Array.isArray(i.links)) i.links = i.links.filter(x => !gone.has(x));
     });
-    if (s.timer && s.timer.itemId === id) s.timer = null;
+    if (s.timer && gone.has(s.timer.itemId)) s.timer = null;
+    if (s.paused && gone.has(s.paused.itemId)) s.paused = null;
   }, { label });
 }
 
@@ -626,15 +778,42 @@ export function monthKey(ts = now()) {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
 }
 
-/** הכנסות החודש: לקוחות שעברו את שלב התשלום + רשומות ידניות */
+/**
+ * הכנסות החודש.
+ *
+ * הבאג שתוקן כאן: ההכנסה נספרה מ-client.paidAt, כלומר מרגע אחד
+ * בזמן. לקוח שמשלם כל חודש נספר בחודש הראשון בלבד ואז נעלם —
+ * בזמן שה-MRR ממשיך להציג אותו. שני מספרים שלא מיישרים, והפער
+ * נפתח בדיוק בחודש השני של המנוי הראשון.
+ *
+ * עכשיו: לקוח קבוע תורם את הסכום החודשי שלו לכל חודש שבו המנוי
+ * היה פעיל. תשלום חד-פעמי נספר בחודש שלו כמו קודם.
+ *
+ * מניעת כפילות: אם המנוי התחיל באותו חודש שבו נרשם התשלום
+ * החד-פעמי — נספר רק הסכום החודשי. קנה סטוץ בינואר והפך למנוי
+ * במרץ? ינואר סופר 1,290, ומרץ והלאה סופרים 3,890.
+ */
 export function monthMoney(mk = monthKey()) {
   let income = 0, delivered = 0;
+
   state.items.filter(i => i.type === 'client').forEach(c => {
-    if (!c.paidAt) return;
-    if (monthKey(c.paidAt) !== mk) return;
+    const recurring = c.retainer && !!(c.retainerStartedAt || c.paidAt || c.createdAt);
+    if (recurring) {
+      const from = monthKey(c.retainerStartedAt || c.paidAt || c.createdAt);
+      const to = c.retainerEndedAt ? monthKey(c.retainerEndedAt) : monthKey();
+      if (mk >= from && mk <= to) {            // מחרוזות 'YYYY-MM' מסתדרות לקסיקוגרפית
+        income += Number(c.monthlyAmount || c.amount) || 0;
+        return;                                // וזה מחליף את החד-פעמי באותו חודש
+      }
+    }
+    if (!c.paidAt || monthKey(c.paidAt) !== mk) return;
     income += Number(c.amount) || 0;
-    delivered++;
   });
+
+  // "נמסרו" סופר הפקות שנמסרו בפועל, לא לקוחות ששילמו
+  delivered = state.items.filter(i =>
+    i.type === 'production' && i.deliveredAt && monthKey(i.deliveredAt) === mk).length;
+
   let extraIn = 0, extraOut = 0;
   state.ledger.forEach(l => {
     if (monthKey(l.date) !== mk) return;
@@ -801,6 +980,9 @@ export function applySyncDoc(doc) {
     s.syncMeta.knownIds = Array.from(known);
     s.syncMeta.lastAt = now();
     s.syncMeta.rev = doc.rev || 0;
+
+    // לקוח שהגיע ממכשיר שלא עודכן — בלי הפקה הוא בלתי נראה
+    ensureProductions(s);
   }, { silent: true });
 
   subs.forEach(f => f(state));

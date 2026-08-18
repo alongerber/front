@@ -650,8 +650,24 @@ function ledgerCard() {
     el('h3', { style: { display: 'flex', alignItems: 'center' } }, 'תנועות', hintBadge('money.ledger')),
     el('div', { class: 'right' }, el('button', { class: 'btn btn-xs', onclick: () => ledgerModal() }, '+ תנועה'))));
 
-  const paid = s.items.filter(i => i.type === 'client' && i.paidAt)
-    .map(c => ({ id: c.id, date: c.paidAt, title: c.title, amount: Number(c.amount) || 0, auto: true }));
+  /* תשלום חד-פעמי מופיע בתאריך שלו. לקוח קבוע מופיע בכל חודש
+     פעיל — אחרת הרשימה סותרת את "הכנסות החודש" שכבר סופרות אותו. */
+  const paid = [];
+  s.items.filter(i => i.type === 'client').forEach(c => {
+    if (c.retainer) {
+      const start = c.retainerStartedAt || c.paidAt || c.createdAt;
+      const end = c.retainerEndedAt || Date.now();
+      const d = new Date(start);
+      for (let k = 0; k < 24; k++) {
+        const at = new Date(d.getFullYear(), d.getMonth() + k, d.getDate()).getTime();
+        if (at > end || at > Date.now()) break;
+        paid.push({ id: c.id + '_m' + k, date: at, title: c.title + ' · חודשי',
+          amount: Number(c.monthlyAmount || c.amount) || 0, auto: true });
+      }
+      return;
+    }
+    if (c.paidAt) paid.push({ id: c.id, date: c.paidAt, title: c.title, amount: Number(c.amount) || 0, auto: true });
+  });
   const manual = s.ledger.map(l => ({ id: l.id, date: l.date, title: l.title, amount: l.amount, auto: false }));
   const all = paid.concat(manual).sort((a, b) => b.date - a.date).slice(0, 14);
 

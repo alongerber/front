@@ -85,7 +85,7 @@ export function openSample() {
 /** המועמדים שמוצגים בשאלה — מה שסביר שאתה עובד עליו עכשיו */
 export function candidates(limit = 6) {
   const s = S();
-  const active = s.items.filter(i => i.type === 'client' && !i.archived && !i.deliveredAt);
+  const active = s.items.filter(i => i.type === 'production' && !i.archived && !i.deliveredAt);
 
   // ניקוד: מה שנגעת בו לאחרונה, ומה שיושב בשלב שדורש עבודה
   const score = c => {
@@ -240,7 +240,7 @@ export function itemCount(id) {
  * מחזיר null כשאין מספיק נתונים כדי לומר משהו אמין.
  */
 export function avgPerDelivery(productLineId = null) {
-  const done = S().items.filter(i => i.type === 'client' && i.deliveredAt &&
+  const done = S().items.filter(i => i.type === 'production' && i.deliveredAt &&
     (!productLineId || i.productLineId === productLineId));
   if (!done.length) return null;
   const counts = done.map(c => itemCount(c.id));

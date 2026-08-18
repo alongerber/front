@@ -338,7 +338,7 @@ export function waitMs(itemId = null, from = 0, to = Infinity) {
 export function wallMs(itemId) {
   const it = getItem(itemId);
   if (!it) return 0;
-  if (it.type === 'client') return (it.deliveredAt || now()) - it.createdAt;
+  if (it.type === 'production' || it.type === 'client') return (it.deliveredAt || now()) - it.createdAt;
   const es = S().timeEntries.filter(e => e.itemId === itemId);
   if (!es.length) return 0;
   const first = Math.min(...es.map(e => e.start));
@@ -401,7 +401,7 @@ export function currentTodayMs() {
 
 /** ממוצע זמן עבודה נטו לסרטון שנמסר */
 export function avgFocusPerDelivery(productLineId = null) {
-  const done = S().items.filter(i => i.type === 'client' && i.deliveredAt &&
+  const done = S().items.filter(i => i.type === 'production' && i.deliveredAt &&
     (!productLineId || i.productLineId === productLineId));
   if (!done.length) return null;
   const tot = done.reduce((a, c) => a + focusMs(c.id), 0);

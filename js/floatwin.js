@@ -133,7 +133,7 @@ function render() {
   /* כפתורי החלפה — לקוחות פעילים, ואחריהם דליי העסק */
   const s = S();
   const clients = s.items
-    .filter(i => i.type === 'client' && !i.archived && !i.deliveredAt)
+    .filter(i => i.type === 'production' && !i.archived && !i.deliveredAt)
     .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
     .slice(0, 6);
   const bucketList = s.items.filter(i => i.type === 'bucket' && !i.archived);

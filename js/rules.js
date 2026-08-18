@@ -36,7 +36,7 @@ export function runRules() {
   /* --- הפקות שחורגות מהממוצע --- */
   const avg = avgFocusPerDelivery();
   if (avg && avg.count >= 2) {
-    s.items.filter(i => i.type === 'client' && !i.deliveredAt && !i.archived).forEach(c => {
+    s.items.filter(i => i.type === 'production' && !i.deliveredAt && !i.archived).forEach(c => {
       const f = focusMs(c.id);
       if (f > avg.avgMs * 1.4 && f > 30 * MIN) {
         const over = Math.round((f / avg.avgMs - 1) * 100);
@@ -47,7 +47,7 @@ export function runRules() {
   }
 
   /* --- דדליינים --- */
-  s.items.filter(i => (i.type === 'client' || i.type === 'task') && !i.archived && !i.done && !i.deliveredAt && i.dueDate)
+  s.items.filter(i => (i.type === 'production' || i.type === 'task') && !i.archived && !i.done && !i.deliveredAt && i.dueDate)
     .forEach(i => {
       const left = i.dueDate - now();
       if (left < 0) push('due_' + i.id, 'bad', `${i.title} — עבר את תאריך היעד ב${ago(i.dueDate)}`);
@@ -147,7 +147,7 @@ export function runRules() {
 /** מספרים לתגיות בניווט */
 export function navCounts() {
   const s = S();
-  const q = s.items.filter(i => i.type === 'client' && !i.archived && !i.deliveredAt).length;
+  const q = s.items.filter(i => i.type === 'production' && !i.archived && !i.deliveredAt).length;
   return {
     pipeline: q,
     routines: dueRoutines().filter(r => r.missCount < 2).length,

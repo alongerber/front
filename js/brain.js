@@ -14,9 +14,12 @@ const now = () => Date.now();
    1. דחיפות — רשימה אחת שמערבבת לידים והפקות
    ליד שממתין 20 דקות דחוף יותר מסרטון שממתין 3 ימים,
    כי משקל השלב גובר על יחס ההמתנה.
+
+   מאז הפרדת ההפקה מהלקוח, מה שנמצא בצינור הוא הפקה: היא זו
+   שנושאת שלב, תאריך יעד ומסירה. הלקוח הוא מי שמשלם.
    ============================================================ */
 
-export function scoreClient(c) {
+export function scoreProduction(c) {
   const line = lineOf(c.productLineId);
   const st = stageOf(c);
   const waitedMin = (now() - (c.stageSince || c.createdAt)) / MIN;
@@ -47,9 +50,14 @@ export function scoreClient(c) {
 export function scoreTask(t) {
   let score = 380;
   const why = [];
+  const prod = t.productionId ? getItem(t.productionId) : null;
+  if (prod && !prod.deliveredAt) {
+    const cs = scoreProduction(prod);
+    score = Math.max(score, cs.score - 40);
+  }
   if (t.clientId) {
     const c = getItem(t.clientId);
-    if (c) { const cs = scoreClient(c); score = Math.max(score, cs.score - 40); why.push('ל' + c.title); }
+    if (c) why.push('ל' + c.title);
   }
   if (t.dueDate) {
     const left = t.dueDate - now();
@@ -76,9 +84,9 @@ export function actionQueue(limit = 7) {
   const s = S();
   const out = [];
 
-  s.items.filter(i => i.type === 'client' && !i.archived && !i.deliveredAt && !waiting(i)).forEach(c => {
-    const r = scoreClient(c);
-    out.push({ item: c, score: r.score, why: r.why, stuck: r.stuck, kind: 'client' });
+  s.items.filter(i => i.type === 'production' && !i.archived && !i.deliveredAt && !waiting(i)).forEach(c => {
+    const r = scoreProduction(c);
+    out.push({ item: c, score: r.score, why: r.why, stuck: r.stuck, kind: 'production' });
   });
 
   s.items.filter(i => i.type === 'task' && !i.archived && !i.done && !waiting(i)).forEach(t => {
@@ -243,7 +251,7 @@ export function rollRoutines() {
 
 export function estimateMinutes(entry) {
   const it = entry.item;
-  if (entry.kind === 'client') {
+  if (entry.kind === 'production' || entry.kind === 'client') {
     const line = lineOf(it.productLineId);
     const st = stageOf(it);
     const avg = avgFocusPerDelivery(line.id);
@@ -373,7 +381,7 @@ export function unitEconomics(over = {}) {
 
 export function deliveredThisMonth() {
   const mk = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0');
-  return S().items.filter(i => i.type === 'client' && i.deliveredAt &&
+  return S().items.filter(i => i.type === 'production' && i.deliveredAt &&
     (new Date(i.deliveredAt).getFullYear() + '-' + String(new Date(i.deliveredAt).getMonth() + 1).padStart(2, '0')) === mk).length;
 }
 

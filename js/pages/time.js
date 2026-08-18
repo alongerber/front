@@ -114,7 +114,7 @@ function cleanupModal() {
 function assignEntry(entryId) {
   const e = S().timeEntries.find(x => x.id === entryId);
   if (!e) return;
-  const cands = S().items.filter(i => !i.archived && (i.type === 'client' || i.type === 'task' || i.type === 'knowledge'));
+  const cands = S().items.filter(i => !i.archived && (i.type === 'production' || i.type === 'task' || i.type === 'knowledge'));
   const sel = select(
     [{ value: '', label: '— בחר —' }, ...cands.map(c => ({ value: c.id, label: c.title }))],
     '', {});
@@ -501,7 +501,7 @@ function perItemCard() {
     el('h3', {}, 'שלושת המספרים לכל לקוח'),
     el('span', { class: 'sub' }, 'עבודה על העסק מסומנת ב-◈ — שעות שהלכו לעסק ולא ללקוח')));
 
-  const clients = S().items.filter(i => (i.type === 'client' || i.type === 'bucket') && !i.archived)
+  const clients = S().items.filter(i => (i.type === 'production' || i.type === 'bucket') && !i.archived)
     .map(c => ({ c, focus: T.focusMs(c.id), wall: T.wallMs(c.id), wait: T.waitMs(c.id), sm: SM.itemMs(c.id) }))
     .filter(x => x.focus > 0 || x.wait > 0 || x.sm > 0)
     .sort((a, b) => (b.sm || b.focus) - (a.sm || a.focus));
@@ -548,7 +548,7 @@ export function addEntryModal(pre = {}) {
   const items = [
     { value: '', label: '— בלי פריט —' },
     ...s.items.filter(i => !i.archived && ['client', 'task', 'knowledge'].includes(i.type))
-      .map(i => ({ value: i.id, label: (i.type === 'client' ? '👤 ' : i.type === 'knowledge' ? '📚 ' : '✓ ') + i.title }))
+      .map(i => ({ value: i.id, label: (i.type === 'production' ? '🎬 ' : i.type === 'knowledge' ? '📚 ' : '✓ ') + i.title }))
   ];
   const start = pre.start || (Date.now() - HOUR);
   const end = pre.end || Date.now();

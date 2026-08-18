@@ -108,7 +108,7 @@ export function picker(id) {
     el('div', { style: { fontWeight: '600' } }, label),
     sub ? el('div', { class: 'small muted' }, sub) : null));
 
-  s.items.filter(i => i.type === 'client' && !i.archived && !i.deliveredAt)
+  s.items.filter(i => i.type === 'production' && !i.archived && !i.deliveredAt)
     .forEach(c => opt(c.title, c.business || 'לקוח', { itemId: c.id, kind: 'work' }));
   s.items.filter(i => i.type === 'bucket' && !i.archived)
     .forEach(bk => opt('◈ ' + bk.title, bk.note || 'עבודה על העסק', { itemId: bk.id, kind: 'work' }));

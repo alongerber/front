@@ -68,7 +68,7 @@ function data(from, to) {
   const gross = T.grossFocusMs(null, from, to);
   const wait = T.waitMs(null, from, to);
 
-  const delivered = s.items.filter(i => i.type === 'client' && i.deliveredAt >= from && i.deliveredAt < to);
+  const delivered = s.items.filter(i => i.type === 'production' && i.deliveredAt >= from && i.deliveredAt < to);
   const paid = s.items.filter(i => i.type === 'client' && i.paidAt >= from && i.paidAt < to);
   const newLeads = s.items.filter(i => i.type === 'client' && i.createdAt >= from && i.createdAt < to);
   const income = paid.reduce((a, c) => a + (c.amount || 0), 0) +
@@ -91,7 +91,7 @@ function data(from, to) {
   /* תקועים */
   const stuckItems = s.items.filter(i => {
     if (i.archived) return false;
-    if (i.type === 'client' && !i.deliveredAt)
+    if (i.type === 'production' && !i.deliveredAt)
       return now() - (i.stageSince || i.createdAt) > 5 * DAY;
     if (i.type === 'task' && !i.done) return now() - i.createdAt > 14 * DAY;
     if (i.type === 'decision' && i.status === 'open') return now() - i.createdAt > 14 * DAY;
@@ -152,7 +152,7 @@ function whereTime(d) {
   }
 
   const total = d.hours.reduce((a, x) => a + x.ms, 0);
-  const clientMs = d.hours.filter(x => x.item.type === 'client').reduce((a, x) => a + x.ms, 0);
+  const clientMs = d.hours.filter(x => x.item.type === 'production').reduce((a, x) => a + x.ms, 0);
   const bizMs = d.hours.filter(x => x.item.type === 'bucket').reduce((a, x) => a + x.ms, 0);
 
   d.hours.slice(0, 8).forEach(x => {
@@ -226,7 +226,7 @@ function stuck(d) {
     onclick: () => openItem(i.id)
   },
     el('span', { style: { width: '18px', textAlign: 'center' } },
-      i.type === 'client' ? '👤' : i.type === 'decision' ? '⚖️' : '✓'),
+      i.type === 'production' ? '🎬' : i.type === 'decision' ? '⚖️' : '✓'),
     el('span', { style: { flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, i.title),
     el('span', { class: 'small', style: { color: 'var(--red)' } }, ago(i.stageSince || i.createdAt)))));
   return card;

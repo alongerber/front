@@ -76,8 +76,13 @@ function haystack(item) {
   (item.attachments || []).forEach(a => bits.push(a.name));
   if (item.url) bits.push(item.url);
   if (item.type === 'client') {
-    const line = lineOf(item.productLineId);
-    bits.push(line?.name, stageOf(item)?.name, item.phone);
+    bits.push(lineOf(item.productLineId)?.name, item.phone, item.business);
+  }
+  if (item.type === 'production') {
+    // הפקה נמצאת גם בחיפוש שם הלקוח — אף אחד לא מחפש "סרטון 2"
+    const cl = item.clientId ? S().items.find(x => x.id === item.clientId) : null;
+    bits.push(lineOf(item.productLineId)?.name, stageOf(item)?.name);
+    if (cl) bits.push(cl.title, cl.business, cl.phone);
   }
   bits.push(typeMeta(item.type).name);
   return norm(bits.filter(Boolean).join(' '));

@@ -61,7 +61,9 @@ function renderTasks(root) {
     const client = t.clientId ? getItem(t.clientId) : null;
     const running = T.activeTimer() && T.activeTimer().itemId === t.id;
     const late = t.dueDate && t.dueDate < Date.now();
-    const asset = client && client.deliveredAsset;
+    // הקישור לסרטון יושב על ההפקה, לא על הלקוח
+    const prod = t.productionId ? getItem(t.productionId) : null;
+    const asset = prod && prod.deliveredAsset;
     card.append(el('div', { style: { display: 'flex', gap: '10px', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid rgba(255,255,255,.05)' } },
       el('input', {
         type: 'checkbox', style: { width: '17px', height: '17px', accentColor: '#ffd400', cursor: 'pointer' },
@@ -77,9 +79,9 @@ function renderTasks(root) {
         class: 'btn btn-xs', href: asset, target: '_blank', rel: 'noopener',
         title: 'הסרטון שנמסר', onclick: e => e.stopPropagation()
       }, '↗ הסרטון') : null,
-      t.followup && client && !asset ? el('button', {
+      t.followup && prod && !asset ? el('button', {
         class: 'btn btn-xs', title: 'אין קישור לסרטון שנמסר',
-        onclick: () => openItem(client.id)
+        onclick: () => openItem(prod.id)
       }, '+ קישור') : null,
       t.priority === 'high' ? el('span', { class: 'pill pill-r', 'data-tip': 'task.priority' }, 'דחוף') : null,
       t.dueDate ? el('span', { class: 'pill ' + (late ? 'pill-r' : '') }, dmy(t.dueDate)) : null,

@@ -11,6 +11,7 @@ import { runRules } from '../rules.js';
 import { refresh, openItem, openSwitcher, go } from '../app.js';
 import { hintBadge } from '../help.js';
 import * as D from '../delivery.js';
+import * as P from '../production.js';
 
 export default { render, tick };
 
@@ -278,17 +279,23 @@ function actionRow(e, rank) {
   row.append(el('span', { class: 'act-rank' }, String(rank)));
 
   const main = el('div', { class: 'act-main', style: { cursor: 'pointer' }, onclick: () => openItem(it.id) },
-    el('div', { class: 'act-title' }, it.title + (it.business ? ` · ${it.business}` : '')),
+    el('div', { class: 'act-title' }, (() => {
+      if (e.kind !== 'production') return it.title + (it.business ? ` · ${it.business}` : '');
+      const cl = P.clientOf(it);
+      return P.label(it) + (cl && cl.business ? ` · ${cl.business}` : '');
+    })()),
     el('div', { class: 'act-why' }, e.why)
   );
   row.append(main);
 
   const meta = el('div', { class: 'act-meta' });
 
-  if (e.kind === 'client') {
+  if (e.kind === 'production') {
     const p = progressOf(it);
+    const cl = P.clientOf(it);
     if (p.total) meta.append(el('span', { class: 'pill' }, Math.round(p.value * 100) + '%'));
-    if (it.amount) meta.append(el('span', { class: 'pill pill-y' }, nis(it.amount)));
+    if (cl && cl.amount) meta.append(el('span', { class: 'pill pill-y' },
+      nis(cl.retainer ? (cl.monthlyAmount || cl.amount) : cl.amount)));
     meta.append(el('button', {
       class: 'btn btn-xs ' + (running ? 'btn-y' : ''),
       onclick: () => { T.startTimer(it.id); refresh(); }

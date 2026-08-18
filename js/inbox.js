@@ -75,7 +75,8 @@ export function add(rec) {
     fields: {},
     raw: '',
     dedupeKey: key,
-    resultId: null
+    resultId: null,
+    updatedAt: now()
   }, rec);
 
   // הגולמי נשמר, אבל לא בלי גבול — המצב כולו יושב ב-JSON אחד
@@ -89,10 +90,15 @@ export function add(rec) {
   return { record, created: true };
 }
 
+/* כל שינוי מעדכן updatedAt. בלי זה המיזוג בסנכרון משווה
+   חותמות ישנות, והעותק שבענן — שעדיין "ממתין" — מנצח רשומה
+   שכבר אישרת. פריט שאושר וקם לתחייה הוא לקוח כפול. */
+const touch = r => { r.updatedAt = now(); };
+
 export function reject(id, why = '') {
   update(s => {
     const r = (s.inbox || []).find(x => x.id === id);
-    if (r) { r.status = 'rejected'; r.handledAt = now(); r.note = why || r.note; }
+    if (r) { r.status = 'rejected'; r.handledAt = now(); r.note = why || r.note; touch(r); }
   }, { label: 'דחיית רשומה' });
 }
 
@@ -104,7 +110,7 @@ export function remove(id) {
 export function reopen(id) {
   update(s => {
     const r = (s.inbox || []).find(x => x.id === id);
-    if (r) { r.status = 'pending'; r.handledAt = null; }
+    if (r) { r.status = 'pending'; r.handledAt = null; touch(r); }
   }, { label: 'החזרה לנכנס' });
 }
 
@@ -164,7 +170,7 @@ export function accept(id, opts = {}) {
 
   update(s => {
     const r = (s.inbox || []).find(x => x.id === id);
-    if (r) { r.status = 'accepted'; r.handledAt = now(); r.resultId = out.itemId; }
+    if (r) { r.status = 'accepted'; r.handledAt = now(); r.resultId = out.itemId; touch(r); }
   }, { label: 'אישור רשומה' });
 
   return out;

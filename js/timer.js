@@ -7,6 +7,7 @@
 import { S, update, uid, getItem } from './store.js';
 import { MIN, HOUR, DAY, startOfDay, endOfDay, toast } from './util.js';
 import * as P from './presence.js';
+import * as CL from './clock.js';
 
 /* סוגי זמן. focus=true נספר כזמן עבודה נטו ונכנס לתמחור.
    meet ו-fix נפרדים מ-work כי הם המספרים שבאמת מפתיעים בסוף החודש:
@@ -259,6 +260,8 @@ export function startWaiting(itemId, note = '') {
     if (!s.waiting.some(w => w.itemId === itemId))
       s.waiting.push({ itemId, since: now(), note });
   });
+  // ממתינים ללקוח → שעון ההפקה נעצר. עיכוב מצדו לא נספר לרעתך.
+  CL.pauseClock(itemId);
   emit();
 }
 
@@ -267,6 +270,9 @@ export function endWaiting(itemId, silent = false) {
   if (!w) return;
   pushEntry(itemId, w.since, now(), 'wait', w.note);
   update(s => { s.waiting = s.waiting.filter(x => x.itemId !== itemId); });
+  // והשעון ממשיך — תאריך היעד נדחף בימי העסקים שעברו בהמתנה
+  const moved = CL.resumeClock(itemId);
+  if (moved && !silent) toast(`השעון המשיך · תאריך היעד נדחף ב-${moved} ${moved === 1 ? 'יום עסקים' : 'ימי עסקים'}`);
   if (!silent) emit();
 }
 

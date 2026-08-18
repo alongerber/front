@@ -75,6 +75,7 @@ export function defaultState() {
       productionsMigrated: false, // הפרדת ההפקה מהלקוח — רצה פעם אחת
       migrationReport: null,      // {at, clients, productions, entries, ...} — האימות שזה עבד
       bundlePriceFixed: false,    // עדכון חד-פעמי של מחיר החבילה
+      nonWorkDays: [],            // ימים שסומנו ידנית כלא-נספרים בשעון ההפקה
       onboarded: false,           // ההדרכה בפעם הראשונה
       installed: false,           // הותקן על מסך הבית — בלי זה אין "רעיון מהיר" בטלפון
       floatUsed: false,           // האם נפתח החלון הצף אי פעם

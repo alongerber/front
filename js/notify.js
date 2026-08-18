@@ -31,7 +31,7 @@ function markSeen(id) {
 
 const CATEGORY = id =>
   id.startsWith('leads') ? 'lead'
-  : id.startsWith('due_') ? 'deadline'
+  : id.startsWith('due_') || id.startsWith('clock_') ? 'deadline'
   : id.startsWith('routines') ? 'routine'
   : id.startsWith('decisions') ? 'decision'
   : id.startsWith('timer') ? 'timer'

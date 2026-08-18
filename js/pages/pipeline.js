@@ -11,6 +11,7 @@ import { refresh, openItem } from '../app.js';
 import { hintBadge } from '../help.js';
 import * as D from '../delivery.js';
 import * as P from '../production.js';
+import * as CL from '../clock.js';
 
 export default { render };
 
@@ -141,7 +142,15 @@ function prodCard(c, stage, line) {
   const meta = el('div', { class: 'cm' });
   meta.append(el('span', { class: 'pill ' + (r.stuck ? 'pill-r' : '') }, ago(c.stageSince || c.createdAt)));
   if (cl && cl.amount) meta.append(el('span', { class: 'pill pill-y' }, nis(cl.retainer ? (cl.monthlyAmount || cl.amount) : cl.amount)));
-  if (c.dueDate) {
+  /* שעון ההפקה — כמה ימי עסקים נשארו, לא תאריך יבש */
+  const clk = CL.label(c);
+  if (clk) {
+    const t = CL.tone(c);
+    meta.append(el('span', {
+      class: 'pill ' + (t ? 'pill-' + t : ''), 'data-tip': 'pipe.clock',
+      title: 'יעד ' + dmy(c.dueDate)
+    }, clk));
+  } else if (c.dueDate) {
     const left = c.dueDate - Date.now();
     meta.append(el('span', { class: 'pill ' + (left < 0 ? 'pill-r' : left < 2 * DAY ? 'pill-y' : '') },
       left < 0 ? 'איחור' : dmy(c.dueDate)));

@@ -15,6 +15,8 @@ import * as MO from '../money.js';
 import * as notify from '../notify.js';
 import * as SY from '../sync.js';
 import { lineEditor } from './pipeline.js';
+import * as BD from '../businessdays.js';
+import * as CL from '../clock.js';
 import { refresh } from '../app.js';
 
 export default { render };
@@ -29,7 +31,7 @@ function render(root) {
 
   root.append(el('div', { class: 'grid g2' },
     el('div', {}, samplingCard(), bucketsCard(), syncCard(), backupCard(), notifyCard()),
-    el('div', {}, generalCard(), typesCard(), migrationCard(), dangerCard())
+    el('div', {}, generalCard(), typesCard(), businessDaysCard(), migrationCard(), dangerCard())
   ));
 }
 
@@ -894,6 +896,66 @@ function typesCard() {
         }, '×')
     ));
   });
+  return card;
+}
+
+/* ============================================================
+   ימי עסקים
+   ------------------------------------------------------------
+   הכרטיס קיים כדי שתוכל לראות מה המערכת חושבת שהם חגים —
+   ולתקן. לוח מושלם הוא בעיה שאי אפשר לסגור, והמספר על המסך
+   צריך להיות נכון ולא אלגנטי.
+   ============================================================ */
+
+function businessDaysCard() {
+  const card = el('div', { class: 'card', style: { marginBottom: '14px' } });
+  card.append(el('div', { class: 'card-h' },
+    el('h3', { style: { display: 'flex', alignItems: 'center' } }, 'ימי עסקים', hintBadge('pipe.clock')),
+    el('span', { class: 'sub' }, 'מה נספר בשעון ההפקה')));
+
+  card.append(el('div', { class: 'small muted', style: { marginBottom: '10px', lineHeight: '1.7' } },
+    'שישי ושבת לא נספרים, וגם החגים למטה — הם מחושבים מהלוח העברי שבדפדפן, ' +
+    'בלי טבלה שמתיישנת. חול המועד וערבי חג כן נספרים; אם יום מסוים לא היה יום עבודה, ' +
+    'סמן אותו כאן.'));
+
+  const today = BD.whyOff(Date.now());
+  card.append(el('div', { style: { display: 'flex', gap: '7px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '12px' } },
+    el('span', { class: 'pill ' + (today ? '' : 'pill-y') },
+      today ? 'היום לא נספר · ' + today : 'היום נספר'),
+    today ? null : el('button', {
+      class: 'btn btn-sm',
+      onclick: () => {
+        const n = CL.markTodayOff();
+        toast(n < 0 ? 'היום כבר מסומן'
+          : n ? `היום לא נספר · ${n} ${n === 1 ? 'שעון הוזז' : 'שעונים הוזזו'} ביום עסקים` : 'היום לא נספר', 'ok');
+        refresh();
+      }
+    }, 'היום לא נספר')));
+
+  /* ימים שסומנו ידנית */
+  const off = BD.offDays();
+  if (off.length) {
+    card.append(el('div', { class: 'small muted', style: { marginBottom: '5px' } }, 'ימים שסימנת'));
+    const list = el('div', { style: { display: 'flex', gap: '5px', flexWrap: 'wrap', marginBottom: '12px' } });
+    off.slice(-12).forEach(k => list.append(el('span', { class: 'pill' }, k, ' ',
+      el('button', {
+        class: 'btn btn-xs', 'aria-label': 'בטל את הסימון של ' + k,
+        onclick: () => { BD.unmarkOff(k); toast('הסימון בוטל'); refresh(); }
+      }, '×'))));
+    card.append(list);
+  }
+
+  /* החגים שהמערכת מכירה */
+  const hol = BD.upcomingHolidays(12);
+  card.append(el('div', { class: 'small muted', style: { marginBottom: '5px' } },
+    `חגים בשנה הקרובה (${hol.length})`));
+  const days = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+  const hl = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '3px' } });
+  hol.forEach(h => hl.append(el('div', { class: 'small', style: { display: 'flex', gap: '8px' } },
+    el('span', { style: { flex: 1 } }, h.name),
+    el('span', { class: 'muted' }, new Date(h.ts).toLocaleDateString('he-IL')),
+    el('span', { class: 'muted', style: { width: '52px' } }, days[h.weekday]))));
+  card.append(hl);
   return card;
 }
 

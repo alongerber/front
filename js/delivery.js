@@ -24,6 +24,7 @@
 
 import { S, getItem, patchItem, addItem, lineOf } from './store.js';
 import { clientOf } from './production.js';
+import * as CL from './clock.js';
 
 const DAY = 86400000;
 const now = () => Date.now();
@@ -143,10 +144,14 @@ export function markDelivered(productionId, at = now()) {
  */
 export function onStageChange(productionId, stage) {
   const p = getItem(productionId);
-  if (!p) return { paid: false, delivered: false, followups: [] };
+  if (!p) return { paid: false, delivered: false, followups: [], clock: null };
+
   const paid = isPayStage(stage) && p.clientId ? markPaid(p.clientId) : false;
+  /* השעון מתחיל בתשלום — זה הרגע שממנו ההבטחה נספרת.
+     גם אם התשלום כבר היה רשום, כי ההפקה עשויה להיות חדשה. */
+  const clock = isPayStage(stage) ? CL.startClock(productionId) : null;
   const d = isDeliverStage(stage) ? markDelivered(productionId) : { delivered: false, followups: [] };
-  return { paid, delivered: d.delivered, followups: d.followups };
+  return { paid, clock, delivered: d.delivered, followups: d.followups };
 }
 
 /* ============================================================

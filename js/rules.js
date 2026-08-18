@@ -7,6 +7,7 @@ import { S, monthMoney, lineOf, stageOf } from './store.js';
 import { MIN, HOUR, DAY, dur, nis, ago, startOfDay } from './util.js';
 import { activeTimer, elapsed, focusMs, avgFocusPerDelivery, availableToday } from './timer.js';
 import { dueRoutines, unitEconomics, deliveredThisMonth } from './brain.js';
+import * as CL from './clock.js';
 
 const now = () => Date.now();
 
@@ -46,8 +47,27 @@ export function runRules() {
     });
   }
 
+  /* --- שעון ההפקה ---
+     ההתראה נופלת ביום העסקים החמישי מתוך שבעה. לא ביום השביעי,
+     כי אז כבר אין מה לעשות איתה. */
+  CL.openClocks().forEach(x => {
+    const p = x.production;
+    const name = (s.items.find(i => i.id === p.clientId) || {}).title || p.title;
+    if (x.state === 'late')
+      push('clock_' + p.id, 'bad',
+        `${name} — עברת את ההבטחה ב-${Math.abs(x.left)} ${Math.abs(x.left) === 1 ? 'יום עסקים' : 'ימי עסקים'}`,
+        { type: 'goto', href: '#/pipeline' });
+    else if (!x.paused && x.left <= 2)
+      push('clock_' + p.id, 'warn',
+        x.left === 0
+          ? `${name} — היום היום האחרון מתוך ${CL.promisedDays(p)} ימי העסקים`
+          : `${name} — נשארו ${x.left} ${x.left === 1 ? 'יום עסקים' : 'ימי עסקים'} מתוך ${CL.promisedDays(p)}`,
+        { type: 'goto', href: '#/pipeline' });
+  });
+
   /* --- דדליינים --- */
   s.items.filter(i => (i.type === 'production' || i.type === 'task') && !i.archived && !i.done && !i.deliveredAt && i.dueDate)
+    .filter(i => !i.clockStartedAt)     // הפקה עם שעון כבר קיבלה התראה משלה
     .forEach(i => {
       const left = i.dueDate - now();
       if (left < 0) push('due_' + i.id, 'bad', `${i.title} — עבר את תאריך היעד ב${ago(i.dueDate)}`);

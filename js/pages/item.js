@@ -15,6 +15,7 @@ import { linkChips } from '../mentions.js';
 import * as B from '../brief.js';
 import * as DL from '../delivery.js';
 import * as P from '../production.js';
+import * as CL from '../clock.js';
 
 export function openItem(id) {
   const it = getItem(id);
@@ -226,7 +227,63 @@ function prodBlock(pr, draw) {
   });
   box.append(row);
 
-  /* תאריך יעד — של ההפקה הזאת בלבד */
+  /* ---- שעון ההפקה ----
+     "7 ימי עסקים" הפך ממשפט בדף הנחיתה למספר שאפשר להסתכל עליו. */
+  box.append(el('div', { class: 'hr' }));
+  const clk = CL.clockState(pr);
+  const clkBox = el('div', { class: 'clockrow' });
+
+  if (!clk) {
+    clkBox.append(
+      el('div', { class: 'small muted', style: { flex: 1 } },
+        'השעון עוד לא רץ. הוא מתחיל לבד ברגע שההפקה עוברת לשלב שסומן "שולם".'),
+      el('button', {
+        class: 'btn btn-xs',
+        onclick: () => {
+          const d = CL.startClock(pr.id);
+          toast(d ? 'השעון הופעל · יעד ' + dmy(d) : 'השעון כבר רץ', 'ok');
+          draw(); refresh();
+        }
+      }, 'הפעל עכשיו'));
+  } else {
+    const t = CL.tone(pr);
+    clkBox.append(
+      el('div', { style: { flex: 1, minWidth: 0 } },
+        el('div', { style: { display: 'flex', alignItems: 'center', gap: '7px', flexWrap: 'wrap' } },
+          el('span', { class: 'pill ' + (t ? 'pill-' + t : '') }, CL.label(pr)),
+          el('span', { class: 'small muted' }, 'יעד ' + dmy(clk.due)),
+          hintBadge('pipe.clock')),
+        el('div', { class: 'small muted', style: { marginTop: '4px' } },
+          `${CL.promisedDays(pr)} ימי עסקים מהתשלום` +
+          (clk.pausedDays ? ` · ${clk.pausedDays} ${clk.pausedDays === 1 ? 'יום' : 'ימים'} של המתנה ללקוח לא נספרו` : ''))));
+
+    if (clk.state !== 'done') {
+      clkBox.append(clk.paused
+        ? el('button', {
+          class: 'btn btn-xs btn-y',
+          onclick: () => { T.endWaiting(pr.id); draw(); refresh(); }
+        }, '▶ ממשיכים')
+        : el('button', {
+          class: 'btn btn-xs',
+          title: 'עוצר את השעון — הזמן שהוא מתעכב לא ייספר לרעתך',
+          onclick: () => { T.startWaiting(pr.id, 'ממתין ללקוח'); draw(); refresh(); }
+        }, '⏸ ממתין ללקוח'));
+
+      clkBox.append(el('button', {
+        class: 'btn btn-xs',
+        title: 'מסמן את היום כלא-נספר ודוחף את כל השעונים הפתוחים ביום',
+        onclick: () => {
+          const n = CL.markTodayOff();
+          toast(n < 0 ? 'היום כבר מסומן'
+            : n ? `היום לא נספר · ${n} ${n === 1 ? 'שעון הוזז' : 'שעונים הוזזו'} ביום` : 'היום לא נספר', 'ok');
+          draw(); refresh();
+        }
+      }, 'היום לא נספר'));
+    }
+  }
+  box.append(clkBox);
+
+  /* תאריך יעד — של ההפקה הזאת בלבד, וניתן לעריכה ידנית */
   const due = input({ type: 'date', value: pr.dueDate ? dateInput(pr.dueDate) : '' });
   due.addEventListener('change', () => {
     patchItem(pr.id, { dueDate: due.value ? new Date(due.value + 'T18:00').getTime() : null }, 'שינוי תאריך יעד');

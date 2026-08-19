@@ -13,6 +13,7 @@ import * as A from '../attachments.js';
 import * as LP from '../linkpreview.js';
 import { previewCard } from '../previewcard.js';
 import { attachMentions, linkChips } from '../mentions.js';
+import { tagField, tagKey } from '../tagfield.js';
 import * as L from '../links.js';
 
 export default { render };
@@ -830,27 +831,54 @@ function colorPicker(n) {
   modal({ title: 'צבע הפתק', body: box });
 }
 
+/* צבע לנושא שנוצר תוך כדי הקלדה. לבחור צבע זו החלטה שאפשר
+   לדחות — ותמיד אפשר לשנות אותו אחר כך ברצועת הנושאים. */
+const NEW_TAG_COLORS = ['#5aa9ff', '#3ddc84', '#ff9f43', '#e879f9', '#b98cff', '#2dd4bf'];
+
 function tagPicker(n) {
-  let tags = (n.noteTags || []).slice();
+  const nameOf = id => (S().noteTags.find(t => t.id === id) || {}).name;
+  const usage = id => S().items.filter(i => (i.noteTags || []).includes(id)).length;
+  const pool = () => S().noteTags.map(t => ({ name: t.name, count: usage(t.id) }));
+
+  /* אותו שדה השלמה של הבנק והידע. כאן הוא גם הדרך ליצור נושא
+     חדש בלי לסגור את החלון ולפתוח אחר. */
+  const tf = tagField((n.noteTags || []).map(nameOf).filter(Boolean),
+    { pool, placeholder: 'הקלד נושא — קיים או חדש', onChange: () => draw() });
+
   const box = el('div', { class: 'edit-tags' });
   const draw = () => {
+    const on = tf.get().map(tagKey);
     box.innerHTML = '';
     S().noteTags.forEach(t => {
-      const on = tags.includes(t.id);
+      const sel = on.includes(tagKey(t.name));
       box.append(el('button', {
-        class: 'tag-pill sm' + (on ? ' on' : ''),
-        style: on ? { background: t.color, color: '#000', borderColor: t.color } : { borderColor: t.color + '66' },
-        onclick: () => { tags = on ? tags.filter(x => x !== t.id) : tags.concat(t.id); draw(); }
+        class: 'tag-pill sm' + (sel ? ' on' : ''),
+        style: sel ? { background: t.color, color: '#000', borderColor: t.color } : { borderColor: t.color + '66' },
+        onclick: () => {
+          if (sel) tf.set(tf.get().filter(x => tagKey(x) !== tagKey(t.name)));
+          else tf.add(t.name);
+          draw();
+        }
       }, t.name));
     });
   };
   draw();
+
   modal({
-    title: 'נושאים', body: el('div', {}, box,
-      el('button', { class: 'btn btn-xs', style: { marginTop: '11px' }, onclick: () => { closeModal(); newTagPrompt(); } }, '+ נושא חדש')),
+    title: 'נושאים',
+    body: el('div', {}, tf.node, el('div', { style: { marginTop: '11px' } }, box)),
     actions: [{ label: 'ביטול' }, {
       label: 'שמור', cls: 'btn-y',
-      onClick: () => { patchItem(n.id, { noteTags: tags }); refresh(); }
+      onClick: () => {
+        const ids = tf.get().map(name => {
+          const hit = S().noteTags.find(t => tagKey(t.name) === tagKey(name));
+          if (hit) return hit.id;
+          const color = NEW_TAG_COLORS[S().noteTags.length % NEW_TAG_COLORS.length];
+          return addNoteTag(name, color).id;
+        });
+        patchItem(n.id, { noteTags: ids });
+        refresh();
+      }
     }]
   });
 }

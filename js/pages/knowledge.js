@@ -11,6 +11,7 @@ import { refresh, openItem } from '../app.js';
 import { previewCard } from '../previewcard.js';
 import { addLink } from '../links.js';
 import { hintBadge } from '../help.js';
+import { tagField } from '../tagfield.js';
 
 export default { render };
 
@@ -248,7 +249,7 @@ export function form(existing) {
   const fU = input({ value: k.url || '', placeholder: 'https://…', dir: 'ltr' });
   const fN = textarea({ placeholder: 'למה זה מעניין, מה לבדוק' });
   fN.value = k.note || '';
-  const fTags = input({ value: (k.tags || []).join(', '), placeholder: 'סרטונים, סוכנת, תמחור' });
+  const fTags = tagField(k.tags || [], { placeholder: 'סרטונים, סוכנת, תמחור' });
   const fEst = input({ type: 'number', value: k.estMinutes ?? 20 });
   const fUrg = select([{ value: '0', label: 'רגיל' }, { value: '1', label: 'דחוף' }], k.urgent ? '1' : '0');
   const rels = [{ value: '', label: '— בלי קשר —' },
@@ -261,7 +262,7 @@ export function form(existing) {
       field('כותרת', fT),
       field('לינק', fU),
       field('הערה', fN),
-      field('תגיות', fTags, 'מופרדות בפסיק — משמשות לקשר לפריטים פעילים'),
+      field('תגיות', fTags.node, 'ההשלמה מציעה תגיות שכבר קיימות — כדי שלא ייווצרו שתי גרסאות לאותה תגית'),
       el('div', { class: 'row' },
         field(el('span', { style: { display: 'inline-flex', alignItems: 'center' } }, 'זמן משוער (דקות)', hintBadge('know.est')), fEst),
         field('דחיפות', fUrg),
@@ -276,7 +277,7 @@ export function form(existing) {
             title: fT.value.trim() || 'ללא כותרת',
             url: fU.value.trim(),
             note: fN.value,
-            tags: fTags.value.split(',').map(x => x.trim()).filter(Boolean),
+            tags: fTags.get(),
             estMinutes: Number(fEst.value) || 20,
             urgent: fUrg.value === '1',
             relatedItemId: fRel.value || null

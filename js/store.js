@@ -118,7 +118,9 @@ export function defaultState() {
       { id: 'routine',   name: 'שגרה',   icon: '🔁', color: '#3ddc84', system: true },
       { id: 'idea',      name: 'רעיון',  icon: '💡', color: '#ff6b9d', system: true },
       { id: 'note',      name: 'פתק',    icon: '🗒', color: '#a3e635', system: true },
-      { id: 'bucket',    name: 'על העסק', icon: '◈',  color: '#22d3ee', system: true }
+      { id: 'bucket',    name: 'על העסק', icon: '◈',  color: '#22d3ee', system: true },
+      { id: 'shot',      name: 'שוט',    icon: '🎞', color: '#38bdf8', system: true },
+      { id: 'template',  name: 'תבנית',  icon: '📐', color: '#f0abfc', system: true }
     ],
 
     items: defaultItems(),
@@ -559,6 +561,20 @@ export function addItem(partial) {
     item.lastTouched = item.lastTouched || t;
     if (typeof item.estMinutes !== 'number') item.estMinutes = 20;
     item.urgent = !!item.urgent;
+  }
+  /* בנק השוטים והתבניות. uses הוא מקור האמת למונה השימושים —
+     מונה שנשמר בנפרד מתחיל לשקר ביום שמוחקים שימוש. */
+  if (item.type === 'shot') {
+    item.url = item.url || '';
+    item.shotType = item.shotType || 'char';
+    item.prompt = String(item.prompt || '').slice(0, 2000);
+    if (!Array.isArray(item.uses)) item.uses = [];
+  }
+  if (item.type === 'template') {
+    ['domain', 'angles', 'analogies', 'avoid', 'failed'].forEach(k => {
+      if (typeof item[k] !== 'string') item[k] = '';
+    });
+    if (!Array.isArray(item.uses)) item.uses = [];
   }
   if (item.type === 'decision') item.status = item.status || 'open';
   if (item.type === 'routine') {

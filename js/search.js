@@ -84,6 +84,10 @@ function haystack(item) {
     bits.push(lineOf(item.productLineId)?.name, stageOf(item)?.name);
     if (cl) bits.push(cl.title, cl.business, cl.phone);
   }
+  /* הבנק: הפרומפט הוא טקסט לחיפוש כמו כל טקסט אחר — לפעמים
+     זוכרים מילה מתוכו ולא את שם הקובץ */
+  if (item.type === 'shot') bits.push(item.prompt);
+  if (item.type === 'template') bits.push(item.domain, item.angles, item.analogies, item.avoid, item.failed);
   bits.push(typeMeta(item.type).name);
   return norm(bits.filter(Boolean).join(' '));
 }

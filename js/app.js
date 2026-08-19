@@ -21,6 +21,7 @@ import pipeline from './pages/pipeline.js';
 import time from './pages/time.js';
 import money from './pages/money.js';
 import knowledge from './pages/knowledge.js';
+import bank from './pages/bank.js';
 import routines from './pages/routines.js';
 import tasks from './pages/tasks.js';
 import notes from './pages/notes.js';
@@ -41,6 +42,7 @@ const PAGES = {
   'time':      { title: 'זמן',     icon: '◷',  color: '#b98cff', mod: time },
   'money':     { title: 'כסף',     icon: '₪',  color: '#3ddc84', mod: money, badge: 'money' },
   'knowledge': { title: 'ידע',     icon: '❐',  color: '#ff9f43', mod: knowledge, badge: 'knowledge' },
+  'bank':      { title: 'בנק',     icon: '🎞', color: '#38bdf8', mod: bank },
   'routines':  { title: 'שגרה',    icon: '↻',  color: '#2dd4bf', mod: routines, badge: 'routines' },
   'tasks':     { title: 'משימות',  icon: '✓',  color: '#ff6b9d', mod: tasks, badge: 'tasks' },
   'notes':     { title: 'פנקס',    icon: '🗒', color: '#a3e635', mod: notes, badge: 'notes' },

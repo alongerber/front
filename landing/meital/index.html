@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a09">
+<title>פרונט · לדבר עם הסוכנת</title>
+<meta name="description" content="שיחה קצרה עם הסוכנת הקולית של פרונט. היא שואלת, אתם עונים, ומזה נכתב התסריט.">
+<meta name="robots" content="noindex">
+
+<!-- אימות הדומיין למטא — לא לגעת -->
+<meta name="facebook-domain-verification" content="dbpnxf6ntx19rsvyj62zbxepdj1gbh">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a0a09'/%3E%3Cpath d='M9 24V8h14v3.6h-9.9v3.1h8.6v3.6h-8.6V24z' fill='%23ffd400'/%3E%3C/svg%3E">
+
+<!-- Meta Pixel — לא לגעת -->
+<script>
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+document,'script','https://connect.facebook.net/en_US/fbevents.js');
+fbq('init','871649018702910');fbq('track','PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=871649018702910&ev=PageView&noscript=1"></noscript>
+
+<style>
+/* ============================================================
+   פרונט · הסוכנת
+   ------------------------------------------------------------
+   מכונת מצבים אחת. חמישה מצבים, ובכל רגע אחד בלבד:
+   rest · prep · connecting · live · ended
+
+   כל מה שמוצג נגזר מ-data-state על ה-body. אין תנאים
+   מצטברים ואין אלמנט שמחליט על עצמו אם הוא מוצג — בדיוק
+   הבעיה שהגרסה הקודמת סבלה ממנה.
+
+   הדף הזה עושה דבר אחד: נותן לדבר איתה. מי שהגיע לכאן כבר
+   ראה את דף הנחיתה ולא צריך שימכרו לו שוב.
+   ============================================================ */
+
+:root{
+  --bg:#0a0a09;
+  --card:#131312;
+  --line:rgba(255,255,255,.10);
+  --line-2:rgba(255,255,255,.18);
+  --y:#ffd400;
+  --t1:rgba(255,255,255,.96);
+  --t2:rgba(255,255,255,.64);
+  --t3:rgba(255,255,255,.40);
+  --pad:clamp(18px,5vw,32px);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--bg);color:var(--t1);
+  font-family:Heebo,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  font-size:17px;line-height:1.65;overflow-x:hidden;-webkit-font-smoothing:antialiased;
+  min-height:100dvh;
+}
+a{color:inherit}
+p{margin:0 0 1em}
+p:last-child{margin-bottom:0}
+h1{margin:0;font-size:clamp(1.9rem,7vw,3.1rem);font-weight:900;letter-spacing:-.04em;line-height:1.02}
+h2{margin:0 0 10px;font-size:clamp(1.3rem,4.6vw,1.8rem);font-weight:900;letter-spacing:-.03em}
+
+.wrap{max-width:620px;margin:0 auto;padding-inline:var(--pad)}
+.small{font-size:14px}
+.muted{color:var(--t3)}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  min-height:52px;padding:0 24px;border-radius:6px;border:1px solid var(--line-2);
+  background:transparent;color:var(--t1);font-family:inherit;font-size:16px;font-weight:700;
+  text-decoration:none;cursor:pointer;transition:background .18s,border-color .18s;
+}
+.btn:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.34)}
+.btn-y{background:var(--y);border-color:var(--y);color:#000}
+.btn-y:hover{background:#ffde3d;border-color:#ffde3d}
+.btn-sm{min-height:44px;font-size:15px;padding:0 16px}
+.btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
+
+/* ---------- ראש הדף ---------- */
+.top{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  padding:14px var(--pad);border-bottom:1px solid var(--line);
+}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo i{
+  width:26px;height:26px;border-radius:7px;background:var(--y);color:#000;
+  display:grid;place-items:center;font-style:normal;font-weight:900;font-size:15px;
+}
+.logo b{font-weight:700;font-size:15px}
+.back{color:var(--t3);text-decoration:none;font-size:14px}
+.back:hover{color:var(--t1)}
+
+/* ---------- תמונת הגיבור ---------- */
+.hero{
+  height:clamp(180px,38vw,280px);background:#0f0e0c center 30%/cover no-repeat;
+  -webkit-mask-image:linear-gradient(to top,transparent,#000 62%);
+  mask-image:linear-gradient(to top,transparent,#000 62%);
+}
+body[data-state="live"] .hero,
+body[data-state="connecting"] .hero{height:clamp(110px,22vw,150px)}
+
+main{padding-block:clamp(22px,5vw,36px) clamp(60px,12vw,90px)}
+
+/* ============================================================
+   הצגה לפי מצב — הכלל היחיד שקובע מה רואים
+   ============================================================ */
+[data-when]{display:none}
+body[data-state="rest"]       [data-when~="rest"],
+body[data-state="prep"]       [data-when~="prep"],
+body[data-state="connecting"] [data-when~="connecting"],
+body[data-state="live"]       [data-when~="live"],
+body[data-state="ended"]      [data-when~="ended"]{display:block}
+
+/* ---------- מסך הביניים ---------- */
+.card{
+  border:1px solid var(--line);border-radius:14px;background:var(--card);
+  padding:clamp(20px,4vw,28px);
+}
+.steps{list-style:none;margin:18px 0 0;padding:0;display:grid;gap:14px}
+.steps li{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;color:var(--t2);font-size:15.5px}
+.steps i{
+  width:22px;height:22px;border-radius:50%;background:rgba(255,212,0,.14);color:var(--y);
+  display:grid;place-items:center;font-style:normal;font-size:14px;font-weight:900;margin-top:2px;
+}
+
+/* ---------- מתחבר ---------- */
+.spin{display:flex;align-items:center;gap:12px;color:var(--t2)}
+.spin i{
+  width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.2);
+  border-top-color:var(--y);animation:sp .8s linear infinite;font-style:normal;
+}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin i{animation-duration:2.4s}}
+
+/* ---------- הווידג'ט ---------- */
+#widget{min-height:clamp(320px,52vh,520px);margin-top:18px}
+body[data-state="rest"] #widget,
+body[data-state="prep"] #widget,
+body[data-state="ended"] #widget{display:none}
+
+.mode-note{
+  margin-top:14px;padding:14px 16px;border:1px solid var(--line);border-radius:10px;
+  color:var(--t2);font-size:14.5px;background:rgba(255,255,255,.02);
+}
+.mode-note b{color:var(--t1)}
+/* קישור בתוך שורת טקסט — שטח לחיצה של אצבע, לא של עכבר */
+.mode-note a{display:inline-flex;align-items:center;min-height:44px}
+
+/* ---------- סרגל הוואטסאפ ----------
+   שכבה צפה מעל הכל. לא מוזרק לתוך הווידג'ט — הניסיון להיכנס
+   ל-shadow DOM הוא מה שלא עבד בגרסה הקודמת. */
+.wa{
+  position:fixed;inset-inline:0;bottom:0;z-index:9000;
+  padding:10px var(--pad) calc(10px + env(safe-area-inset-bottom));
+  background:rgba(10,10,9,.94);backdrop-filter:blur(10px);border-top:1px solid var(--line);
+  display:flex;align-items:center;gap:12px;
+  transform:translateY(120%);transition:transform .3s ease;
+}
+.wa.on{transform:translateY(0)}
+.wa .txt{flex:1;min-width:0;font-size:14px;color:var(--t3);line-height:1.35}
+.wa .txt b{display:block;color:var(--t1);font-size:15px}
+.wa .btn{flex:0 0 auto}
+
+/* ---------- תקלה ---------- */
+.err{border-color:rgba(255,90,77,.4);background:rgba(255,90,77,.06)}
+</style>
+</head>
+<body data-state="rest">
+
+<div class="top">
+  <a class="logo" href="../"><i>F</i><b>פרונט</b></a>
+  <a class="back" href="../">חזרה לדף ←</a>
+</div>
+
+<div class="hero" id="hero"></div>
+
+<main>
+  <div class="wrap">
+
+    <!-- ============================================================
+         מנוחה
+         ============================================================ -->
+    <div data-when="rest">
+      <h1>תדברו איתה. היא לא תיעלב.</h1>
+      <p class="muted" style="margin-top:16px">שיחה של כמה דקות. היא שואלת מה אתם עושים, למי, ולמה שמישהו יבחר בכם — ומזה נכתב התסריט.</p>
+      <div class="btns">
+        <button class="btn btn-y" id="goTalk">לדבר איתה עכשיו</button>
+        <button class="btn" id="goText">לא בא לי לדבר, אני אכתוב</button>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         הכנה — מה עומד לקרות, לפני שהדפדפן שואל
+         ============================================================ -->
+    <div data-when="prep">
+      <div class="card">
+        <h2>שנייה לפני שמתחילים</h2>
+        <p class="muted small">כדאי לדעת מה קורה עכשיו, כדי שההודעה של הדפדפן לא תפתיע.</p>
+        <ul class="steps">
+          <li><i>1</i><span>הדפדפן יבקש רשות להשתמש במיקרופון. צריך לאשר, אחרת היא לא שומעת אתכם.</span></li>
+          <li><i>2</i><span>אתם מדברים, היא שואלת. אין טופס ואין מה למלא.</span></li>
+          <li><i>3</i><span>השיחה נשמרת אצלנו ומשמשת לכתיבת התסריט שלכם. לא לשום דבר אחר.</span></li>
+          <li><i>4</i><span>אפשר לסגור באמצע. שום דבר לא קורה.</span></li>
+        </ul>
+        <div class="btns">
+          <button class="btn btn-y" id="goMic">יאללה, שתשאל</button>
+          <button class="btn" id="goText2">לא בא לי לדבר, אני אכתוב</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         מתחבר
+         ============================================================ -->
+    <div data-when="connecting">
+      <div class="card">
+        <div class="spin"><i></i><span id="connMsg">מחברים אתכם אליה…</span></div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         בשיחה
+         ============================================================ -->
+    <div data-when="live">
+      <h2 id="liveTitle">היא מקשיבה</h2>
+      <p class="muted small" id="liveSub">מדברים אליה כמו שמדברים לבן אדם. אפשר לסגור מתי שרוצים.</p>
+      <div class="mode-note" id="textNote" hidden>
+        <b>מצב כתיבה.</b> אפשר להקליד לה בתיבה שבתוך החלון. אם משהו לא נפתח —
+        <a href="https://wa.me/972559501280" data-wa style="color:var(--y)">כתבו לנו בוואטסאפ</a> ונענה בעצמנו.
+      </div>
+    </div>
+
+    <!-- הווידג'ט חי מחוץ למצבים כדי שלא ייטען מחדש בכל מעבר -->
+    <div id="widget"></div>
+
+    <!-- ============================================================
+         נגמר
+         ============================================================ -->
+    <div data-when="ended">
+      <div class="card" id="endCard">
+        <h2 id="endTitle">זהו, סיימנו</h2>
+        <p class="muted" id="endBody">מה שאמרתם יושב אצלנו. אם כבר שילמתם — השעון רץ, ונחזור אליכם עם הסרטון. אם עוד לא, זה הרגע.</p>
+        <div class="btns">
+          <a class="btn btn-y" href="../#plans">לבחור חבילה</a>
+          <button class="btn" id="again">לדבר איתה שוב</button>
+          <a class="btn" href="https://wa.me/972559501280" data-wa>וואטסאפ</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- סרגל הוואטסאפ — שכבה צפה, z-index גבוה -->
+<div class="wa" id="wa">
+  <div class="txt"><b>מעדיפים בן אדם?</b>אנחנו זמינים גם בכתב</div>
+  <a class="btn btn-sm" href="https://wa.me/972559501280" data-wa>וואטסאפ</a>
+</div>
+
+<script>
+/* ============================================================
+   ההגדרות
+   ============================================================ */
+const AGENT_ID   = 'agent_9801kzrfd8k2e0hr5g95brg049yv';   // סוכנת המכירות
+const WIDGET_SRC = 'https://unpkg.com/@elevenlabs/convai-widget-embed';
+const WA_AFTER   = 25000;    // הסרגל נדלק 25 שניות לתוך השיחה
+const LOAD_LIMIT = 8000;     // אחרי זה מניחים שהחלון לא נטען
+
+const $ = s => document.querySelector(s);
+const track = (ev, data) => { try { window.fbq && fbq('track', ev, data || {}); } catch (e) {} };
+
+/* ============================================================
+   מכונת המצבים — הפונקציה היחידה שמשנה מה מוצג
+   ============================================================ */
+const STATES = ['rest', 'prep', 'connecting', 'live', 'ended'];
+let state = 'rest';
+let mode = 'voice';          // voice | text
+let waTimer = null, loadTimer = null, leadFired = false;
+
+function setState(next, opts = {}) {
+  if (!STATES.includes(next)) return;
+  state = next;
+  document.body.dataset.state = next;
+
+  // כל מעבר מנקה את מה שהקודם הדליק — אין שאריות שממשיכות לרוץ
+  clearTimeout(waTimer); clearTimeout(loadTimer);
+  $('#wa').classList.remove('on');
+
+  if (next === 'live') {
+    $('#textNote').hidden = mode !== 'text';
+    $('#liveTitle').textContent = mode === 'text' ? 'אפשר לכתוב לה' : 'היא מקשיבה';
+    $('#liveSub').textContent = mode === 'text'
+      ? 'בלי מיקרופון. כותבים, היא עונה.'
+      : 'מדברים אליה כמו שמדברים לבן אדם. אפשר לסגור מתי שרוצים.';
+    waTimer = setTimeout(() => $('#wa').classList.add('on'), WA_AFTER);
+    // Lead נורה פעם אחת לביקור, גם אם חוזרים לשיחה
+    if (!leadFired) { leadFired = true; track('Lead', { content_name: 'שיחה עם הסוכנת', content_category: mode }); }
+  }
+
+  if (next === 'ended') {
+    const COPY = {
+      done: ['זהו, סיימנו',
+        'מה שאמרתם יושב אצלנו. אם כבר שילמתם — השעון רץ ונחזור אליכם עם הסרטון. אם עוד לא, זה הרגע.'],
+      load: ['החלון לא נפתח',
+        'קרתה תקלה בטעינה — לא אצלכם, אצלנו. אפשר לנסות שוב, ואפשר פשוט לכתוב לנו בוואטסאפ ונענה בעצמנו.'],
+      error: ['משהו נתקע באמצע',
+        'השיחה נקטעה. אפשר לנסות שוב, ואם זה חוזר — כתבו לנו בוואטסאפ ל-055-950-1280.']
+    };
+    const r = COPY[opts.reason] ? opts.reason : 'done';
+    $('#endTitle').textContent = COPY[r][0];
+    $('#endBody').textContent = COPY[r][1];
+    $('#endCard').classList.toggle('err', r !== 'done');
+  }
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ============================================================
+   תמונת הגיבור — קובץ חסר לא משאיר חור
+   ============================================================ */
+(function heroImage() {
+  const box = $('#hero'), img = new Image();
+  img.onload = () => { box.style.backgroundImage = 'url(./hero.jpg)'; };
+  img.onerror = () => { box.style.display = 'none'; };
+  img.src = './hero.jpg';
+})();
+
+/* ============================================================
+   המיקרופון — שואלים אנחנו, לא הווידג'ט
+   ------------------------------------------------------------
+   כך שגיאת הרשאה נתפסת כאן ומתורגמת לעברית, במקום להופיע
+   באנגלית בתוך חלון שאין לנו שליטה עליו.
+   ============================================================ */
+async function askMic() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return false;
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+    s.getTracks().forEach(t => t.stop());     // הווידג'ט יבקש בעצמו; רק בדקנו שיש רשות
+    return true;
+  } catch (e) { return false; }
+}
+
+/* ============================================================
+   הווידג'ט
+   ============================================================ */
+let mounted = false;
+
+function mountWidget() {
+  if (mounted) return Promise.resolve(true);
+  mounted = true;
+
+  const host = document.createElement('elevenlabs-convai');
+  host.setAttribute('agent-id', AGENT_ID);
+  host.setAttribute('language', 'he');
+  host.setAttribute('variant', 'expanded');
+  if (mode === 'text') host.setAttribute('text-only', 'true');
+  $('#widget').appendChild(host);
+
+  return new Promise(resolve => {
+    const done = ok => { if (!resolved) { resolved = true; resolve(ok); } };
+    let resolved = false;
+
+    const s = document.createElement('script');
+    s.src = WIDGET_SRC; s.async = true; s.type = 'text/javascript';
+    s.onerror = () => done(false);
+    s.onload = () => {
+      // מחכים שהאלמנט יוגדר בפועל, לא רק שהקובץ ירד
+      if (window.customElements && customElements.whenDefined) {
+        customElements.whenDefined('elevenlabs-convai').then(() => setTimeout(() => done(true), 600));
+      } else setTimeout(() => done(true), 900);
+    };
+    document.head.appendChild(s);
+
+    loadTimer = setTimeout(() => done(false), LOAD_LIMIT);
+  });
+}
+
+/* ============================================================
+   המסלולים
+   ============================================================ */
+async function startVoice() {
+  mode = 'voice';
+  setState('connecting');
+  $('#connMsg').textContent = 'מבקשים רשות למיקרופון…';
+
+  const ok = await askMic();
+  if (!ok) {
+    // הרשאה נדחתה או שאין מיקרופון — עוברים לכתיבה, לא למסך מת
+    mode = 'text';
+    $('#connMsg').textContent = 'בלי מיקרופון. פותחים מצב כתיבה…';
+  } else {
+    $('#connMsg').textContent = 'מחברים אתכם אליה…';
+  }
+
+  const up = await mountWidget();
+  setState(up ? 'live' : 'ended', { reason: 'load' });
+}
+
+async function startText() {
+  mode = 'text';
+  setState('connecting');
+  $('#connMsg').textContent = 'פותחים מצב כתיבה…';
+  const up = await mountWidget();
+  setState(up ? 'live' : 'ended', { reason: 'load' });
+}
+
+$('#goTalk').addEventListener('click', () => setState('prep'));
+$('#goMic').addEventListener('click', startVoice);
+$('#goText').addEventListener('click', startText);
+$('#goText2').addEventListener('click', startText);
+$('#again').addEventListener('click', () => setState(mounted ? 'live' : 'rest'));
+
+document.querySelectorAll('[data-wa]').forEach(a =>
+  a.addEventListener('click', () => track('Contact', { content_category: 'whatsapp' })));
+
+/* ============================================================
+   אירועים מהווידג'ט, אם וכשהוא שולח אותם
+   ------------------------------------------------------------
+   אין הסתמכות עליהם: המצב נקבע גם בלעדיהם. הם רק מדייקים
+   את הרגע שבו השיחה נגמרת.
+   ============================================================ */
+['elevenlabs-convai:call-ended', 'convai-call-end', 'elevenlabs-convai:disconnect'].forEach(name =>
+  window.addEventListener(name, () => { if (state === 'live') setState('ended', { reason: 'done' }); }));
+
+/* חשוף בכוונה: מאפשר לבדוק את מכונת המצבים מבחוץ, בלי לגעת
+   בפנים. אין כאן שום דבר סודי — רק המצב ומי שמזיז אותו. */
+window.__front = { setState, state: () => state, mode: () => mode };
+
+/* תקלה שנזרקת מהווידג'ט לא מוצגת באנגלית — היא מעבירה מצב */
+window.addEventListener('error', e => {
+  const src = (e.filename || '') + '';
+  if (state === 'live' && src.includes('convai')) setState('ended', { reason: 'error' });
+}, true);
+</script>
+</body>
+</html>

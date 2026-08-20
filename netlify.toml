@@ -17,6 +17,14 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "no-referrer"
 
+# דף הנחיתה יושב כאן רק כדי לעבור לריפו שלו. עד שיעבור, שלא
+# ייסרק מהדומיין של המערכת — שני עותקים מאונדקסים של אותו דף
+# הם בעיה שאין ממנה חזרה מהירה.
+[[headers]]
+  for = "/landing/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
 [[headers]]
   for = "/js/*"
   [headers.values]

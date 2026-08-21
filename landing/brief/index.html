@@ -4,8 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0a0a09">
-<title>פרונט · לדבר עם הסוכנת</title>
-<meta name="description" content="שיחה קצרה עם הסוכנת הקולית של פרונט. היא שואלת, אתם עונים, ומזה נכתב התסריט.">
+<title>פרונט · האפיון</title>
 <meta name="robots" content="noindex">
 
 <!-- אימות הדומיין למטא — לא לגעת -->
@@ -30,17 +29,22 @@ src="https://www.facebook.com/tr?id=871649018702910&ev=PageView&noscript=1"></no
 
 <style>
 /* ============================================================
-   פרונט · הסוכנת
+   פרונט · דף האפיון
    ------------------------------------------------------------
-   מכונת מצבים אחת. חמישה מצבים, ובכל רגע אחד בלבד:
+   כאן היו אמורים להיות שני דפים: אישור תשלום ואפיון. אין חזרה
+   אוטומטית מהסליקה, ולכן דף התודה לא ייטען אף פעם — והוא מוזג
+   לכאן. הדף הזה מגיע בקישור שנשלח ידנית.
+
+   מכאן נובעות שתי מגבלות:
+
+   1. הוא חייב לעבוד בלי פרמטרים. בלי ref אין שם ואין תאריך —
+      והדף עדיין עושה את מה שהוא נועד לעשות.
+   2. האישור לא חוסם את האפיון. מי שהגיע לכאן קיבל את הקישור
+      מאיתנו; לחכות לאימות ידני זה לבזבז את הרגע היחיד שבו
+      הוא מוכן לדבר.
+
+   מכונת המצבים זהה לזו של דף הסוכנת, בכוונה:
    rest · prep · connecting · live · ended
-
-   כל מה שמוצג נגזר מ-data-state על ה-body. אין תנאים
-   מצטברים ואין אלמנט שמחליט על עצמו אם הוא מוצג — בדיוק
-   הבעיה שהגרסה הקודמת סבלה ממנה.
-
-   הדף הזה עושה דבר אחד: נותן לדבר איתה. מי שהגיע לכאן כבר
-   ראה את דף הנחיתה ולא צריך שימכרו לו שוב.
    ============================================================ */
 
 :root{
@@ -69,10 +73,10 @@ body{
 a{color:inherit}
 p{margin:0 0 1em}
 p:last-child{margin-bottom:0}
-h1{margin:0;font-size:clamp(1.9rem,7vw,3.1rem);font-weight:900;letter-spacing:-.04em;line-height:1.02}
+h1{margin:0;font-size:clamp(2.1rem,8vw,3.4rem);font-weight:900;letter-spacing:-.045em;line-height:1}
 h2{margin:0 0 10px;font-size:clamp(1.3rem,4.6vw,1.8rem);font-weight:900;letter-spacing:-.03em}
 
-.wrap{max-width:620px;margin:0 auto;padding-inline:var(--pad)}
+.wrap{max-width:640px;margin:0 auto;padding-inline:var(--pad)}
 .small{font-size:14px}
 .muted{color:var(--t3)}
 
@@ -86,9 +90,8 @@ h2{margin:0 0 10px;font-size:clamp(1.3rem,4.6vw,1.8rem);font-weight:900;letter-s
 .btn-y{background:var(--y);border-color:var(--y);color:#000}
 .btn-y:hover{background:#ffde3d;border-color:#ffde3d}
 .btn-sm{min-height:44px;font-size:15px;padding:0 16px}
-.btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
+.btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
 
-/* ---------- ראש הדף ---------- */
 .top{
   display:flex;align-items:center;justify-content:space-between;gap:14px;
   padding:14px var(--pad);border-bottom:1px solid var(--line);
@@ -99,22 +102,40 @@ h2{margin:0 0 10px;font-size:clamp(1.3rem,4.6vw,1.8rem);font-weight:900;letter-s
   display:grid;place-items:center;font-style:normal;font-weight:900;font-size:15px;
 }
 .logo b{font-weight:700;font-size:15px}
-.back{color:var(--t3);text-decoration:none;font-size:14px}
-.back:hover{color:var(--t1)}
+.top .wa{color:var(--t3);text-decoration:none;font-size:14px;display:inline-flex;align-items:center;min-height:44px}
+.top .wa:hover{color:var(--t1)}
 
-/* ---------- תמונת הגיבור ---------- */
-.hero{
-  height:clamp(180px,38vw,280px);background:#0f0e0c center 30%/cover no-repeat;
-  -webkit-mask-image:linear-gradient(to top,transparent,#000 62%);
-  mask-image:linear-gradient(to top,transparent,#000 62%);
+main{padding-block:clamp(30px,7vw,56px) clamp(60px,12vw,90px)}
+
+/* ---------- האישור ---------- */
+.hi{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.hi .tick{
+  width:34px;height:34px;flex:0 0 34px;border-radius:50%;background:var(--y);color:#000;
+  display:grid;place-items:center;font-weight:900;font-size:17px;align-self:center;
 }
-body[data-state="live"] .hero,
-body[data-state="connecting"] .hero{height:clamp(110px,22vw,150px)}
+.paid{
+  margin-top:22px;border:1px solid var(--line);border-radius:12px;background:var(--card);
+  padding:clamp(16px,3.4vw,22px);display:grid;gap:10px;
+}
+.paid .row{display:flex;align-items:baseline;gap:10px;font-size:15.5px}
+.paid .row .k{color:var(--t3);min-width:5.5em}
+.paid .row .v{font-weight:700}
+.paid .row .v.y{color:var(--y)}
 
-main{padding-block:clamp(22px,5vw,36px) clamp(60px,12vw,90px)}
+.next{margin-top:clamp(26px,5vw,40px)}
+.next ol{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:16px;counter-reset:s}
+.next li{display:grid;grid-template-columns:auto 1fr;gap:13px;align-items:start;color:var(--t2)}
+.next li::before{
+  counter-increment:s;content:counter(s);
+  width:24px;height:24px;border-radius:50%;background:rgba(255,212,0,.14);color:var(--y);
+  display:grid;place-items:center;font-size:14px;font-weight:900;margin-top:3px;
+}
+.next b{color:var(--t1);font-weight:700}
+
+.keep{margin-top:26px;color:var(--t3);font-size:14.5px}
 
 /* ============================================================
-   הצגה לפי מצב — הכלל היחיד שקובע מה רואים
+   הצגה לפי מצב
    ============================================================ */
 [data-when]{display:none}
 body[data-state="rest"]       [data-when~="rest"],
@@ -123,11 +144,7 @@ body[data-state="connecting"] [data-when~="connecting"],
 body[data-state="live"]       [data-when~="live"],
 body[data-state="ended"]      [data-when~="ended"]{display:block}
 
-/* ---------- מסך הביניים ---------- */
-.card{
-  border:1px solid var(--line);border-radius:14px;background:var(--card);
-  padding:clamp(20px,4vw,28px);
-}
+.card{border:1px solid var(--line);border-radius:14px;background:var(--card);padding:clamp(20px,4vw,28px)}
 .steps{list-style:none;margin:18px 0 0;padding:0;display:grid;gap:14px}
 .steps li{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;color:var(--t2);font-size:15.5px}
 .steps i{
@@ -135,7 +152,6 @@ body[data-state="ended"]      [data-when~="ended"]{display:block}
   display:grid;place-items:center;font-style:normal;font-size:14px;font-weight:900;margin-top:2px;
 }
 
-/* ---------- מתחבר ---------- */
 .spin{display:flex;align-items:center;gap:12px;color:var(--t2)}
 .spin i{
   width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.2);
@@ -144,7 +160,6 @@ body[data-state="ended"]      [data-when~="ended"]{display:block}
 @keyframes sp{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.spin i{animation-duration:2.4s}}
 
-/* ---------- הווידג'ט ---------- */
 #widget{min-height:clamp(320px,52vh,520px);margin-top:18px}
 body[data-state="rest"] #widget,
 body[data-state="prep"] #widget,
@@ -155,25 +170,19 @@ body[data-state="ended"] #widget{display:none}
   color:var(--t2);font-size:14.5px;background:rgba(255,255,255,.02);
 }
 .mode-note b{color:var(--t1)}
-/* קישור בתוך שורת טקסט — שטח לחיצה של אצבע, לא של עכבר */
 .mode-note a{display:inline-flex;align-items:center;min-height:44px}
 
-/* ---------- סרגל הוואטסאפ ----------
-   שכבה צפה מעל הכל. לא מוזרק לתוך הווידג'ט — הניסיון להיכנס
-   ל-shadow DOM הוא מה שלא עבד בגרסה הקודמת. */
-.wa{
+.wa-bar{
   position:fixed;inset-inline:0;bottom:0;z-index:9000;
   padding:10px var(--pad) calc(10px + env(safe-area-inset-bottom));
   background:rgba(10,10,9,.94);backdrop-filter:blur(10px);border-top:1px solid var(--line);
   display:flex;align-items:center;gap:12px;
   transform:translateY(120%);transition:transform .3s ease;
 }
-.wa.on{transform:translateY(0)}
-.wa .txt{flex:1;min-width:0;font-size:14px;color:var(--t3);line-height:1.35}
-.wa .txt b{display:block;color:var(--t1);font-size:15px}
-.wa .btn{flex:0 0 auto}
+.wa-bar.on{transform:translateY(0)}
+.wa-bar .txt{flex:1;min-width:0;font-size:14px;color:var(--t3);line-height:1.35}
+.wa-bar .txt b{display:block;color:var(--t1);font-size:15px}
 
-/* ---------- תקלה ---------- */
 .err{border-color:rgba(255,90,77,.4);background:rgba(255,90,77,.06)}
 </style>
 </head>
@@ -181,38 +190,57 @@ body[data-state="ended"] #widget{display:none}
 
 <div class="top">
   <a class="logo" href="../"><i>F</i><b>פרונט</b></a>
-  <a class="back" href="../">חזרה לדף ←</a>
+  <a class="wa" href="https://wa.me/972559501280" data-wa>055-950-1280</a>
 </div>
-
-<div class="hero" id="hero"></div>
 
 <main>
   <div class="wrap">
 
     <!-- ============================================================
-         מנוחה
+         מנוחה — האישור, ומיד אחריו האפיון
          ============================================================ -->
     <div data-when="rest">
-      <h1>תדברו איתה. היא לא תיעלב.</h1>
-      <p class="muted" style="margin-top:16px">שיחה של כמה דקות. היא שואלת מה אתם עושים, למי, ולמה שמישהו יבחר בכם — ומזה נכתב התסריט.</p>
+      <div class="hi">
+        <span class="tick">✓</span>
+        <h1 id="hello">קלטנו.</h1>
+      </div>
+
+      <p class="muted" style="margin-top:18px" id="sub">
+        התשלום נקלט והעבודה מתחילה. נשאר חלק אחד שתלוי בכם, והוא הקצר.
+      </p>
+
+      <!-- פרטי העסקה — מוצג רק כשיש מה להציג -->
+      <div class="paid" id="paid" hidden></div>
+
+      <div class="next">
+        <h2>מה קורה עכשיו</h2>
+        <ol>
+          <li><span><b>שיחת אפיון קצרה, כאן בדף.</b> הסוכנת שלנו שואלת מה אתם עושים, למי, ולמה שיבחרו בכם. כמה דקות, ואי אפשר להיכשל בה.</span></li>
+          <li><span><b>אנחנו נכנסים לעבודה.</b> מחקר, תסריט, ליהוק ועריכה. לא צריך לשלוח לנו כלום ולא צריך להצטלם.</span></li>
+          <li><span><b>הסרטון מגיע.</b> קובץ מוכן לפרסום, עם סבב תיקונים אחד אם משהו לא יושב.</span></li>
+        </ol>
+      </div>
+
       <div class="btns">
-        <button class="btn btn-y" id="goTalk">לדבר איתה עכשיו</button>
+        <button class="btn btn-y" id="goTalk">להתחיל את האפיון</button>
         <button class="btn" id="goText">לא בא לי לדבר, אני אכתוב</button>
       </div>
+
+      <p class="keep">הקישור נשאר פעיל. אפשר לחזור אליו מתי שבא לכם.</p>
     </div>
 
     <!-- ============================================================
-         הכנה — מה עומד לקרות, לפני שהדפדפן שואל
+         הכנה
          ============================================================ -->
     <div data-when="prep">
       <div class="card">
         <h2>שנייה לפני שמתחילים</h2>
         <p class="muted small">כדאי לדעת מה קורה עכשיו, כדי שההודעה של הדפדפן לא תפתיע.</p>
         <ul class="steps">
-          <li><i>1</i><span>הדפדפן יבקש רשות להשתמש במיקרופון. צריך לאשר, אחרת היא לא שומעת אתכם.</span></li>
+          <li><i>1</i><span>הדפדפן יבקש רשות למיקרופון. צריך לאשר, אחרת היא לא שומעת אתכם.</span></li>
           <li><i>2</i><span>אתם מדברים, היא שואלת. אין טופס ואין מה למלא.</span></li>
           <li><i>3</i><span>השיחה נשמרת אצלנו ומשמשת לכתיבת התסריט שלכם. לא לשום דבר אחר.</span></li>
-          <li><i>4</i><span>אפשר לסגור באמצע. שום דבר לא קורה.</span></li>
+          <li><i>4</i><span>אפשר לעצור באמצע ולחזור. הקישור נשאר פעיל.</span></li>
         </ul>
         <div class="btns">
           <button class="btn btn-y" id="goMic">יאללה, שתשאל</button>
@@ -226,7 +254,7 @@ body[data-state="ended"] #widget{display:none}
          ============================================================ -->
     <div data-when="connecting">
       <div class="card">
-        <div class="spin"><i></i><span id="connMsg">מחברים אתכם אליה…</span></div>
+        <div class="spin"><i></i><span id="connMsg">מחברים אתכם…</span></div>
       </div>
     </div>
 
@@ -235,14 +263,13 @@ body[data-state="ended"] #widget{display:none}
          ============================================================ -->
     <div data-when="live">
       <h2 id="liveTitle">היא מקשיבה</h2>
-      <p class="muted small" id="liveSub">מדברים אליה כמו שמדברים לבן אדם. אפשר לסגור מתי שרוצים.</p>
+      <p class="muted small" id="liveSub">מדברים אליה כמו שמדברים לבן אדם. אפשר לעצור מתי שרוצים ולחזור.</p>
       <div class="mode-note" id="textNote" hidden>
         <b>מצב כתיבה.</b> אפשר להקליד לה בתיבה שבתוך החלון. אם משהו לא נפתח —
-        <a href="https://wa.me/972559501280" data-wa style="color:var(--y)">כתבו לנו בוואטסאפ</a> ונענה בעצמנו.
+        <a href="https://wa.me/972559501280" data-wa style="color:var(--y)">כתבו לנו בוואטסאפ</a> ונעשה את זה איתכם.
       </div>
     </div>
 
-    <!-- הווידג'ט חי מחוץ למצבים כדי שלא ייטען מחדש בכל מעבר -->
     <div id="widget"></div>
 
     <!-- ============================================================
@@ -250,51 +277,56 @@ body[data-state="ended"] #widget{display:none}
          ============================================================ -->
     <div data-when="ended">
       <div class="card" id="endCard">
-        <h2 id="endTitle">זהו, סיימנו</h2>
-        <p class="muted" id="endBody">מה שאמרתם יושב אצלנו. אם כבר שילמתם — השעון רץ, ונחזור אליכם עם הסרטון. אם עוד לא, זה הרגע.</p>
+        <h2 id="endTitle">זהו. יש לנו מה שצריך.</h2>
+        <p class="muted" id="endBody">מכאן זה עלינו. נחזור אליכם עם הסרטון, ואם נצטרך משהו נוסף — נכתוב בוואטסאפ.</p>
         <div class="btns">
-          <a class="btn btn-y" href="../#plans">לבחור חבילה</a>
-          <button class="btn" id="again">לדבר איתה שוב</button>
-          <a class="btn" href="https://wa.me/972559501280" data-wa>וואטסאפ</a>
+          <a class="btn btn-y" href="https://wa.me/972559501280" data-wa>וואטסאפ</a>
+          <button class="btn" id="again">להוסיף עוד משהו</button>
         </div>
+        <p class="keep">הקישור נשאר פעיל. אפשר לחזור אליו מתי שבא לכם.</p>
       </div>
     </div>
 
   </div>
 </main>
 
-<!-- סרגל הוואטסאפ — שכבה צפה, z-index גבוה -->
-<div class="wa" id="wa">
-  <div class="txt"><b>מעדיפים בן אדם?</b>אנחנו זמינים גם בכתב</div>
+<div class="wa-bar" id="wa">
+  <div class="txt"><b>נתקעתם?</b>אנחנו זמינים גם בכתב</div>
   <a class="btn btn-sm" href="https://wa.me/972559501280" data-wa>וואטסאפ</a>
 </div>
 
 <script>
 /* ============================================================
-   ההגדרות
+   הגדרות
    ============================================================ */
-const AGENT_ID   = 'agent_9801kzrfd8k2e0hr5g95brg049yv';   // סוכנת המכירות
+const AGENT_ID   = 'agent_1101m0a412w3ena8etkz8arhbhxt';   // סוכנת האפיון
 const WIDGET_SRC = 'https://unpkg.com/@elevenlabs/convai-widget-embed';
-const WA_AFTER   = 25000;    // הסרגל נדלק 25 שניות לתוך השיחה
-const LOAD_LIMIT = 8000;     // אחרי זה מניחים שהחלון לא נטען
+const WA_AFTER   = 25000;
+const LOAD_LIMIT = 8000;
+
+/* מאיפה נשלפים פרטי העסקה. ראשון — אותו דומיין דרך ה-proxy.
+   השני נכנס לפעולה רק אם ה-proxy לא נתפס; מלאו אותו בכתובת
+   הפונקציות אם צריך. */
+const ORDER_API = ['/api/order', ''];
 
 const $ = s => document.querySelector(s);
 const track = (ev, data) => { try { window.fbq && fbq('track', ev, data || {}); } catch (e) {} };
+const trackCustom = (ev, data) => { try { window.fbq && fbq('trackCustom', ev, data || {}); } catch (e) {} };
 
 /* ============================================================
-   מכונת המצבים — הפונקציה היחידה שמשנה מה מוצג
+   מכונת המצבים
    ============================================================ */
 const STATES = ['rest', 'prep', 'connecting', 'live', 'ended'];
 let state = 'rest';
-let mode = 'voice';          // voice | text
-let waTimer = null, loadTimer = null, leadFired = false;
+let mode = 'voice';
+let waTimer = null, loadTimer = null, briefStarted = false;
+let order = null;                 // מה שנשלף על העסקה, אם נשלף
 
 function setState(next, opts = {}) {
   if (!STATES.includes(next)) return;
   state = next;
   document.body.dataset.state = next;
 
-  // כל מעבר מנקה את מה שהקודם הדליק — אין שאריות שממשיכות לרוץ
   clearTimeout(waTimer); clearTimeout(loadTimer);
   $('#wa').classList.remove('on');
 
@@ -303,20 +335,24 @@ function setState(next, opts = {}) {
     $('#liveTitle').textContent = mode === 'text' ? 'אפשר לכתוב לה' : 'היא מקשיבה';
     $('#liveSub').textContent = mode === 'text'
       ? 'בלי מיקרופון. כותבים, היא עונה.'
-      : 'מדברים אליה כמו שמדברים לבן אדם. אפשר לסגור מתי שרוצים.';
+      : 'מדברים אליה כמו שמדברים לבן אדם. אפשר לעצור מתי שרוצים ולחזור.';
     waTimer = setTimeout(() => $('#wa').classList.add('on'), WA_AFTER);
-    // Lead נורה פעם אחת לביקור, גם אם חוזרים לשיחה
-    if (!leadFired) { leadFired = true; track('Lead', { content_name: 'שיחה עם הסוכנת', content_category: mode }); }
+    /* אירוע מותאם ולא Lead: הליד כבר שילם, וערבוב שלו עם לידים
+       מהקמפיין היה מלמד את האופטימיזציה על הקהל הלא נכון. */
+    if (!briefStarted) {
+      briefStarted = true;
+      trackCustom('BriefStarted', { mode, ref: (order && order.ref) || '' });
+    }
   }
 
   if (next === 'ended') {
     const COPY = {
-      done: ['זהו, סיימנו',
-        'מה שאמרתם יושב אצלנו. אם כבר שילמתם — השעון רץ ונחזור אליכם עם הסרטון. אם עוד לא, זה הרגע.'],
+      done: ['זהו. יש לנו מה שצריך.',
+        'מכאן זה עלינו. נחזור אליכם עם הסרטון, ואם נצטרך משהו נוסף — נכתוב בוואטסאפ.'],
       load: ['החלון לא נפתח',
-        'קרתה תקלה בטעינה — לא אצלכם, אצלנו. אפשר לנסות שוב, ואפשר פשוט לכתוב לנו בוואטסאפ ונענה בעצמנו.'],
+        'קרתה תקלה בטעינה — לא אצלכם, אצלנו. אפשר לנסות שוב, ואפשר פשוט לכתוב לנו בוואטסאפ ונעשה את האפיון שם.'],
       error: ['משהו נתקע באמצע',
-        'השיחה נקטעה. אפשר לנסות שוב, ואם זה חוזר — כתבו לנו בוואטסאפ ל-055-950-1280.']
+        'השיחה נקטעה. מה שנאמר עד עכשיו נשמר. אפשר להמשיך מכאן, או לכתוב לנו בוואטסאפ.']
     };
     const r = COPY[opts.reason] ? opts.reason : 'done';
     $('#endTitle').textContent = COPY[r][0];
@@ -328,33 +364,61 @@ function setState(next, opts = {}) {
 }
 
 /* ============================================================
-   תמונת הגיבור — קובץ חסר לא משאיר חור
+   פרטי העסקה — נחמדות, לא תנאי
+   ------------------------------------------------------------
+   בלי ref, או כשהשליפה נכשלת, הדף נשאר בדיוק כפי שהוא. שום
+   דבר כאן לא חוסם את האפיון.
    ============================================================ */
-(function heroImage() {
-  const box = $('#hero'), img = new Image();
-  img.onload = () => { box.style.backgroundImage = 'url(./hero.jpg)'; };
-  img.onerror = () => { box.style.display = 'none'; };
-  img.src = './hero.jpg';
-})();
+const PRODUCT_TEXT = {
+  single: 'הסטוץ · סרטון אחד',
+  bundle: 'לא נעלמים בבוקר · ארבעה סרטונים בחודש'
+};
+
+async function loadOrder() {
+  const ref = new URLSearchParams(location.search).get('ref');
+  if (!ref) return;
+
+  for (const base of ORDER_API) {
+    if (!base) continue;
+    try {
+      const r = await fetch(base + '?ref=' + encodeURIComponent(ref), { headers: { Accept: 'application/json' } });
+      if (!r.ok) continue;
+      const j = await r.json();
+      if (j && j.ok) { order = Object.assign({ ref }, j); paint(); return; }
+    } catch (e) { /* ממשיכים לכתובת הבאה, ואם אין — בלי פרטים */ }
+  }
+}
+
+function paint() {
+  if (!order) return;
+  if (order.name) $('#hello').textContent = order.name + ', קלטנו.';
+
+  const box = $('#paid');
+  const row = (k, v, y) =>
+    `<div class="row"><span class="k">${k}</span><span class="v${y ? ' y' : ''}">${v}</span></div>`;
+
+  const bits = [];
+  if (order.productName) bits.push(row('מה', PRODUCT_TEXT[order.product] || order.productName));
+  if (order.amount) bits.push(row('שולם', order.amount.toLocaleString('he-IL') + ' ₪'));
+  if (order.dueText) bits.push(row('אצלכם עד', order.dueText, true));
+  if (!bits.length) return;
+
+  box.innerHTML = bits.join('');
+  box.hidden = false;
+}
 
 /* ============================================================
-   המיקרופון — שואלים אנחנו, לא הווידג'ט
-   ------------------------------------------------------------
-   כך שגיאת הרשאה נתפסת כאן ומתורגמת לעברית, במקום להופיע
-   באנגלית בתוך חלון שאין לנו שליטה עליו.
+   המיקרופון והווידג'ט — כמו בדף הסוכנת
    ============================================================ */
 async function askMic() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return false;
   try {
     const s = await navigator.mediaDevices.getUserMedia({ audio: true });
-    s.getTracks().forEach(t => t.stop());     // הווידג'ט יבקש בעצמו; רק בדקנו שיש רשות
+    s.getTracks().forEach(t => t.stop());
     return true;
   } catch (e) { return false; }
 }
 
-/* ============================================================
-   הווידג'ט
-   ============================================================ */
 let mounted = false;
 
 function mountWidget() {
@@ -366,17 +430,29 @@ function mountWidget() {
   host.setAttribute('language', 'he');
   host.setAttribute('variant', 'expanded');
   if (mode === 'text') host.setAttribute('text-only', 'true');
+
+  /* מה שהסוכנת מקבלת מראש. order_id הוא מה שמאפשר ל-webhook
+     שאחרי השיחה לצרף את התמליל ללקוח הנכון בלי לנחש לפי שם. */
+  if (order) {
+    try {
+      host.setAttribute('dynamic-variables', JSON.stringify({
+        order_id: order.ref || '',
+        client_name: order.name || '',
+        product: order.product || ''
+      }));
+    } catch (e) { /* בלי משתנים — השיחה עדיין עובדת */ }
+  }
+
   $('#widget').appendChild(host);
 
   return new Promise(resolve => {
-    const done = ok => { if (!resolved) { resolved = true; resolve(ok); } };
     let resolved = false;
+    const done = ok => { if (!resolved) { resolved = true; resolve(ok); } };
 
     const s = document.createElement('script');
     s.src = WIDGET_SRC; s.async = true; s.type = 'text/javascript';
     s.onerror = () => done(false);
     s.onload = () => {
-      // מחכים שהאלמנט יוגדר בפועל, לא רק שהקובץ ירד
       if (window.customElements && customElements.whenDefined) {
         customElements.whenDefined('elevenlabs-convai').then(() => setTimeout(() => done(true), 600));
       } else setTimeout(() => done(true), 900);
@@ -387,9 +463,6 @@ function mountWidget() {
   });
 }
 
-/* ============================================================
-   המסלולים
-   ============================================================ */
 async function startVoice() {
   mode = 'voice';
   setState('connecting');
@@ -397,11 +470,10 @@ async function startVoice() {
 
   const ok = await askMic();
   if (!ok) {
-    // הרשאה נדחתה או שאין מיקרופון — עוברים לכתיבה, לא למסך מת
     mode = 'text';
     $('#connMsg').textContent = 'בלי מיקרופון. פותחים מצב כתיבה…';
   } else {
-    $('#connMsg').textContent = 'מחברים אתכם אליה…';
+    $('#connMsg').textContent = 'מחברים אתכם…';
   }
 
   const up = await mountWidget();
@@ -426,24 +498,18 @@ $('#again').addEventListener('click', () => setState(mounted ? 'live' : 'rest'))
 document.querySelectorAll('[data-wa]').forEach(a =>
   a.addEventListener('click', () => track('Contact', { content_category: 'whatsapp' })));
 
-/* ============================================================
-   אירועים מהווידג'ט, אם וכשהוא שולח אותם
-   ------------------------------------------------------------
-   אין הסתמכות עליהם: המצב נקבע גם בלעדיהם. הם רק מדייקים
-   את הרגע שבו השיחה נגמרת.
-   ============================================================ */
 ['elevenlabs-convai:call-ended', 'convai-call-end', 'elevenlabs-convai:disconnect'].forEach(name =>
   window.addEventListener(name, () => { if (state === 'live') setState('ended', { reason: 'done' }); }));
 
-/* חשוף בכוונה: מאפשר לבדוק את מכונת המצבים מבחוץ, בלי לגעת
-   בפנים. אין כאן שום דבר סודי — רק המצב ומי שמזיז אותו. */
-window.__front = { setState, state: () => state, mode: () => mode };
-
-/* תקלה שנזרקת מהווידג'ט לא מוצגת באנגלית — היא מעבירה מצב */
 window.addEventListener('error', e => {
   const src = (e.filename || '') + '';
   if (state === 'live' && src.includes('convai')) setState('ended', { reason: 'error' });
 }, true);
+
+/* חשוף בכוונה, לבדיקות */
+window.__front = { setState, state: () => state, mode: () => mode, order: () => order };
+
+loadOrder();
 </script>
 </body>
 </html>
